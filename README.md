@@ -24,9 +24,12 @@ This plugin's configuration consists of the configuration of the requested Kafka
 | Name | Description | Required | Example | 
 | --- | --- | --- | --- |
 | `task.class` | The class of the requested connector | yes | `io.aiven.connect.jdbc.sink.JdbcSinkTask` |
-| `schema` | The schema of the records which will be written to a destinaton connector. | yes, if it's a destination connector | `{\"name\":\"customers\",\"fields\":{\"id\":\"INT32\",\"name\":\"STRING\",\"trial\":\"BOOLEAN\"}}` |
+| `schema` | The schema of the records which will be written to a destinaton connector. | yes, if it's a JDBC destination connector[1] | `{\"name\":\"customers\",\"fields\":{\"id\":\"INT32\",\"name\":\"STRING\",\"trial\":\"BOOLEAN\"}}` |
 | `pipelineId` | The ID of the pipeline to which this connector will be added. | no | |
 | `connectorName` | The name of the connector which is to be created. Used in logs.| no | `prod-mysql-destination` |
+
+Notes:
+1. The JDBC sink connector requires a value schema of `Struct`, which implies a schema to be defined.
 
 Here's a full example, for a new Conduit destination connector, backed up by a JDBC Kafka sink connector.
 ```
