@@ -17,3 +17,29 @@ to also quickly copy the executable to Conduit's plugin directory (it assumes th
 a handshake with Conduit via standard output, and that is expected to be the first line in the standard output.
 2. Currently, only sink connectors are supported. Work is under way to support source connectors too.
 3. Currently, it's possible to use this plugin only on Unix-like systems.
+
+#### Configuration
+This plugin's configuration consists of the configuration of the requested Kafka connector, plus:
+
+| Name | Description | Required | Example | 
+| --- | --- | --- | --- |
+| `task.class` | The class of the requested connector | yes | `io.aiven.connect.jdbc.sink.JdbcSinkTask` |
+| `schema` | The schema of the records which will be written to a destinaton connector. | yes, if it's a destination connector | `{\"name\":\"customers\",\"fields\":{\"id\":\"INT32\",\"name\":\"STRING\",\"trial\":\"BOOLEAN\"}}` |
+| `pipelineId` | The ID of the pipeline to which this connector will be added. | no | |
+| `connectorName` | The name of the connector which is to be created. Used in logs.| no | `prod-mysql-destination` |
+
+Here's a full example, for a new Conduit destination connector, backed up by a JDBC Kafka sink connector.
+```
+{
+	"task.class": "io.aiven.connect.jdbc.sink.JdbcSinkTask",
+	"schema": "{\"name\":\"customers\",\"fields\":{\"id\":\"INT32\",\"name\":\"STRING\",\"trial\":\"BOOLEAN\"}}",
+	"connectorName": "local-pg-destination",
+	"pipelineId": "%s",
+	"connection.url": "jdbc:postgresql://localhost/my-test-db",
+	"connection.user": "user",
+	"connection.password": "password123456",
+	"auto.create":    "true",
+	"auto.evolve":    "true",
+	"batch.size": "10"
+}
+```
