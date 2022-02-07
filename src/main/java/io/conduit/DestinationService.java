@@ -31,7 +31,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
             doConfigure(request.getConfigMap());
             log.info("Done configuring the destination.");
 
-            responseObserver.onNext(Response.newBuilder().build());
+            responseObserver.onNext(Destination.Configure.Response.newBuilder().build());
             responseObserver.onCompleted();
         } catch (Exception e) {
             log.error("Error while opening destination.", e);
@@ -102,7 +102,21 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
     @Override
     public void stop(Destination.Stop.Request request, StreamObserver<Destination.Stop.Response> responseObserver) {
-        super.stop(request, responseObserver);
+        log.info("Stopping the destination...");
+
+        try {
+            task.flush(Map.of());
+            task.stop();
+            log.info("Destination stopped.");
+
+            responseObserver.onNext(Destination.Stop.Response.newBuilder().build());
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            log.error("Error while stopping the destination.", e);
+            responseObserver.onError(
+                    Status.INTERNAL.withDescription("couldn't start task: " + e.getMessage()).withCause(e).asException()
+            );
+        }
     }
 
     @Override
