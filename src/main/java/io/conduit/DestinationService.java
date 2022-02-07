@@ -1,16 +1,28 @@
 package io.conduit;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.conduit.grpc.Destination;
 import io.conduit.grpc.Destination.Configure.Response;
 import io.conduit.grpc.DestinationPluginGrpc;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.sink.SinkTask;
+import org.slf4j.MDC;
 
+import java.util.Arrays;
 import java.util.Map;
 
 @Slf4j
 public class DestinationService extends DestinationPluginGrpc.DestinationPluginImplBase {
+    private SinkTask task;
+    private Schema schema;
+    private int bufferSize;
+
     @Override
     public void configure(Destination.Configure.Request request, StreamObserver<Response> responseObserver) {
         log.info("Configuring the destination.");
@@ -30,7 +42,52 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
     }
 
     private void doConfigure(Map<String, String> config) {
-        // todo implement me
+        // logging
+        MDC.put("pipelineId", config.remove("pipelineId"));
+        MDC.put("destName", config.remove("destName"));
+
+        this.task = newTask(config.remove("task.class"));
+        this.schema = buildSchema(config.remove("schema"));
+        setBufferSize(config.get("batch.size"));
+    }
+
+    @SneakyThrows
+    private SinkTask newTask(String className) {
+        Class<?> clazz = Class.forName(className);
+        Object taskObj = Arrays.stream(clazz.getConstructors())
+                .filter(c -> c.getParameterCount() == 0)
+                .findFirst()
+                .get()
+                .newInstance();
+        return (SinkTask) taskObj;
+    }
+
+    @SneakyThrows
+    private Schema buildSchema(String schemaString) {
+        // todo consider replacing with Gson, which is already on the classpath, to reduce the uber-jar size
+        JsonNode schemaJson = new ObjectMapper().readTree(schemaString);
+        final SchemaBuilder[] schema = {SchemaBuilder.struct().name(schemaJson.get("name").asText()).optional()};
+        JsonNode fields = schemaJson.get("fields");
+        fields.fieldNames().forEachRemaining(field -> {
+            String typeString = fields.get(field).asText();
+            SchemaBuilder type = new SchemaBuilder(Schema.Type.valueOf(typeString))
+                    //todo make configurable
+                    .optional();
+            schema[0] = schema[0].field(field, type);
+        });
+
+        return schema[0];
+    }
+
+    private void setBufferSize(String buffSizeStr) {
+        int buffSize;
+        if (Utils.isEmpty(buffSizeStr)) {
+            // not the same default as in JdbcSinkTask, which is 3000
+            buffSize = 100;
+        } else {
+            buffSize = Integer.parseInt(buffSizeStr);
+        }
+        this.bufferSize = buffSize;
     }
 
     @Override
