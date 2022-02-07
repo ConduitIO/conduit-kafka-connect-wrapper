@@ -22,6 +22,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
     private SinkTask task;
     private Schema schema;
     private int bufferSize;
+    private Map<String, String> config;
 
     @Override
     public void configure(Destination.Configure.Request request, StreamObserver<Response> responseObserver) {
@@ -36,7 +37,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
         } catch (Exception e) {
             log.error("Error while opening destination.", e);
             responseObserver.onError(
-                    Status.INTERNAL.withDescription("couldn't start task: " + e.getMessage()).withCause(e).asException()
+                    Status.INTERNAL.withDescription("couldn't configure task: " + e.getMessage()).withCause(e).asException()
             );
         }
     }
@@ -49,6 +50,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
         this.task = newTask(config.remove("task.class"));
         this.schema = buildSchema(config.remove("schema"));
         setBufferSize(config.get("batch.size"));
+        this.config = config;
     }
 
     @SneakyThrows
@@ -92,7 +94,20 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
     @Override
     public void start(Destination.Start.Request request, StreamObserver<Destination.Start.Response> responseObserver) {
-        super.start(request, responseObserver);
+        log.info("Starting the destination.");
+
+        try {
+            task.start(config);
+            log.info("Destination started.");
+
+            responseObserver.onNext(Destination.Start.Response.newBuilder().build());
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            log.error("Error while starting the destination.", e);
+            responseObserver.onError(
+                    Status.INTERNAL.withDescription("couldn't start task: " + e.getMessage()).withCause(e).asException()
+            );
+        }
     }
 
     @Override
@@ -114,7 +129,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
         } catch (Exception e) {
             log.error("Error while stopping the destination.", e);
             responseObserver.onError(
-                    Status.INTERNAL.withDescription("couldn't start task: " + e.getMessage()).withCause(e).asException()
+                    Status.INTERNAL.withDescription("couldn't stop task: " + e.getMessage()).withCause(e).asException()
             );
         }
     }
