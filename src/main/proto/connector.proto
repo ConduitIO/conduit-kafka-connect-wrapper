@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+package connector.v1;
+
+option java_multiple_files = true;
+option java_package = "io.conduit.grpc";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+message Record {
+  bytes position = 1;
+  map<string, string> metadata = 2;
+  google.protobuf.Timestamp created_at = 3;
+  Data key = 4;
+  Data payload = 5;
+}
+
+message Data {
+  oneof data {
+    bytes raw_data = 1;
+    google.protobuf.Struct structured_data = 2;
+  }
+}
+
+service SourcePlugin {
+  rpc Configure(Source.Configure.Request) returns (Source.Configure.Response);
+  rpc Start(Source.Start.Request) returns (Source.Start.Response);
+  rpc Run(stream Source.Run.Request) returns (stream Source.Run.Response);
+  rpc Stop(Source.Stop.Request) returns (Source.Stop.Response);
+  rpc Teardown(Source.Teardown.Request) returns (Source.Teardown.Response);
+}
+
+service DestinationPlugin {
+  rpc Configure(Destination.Configure.Request) returns (Destination.Configure.Response);
+  rpc Start(Destination.Start.Request) returns (Destination.Start.Response);
+  rpc Run(stream Destination.Run.Request) returns (stream Destination.Run.Response);
+  rpc Stop(Destination.Stop.Request) returns (Destination.Stop.Response);
+  rpc Teardown(Destination.Teardown.Request) returns (Destination.Teardown.Response);
+}
+
+service SpecifierPlugin {
+  rpc Specify(Specifier.Specify.Request) returns (Specifier.Specify.Response);
+}
+
+message Source {
+  message Configure {
+    message Request {
+      map<string, string> config = 1;
+    }
+    message Response {}
+  }
+
+  message Start {
+    message Request {
+      bytes position = 1;
+    }
+    message Response {}
+  }
+
+  message Run {
+    message Request {
+      bytes ack_position = 1;
+    }
+    message Response {
+      Record record = 1;
+    }
+  }
+
+  message Stop {
+    message Request {}
+    message Response {}
+  }
+
+  message Teardown {
+    message Request {}
+    message Response {}
+  }
+}
+
+message Destination {
+  message Configure {
+    message Request {
+      map<string, string> config = 1;
+    }
+    message Response {}
+  }
+
+  message Start {
+    message Request {}
+    message Response {}
+  }
+
+  message Run {
+    message Request {
+      Record record = 1;
+    }
+    message Response {
+      bytes ack_position = 1;
+      string error = 2;
+    }
+  }
+
+  message Stop {
+    message Request {}
+    message Response {}
+  }
+
+  message Teardown {
+    message Request {}
+    message Response {}
+  }
+}
+
+message Specifier {
+  message Specify {
+    message Request {}
+    message Response {
+      string name = 1;
+      string summary = 2;
+      string description = 3;
+      string version = 4;
+      string author = 5;
+      map<string, Parameter> destination_params = 6;
+      map<string, Parameter> source_params = 7;
+    }
+  }
+
+  message Parameter {
+    string default = 1;
+    bool required = 2;
+    string description = 3;
+  }
+}

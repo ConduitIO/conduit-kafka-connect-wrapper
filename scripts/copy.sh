@@ -1,0 +1,1 @@
+cp kafka-connector-plugin ../conduit/pkg/plugins/
