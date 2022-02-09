@@ -3,8 +3,12 @@ The Kafka connector Conduit plugin's goal is to make it possible to use existing
 
 #### Pre-requisites
 * JDK 11
-* To use the JDBC Kafka connectors, you need to have [Aiven's JDBC Connectors for Apache Kafka®](https://github.com/aiven/jdbc-connector-for-apache-kafka) 
-installed to your local Maven repository (by running `mvn install` in a clone of that repository)
+* To use the JDBC Kafka connectors, you need to have a JDBC connector jar installed to your local Maven repository. To do so:
+  * Clone https://github.com/meroxa/aiven-kafka-connect-jdbc
+  * `git checkout fix-gradle-publishToMavenLocal`
+  * `./gradlew publishToMavenLocal`
+  * This is because in the upstream repository (Aiven's repository), publishing to Maven locally doesn't work. The branch above has a fix.
+* (by running `mvn install` in a clone of that repository)
 * The plugin needs to have write permissions to the directory /var/log/kafka-connector-plugin/
 
 #### How to build
