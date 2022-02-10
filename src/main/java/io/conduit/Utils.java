@@ -5,6 +5,6 @@ public final class Utils {
     }
 
     public static boolean isEmpty(String str) {
-        return str == null || str.trim() == "";
+        return str == null || str.isBlank();
     }
 }

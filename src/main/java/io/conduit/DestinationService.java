@@ -21,7 +21,6 @@ import java.util.Map;
 public class DestinationService extends DestinationPluginGrpc.DestinationPluginImplBase {
     private SinkTask task;
     private Schema schema;
-    private int bufferSize;
     private Map<String, String> config;
 
     @Override
@@ -45,11 +44,10 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
     private void doConfigure(Map<String, String> config) {
         // logging
         MDC.put("pipelineId", config.remove("pipelineId"));
-        MDC.put("destName", config.remove("destName"));
+        MDC.put("connectorName", config.remove("connectorName"));
 
         this.task = newTask(config.remove("task.class"));
         this.schema = buildSchema(config.remove("schema"));
-        setBufferSize(config.get("batch.size"));
         this.config = config;
     }
 
@@ -79,17 +77,6 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
         });
 
         return schema[0];
-    }
-
-    private void setBufferSize(String buffSizeStr) {
-        int buffSize;
-        if (Utils.isEmpty(buffSizeStr)) {
-            // not the same default as in JdbcSinkTask, which is 3000
-            buffSize = 100;
-        } else {
-            buffSize = Integer.parseInt(buffSizeStr);
-        }
-        this.bufferSize = buffSize;
     }
 
     @Override
