@@ -1,16 +1,28 @@
 package io.conduit;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.conduit.grpc.Destination;
 import io.conduit.grpc.Destination.Configure.Response;
 import io.conduit.grpc.DestinationPluginGrpc;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.sink.SinkTask;
+import org.slf4j.MDC;
 
+import java.util.Arrays;
 import java.util.Map;
 
 @Slf4j
 public class DestinationService extends DestinationPluginGrpc.DestinationPluginImplBase {
+    private SinkTask task;
+    private Schema schema;
+    private Map<String, String> config;
+
     @Override
     public void configure(Destination.Configure.Request request, StreamObserver<Response> responseObserver) {
         log.info("Configuring the destination.");
@@ -19,23 +31,70 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
             doConfigure(request.getConfigMap());
             log.info("Done configuring the destination.");
 
-            responseObserver.onNext(Response.newBuilder().build());
+            responseObserver.onNext(Destination.Configure.Response.newBuilder().build());
             responseObserver.onCompleted();
         } catch (Exception e) {
             log.error("Error while opening destination.", e);
             responseObserver.onError(
-                    Status.INTERNAL.withDescription("couldn't start task: " + e.getMessage()).withCause(e).asException()
+                    Status.INTERNAL.withDescription("couldn't configure task: " + e.getMessage()).withCause(e).asException()
             );
         }
     }
 
     private void doConfigure(Map<String, String> config) {
-        // todo implement me
+        // logging
+        MDC.put("pipelineId", config.remove("pipelineId"));
+        MDC.put("connectorName", config.remove("connectorName"));
+
+        this.task = newTask(config.remove("task.class"));
+        this.schema = buildSchema(config.remove("schema"));
+        this.config = config;
+    }
+
+    @SneakyThrows
+    private SinkTask newTask(String className) {
+        Class<?> clazz = Class.forName(className);
+        Object taskObj = Arrays.stream(clazz.getConstructors())
+                .filter(c -> c.getParameterCount() == 0)
+                .findFirst()
+                .get()
+                .newInstance();
+        return (SinkTask) taskObj;
+    }
+
+    @SneakyThrows
+    private Schema buildSchema(String schemaString) {
+        // todo consider replacing with Gson, which is already on the classpath, to reduce the uber-jar size
+        JsonNode schemaJson = new ObjectMapper().readTree(schemaString);
+        final SchemaBuilder[] schema = {SchemaBuilder.struct().name(schemaJson.get("name").asText()).optional()};
+        JsonNode fields = schemaJson.get("fields");
+        fields.fieldNames().forEachRemaining(field -> {
+            String typeString = fields.get(field).asText();
+            SchemaBuilder type = new SchemaBuilder(Schema.Type.valueOf(typeString))
+                    //todo make configurable
+                    .optional();
+            schema[0] = schema[0].field(field, type);
+        });
+
+        return schema[0];
     }
 
     @Override
     public void start(Destination.Start.Request request, StreamObserver<Destination.Start.Response> responseObserver) {
-        super.start(request, responseObserver);
+        log.info("Starting the destination.");
+
+        try {
+            task.start(config);
+            log.info("Destination started.");
+
+            responseObserver.onNext(Destination.Start.Response.newBuilder().build());
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            log.error("Error while starting the destination.", e);
+            responseObserver.onError(
+                    Status.INTERNAL.withDescription("couldn't start task: " + e.getMessage()).withCause(e).asException()
+            );
+        }
     }
 
     @Override
@@ -45,7 +104,21 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
     @Override
     public void stop(Destination.Stop.Request request, StreamObserver<Destination.Stop.Response> responseObserver) {
-        super.stop(request, responseObserver);
+        log.info("Stopping the destination...");
+
+        try {
+            task.flush(Map.of());
+            task.stop();
+            log.info("Destination stopped.");
+
+            responseObserver.onNext(Destination.Stop.Response.newBuilder().build());
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            log.error("Error while stopping the destination.", e);
+            responseObserver.onError(
+                    Status.INTERNAL.withDescription("couldn't stop task: " + e.getMessage()).withCause(e).asException()
+            );
+        }
     }
 
     @Override
