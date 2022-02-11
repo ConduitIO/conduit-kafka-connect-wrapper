@@ -15,6 +15,7 @@
         <grpc.version>1.44.0</grpc.version>
         <protobuf.version>3.19.2</protobuf.version>
         <protoc.version>3.19.2</protoc.version>
+        <kafka.version>3.1.0</kafka.version>
     </properties>
 
     <dependencyManagement>
@@ -71,11 +72,34 @@
             <version>6.0.53</version>
             <scope>provided</scope> <!-- not needed at runtime -->
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.13.1</version>
+        </dependency>
 
+        <!-- Kafka related dependencies -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-api</artifactId>
-            <version>3.1.0</version>
+            <version>${kafka.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-json</artifactId>
+            <version>${kafka.version}</version>
+        </dependency>
+
+        <!-- Kafka Connector related dependencies -->
+        <dependency>
+            <groupId>io.aiven</groupId>
+            <artifactId>aiven-kafka-connect-jdbc</artifactId>
+            <version>6.7.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.2.23</version>
         </dependency>
 
         <dependency>

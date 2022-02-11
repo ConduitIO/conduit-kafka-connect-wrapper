@@ -1,34 +1,40 @@
 package io.conduit;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.conduit.grpc.Destination;
 import io.conduit.grpc.Destination.Configure.Response;
+import io.conduit.grpc.Destination.Teardown;
 import io.conduit.grpc.DestinationPluginGrpc;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.sink.SinkTask;
 import org.slf4j.MDC;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
+
+import static io.conduit.Utils.mapper;
 
 @Slf4j
 public class DestinationService extends DestinationPluginGrpc.DestinationPluginImplBase {
     private SinkTask task;
     private Schema schema;
     private Map<String, String> config;
+    private DestinationStream stream;
+    private boolean started;
 
     @Override
     public void configure(Destination.Configure.Request request, StreamObserver<Response> responseObserver) {
         log.info("Configuring the destination.");
 
         try {
-            doConfigure(request.getConfigMap());
+            // the returned config map is unmodifiable, so we make a copy
+            // since we need to remove some keys
+            doConfigure(new HashMap<>(request.getConfigMap()));
             log.info("Done configuring the destination.");
 
             responseObserver.onNext(Destination.Configure.Response.newBuilder().build());
@@ -64,19 +70,8 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
     @SneakyThrows
     private Schema buildSchema(String schemaString) {
-        // todo consider replacing with Gson, which is already on the classpath, to reduce the uber-jar size
-        JsonNode schemaJson = new ObjectMapper().readTree(schemaString);
-        final SchemaBuilder[] schema = {SchemaBuilder.struct().name(schemaJson.get("name").asText()).optional()};
-        JsonNode fields = schemaJson.get("fields");
-        fields.fieldNames().forEachRemaining(field -> {
-            String typeString = fields.get(field).asText();
-            SchemaBuilder type = new SchemaBuilder(Schema.Type.valueOf(typeString))
-                    //todo make configurable
-                    .optional();
-            schema[0] = schema[0].field(field, type);
-        });
-
-        return schema[0];
+        JsonNode schemaJson = mapper.readTree(schemaString);
+        return Utils.jsonConv.asConnectSchema(schemaJson);
     }
 
     @Override
@@ -85,12 +80,13 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
         try {
             task.start(config);
+            started = true;
             log.info("Destination started.");
 
             responseObserver.onNext(Destination.Start.Response.newBuilder().build());
             responseObserver.onCompleted();
         } catch (Exception e) {
-            log.error("Error while starting the destination.", e);
+            log.error("Error while starting.", e);
             responseObserver.onError(
                     Status.INTERNAL.withDescription("couldn't start task: " + e.getMessage()).withCause(e).asException()
             );
@@ -99,30 +95,32 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
     @Override
     public StreamObserver<Destination.Run.Request> run(StreamObserver<Destination.Run.Response> responseObserver) {
-        return super.run(responseObserver);
+        this.stream = new DestinationStream(task, schema, responseObserver);
+        return stream;
     }
 
     @Override
     public void stop(Destination.Stop.Request request, StreamObserver<Destination.Stop.Response> responseObserver) {
-        log.info("Stopping the destination...");
-
-        try {
-            task.flush(Map.of());
-            task.stop();
-            log.info("Destination stopped.");
-
-            responseObserver.onNext(Destination.Stop.Response.newBuilder().build());
-            responseObserver.onCompleted();
-        } catch (Exception e) {
-            log.error("Error while stopping the destination.", e);
-            responseObserver.onError(
-                    Status.INTERNAL.withDescription("couldn't stop task: " + e.getMessage()).withCause(e).asException()
-            );
-        }
+        // todo check if a record is being flushed
+        responseObserver.onNext(Destination.Stop.Response.newBuilder().build());
+        responseObserver.onCompleted();
     }
 
     @Override
-    public void teardown(Destination.Teardown.Request request, StreamObserver<Destination.Teardown.Response> responseObserver) {
-        super.teardown(request, responseObserver);
+    public void teardown(Teardown.Request request, StreamObserver<Teardown.Response> responseObserver) {
+        log.info("Tearing down...");
+        try {
+            if (task != null && started) {
+                task.stop();
+            }
+            responseObserver.onNext(Teardown.Response.newBuilder().build());
+            responseObserver.onCompleted();
+            log.info("Torn down.");
+        } catch (Exception e) {
+            log.error("Couldn't tear down.", e);
+            responseObserver.onError(
+                    Status.INTERNAL.withDescription("Couldn't tear down: " + e.getMessage()).withCause(e).asException()
+            );
+        }
     }
 }

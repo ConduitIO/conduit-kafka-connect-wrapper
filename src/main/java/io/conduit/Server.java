@@ -1,10 +1,12 @@
 package io.conduit;
 
 import io.grpc.ServerBuilder;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 public class Server {
     private final io.grpc.Server server;
 
@@ -20,8 +22,10 @@ public class Server {
     }
 
     public void start() throws IOException {
+        log.info("Starting server...");
         server.start();
-
+        log.info("Started on port {}", getPort());
+        
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             // Use stderr here since the logger may have been reset by its JVM shutdown hook.
             System.err.println("*** shutting down gRPC server since JVM is shutting down");
