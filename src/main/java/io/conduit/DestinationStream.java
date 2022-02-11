@@ -19,7 +19,6 @@ import java.util.List;
 import static io.conduit.Utils.jsonConv;
 import static io.conduit.Utils.mapper;
 import static java.util.Collections.emptyMap;
-import static java.util.UUID.randomUUID;
 
 @Slf4j
 public class DestinationStream implements StreamObserver<Destination.Run.Request> {
@@ -87,7 +86,7 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
                 schema.name(),
                 0,
                 Schema.STRING_SCHEMA,
-                randomUUID().toString(),
+                record.getKey().getRawData().toStringUtf8(),
                 schema,
                 struct,
                 0
