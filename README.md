@@ -17,8 +17,6 @@ to also quickly copy the executable to Conduit's plugin directory (it assumes th
 a handshake with Conduit via standard output, and that is expected to be the first line in the standard output.
 2. Currently, only sink connectors are supported. Work is under way to support source connectors too.
 3. Currently, it's possible to use this plugin only on Unix-like systems.
-<<<<<<< HEAD
-=======
 4. The JDBC Kafka connector requires appropriate JDBC drivers to work. For example, if you want PostgreSQL sink connectors
 to work, then you need the following dependencies in `pom.xml`:
 ```xml
@@ -42,7 +40,6 @@ as a dependency, e.g.:
     <version>1.6.1</version>
 </dependency>
 ````
->>>>>>> haris/implement-run
 
 #### Configuration
 This plugin's configuration consists of the configuration of the requested Kafka connector, plus:
@@ -50,11 +47,7 @@ This plugin's configuration consists of the configuration of the requested Kafka
 | Name | Description | Required | Example | 
 | --- | --- | --- | --- |
 | `task.class` | The class of the requested connector | yes | `io.aiven.connect.jdbc.sink.JdbcSinkTask` |
-<<<<<<< HEAD
-| `schema` | The schema of the records which will be written to a destinaton connector. | yes, if it's a destination connector | `{\"name\":\"customers\",\"fields\":{\"id\":\"INT32\",\"name\":\"STRING\",\"trial\":\"BOOLEAN\"}}` |
-=======
-| `schema` | The schema of the records which will be written to a destinaton connector. | yes, if it's a destination connector | `"schema": "{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":true,\"field\":\"id\"},{\"type\":\"string\",\"optional\":true,\"field\":\"name\"},{\"type\":\"boolean\",\"optional\":true,\"field\":\"trial\"}],\"optional\":false,\"name\":\"customers\"}"` |
->>>>>>> haris/implement-run
+| `schema` | The schema of the records which will be written to a destinaton connector. | yes, if it's a destination connector | `{"type":"struct","fields":[{"type":"int32","optional":true,"field":"id"},{"type":"string","optional":true,"field":"name"},{"type":"boolean","optional":true,"field":"trial"}],"name":"customers"}` |
 | `pipelineId` | The ID of the pipeline to which this connector will be added. | no | |
 | `connectorName` | The name of the connector which is to be created. Used in logs.| no | `prod-mysql-destination` |
 
@@ -62,15 +55,9 @@ Here's a full example, for a new Conduit destination connector, backed up by a J
 ```
 {
 	"task.class": "io.aiven.connect.jdbc.sink.JdbcSinkTask",
-<<<<<<< HEAD
-	"schema": "{\"name\":\"customers\",\"fields\":{\"id\":\"INT32\",\"name\":\"STRING\",\"trial\":\"BOOLEAN\"}}",
-	"connectorName": "local-pg-destination",
-	"pipelineId": "%s",
-=======
-	"schema": "{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":true,\"field\":\"id\"},{\"type\":\"string\",\"optional\":true,\"field\":\"name\"},{\"type\":\"boolean\",\"optional\":true,\"field\":\"trial\"}],\"optional\":false,\"name\":\"customers\"}",
+	"schema": "{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":true,\"field\":\"id\"},{\"type\":\"string\",\"optional\":true,\"field\":\"name\"},{\"type\":\"boolean\",\"optional\":true,\"field\":\"trial\"}],\"name\":\"customers\"}",
 	"connectorName": "local-pg-destination",
 	"pipelineId": "123-456-789",
->>>>>>> haris/implement-run
 	"connection.url": "jdbc:postgresql://localhost/my-test-db",
 	"connection.user": "user",
 	"connection.password": "password123456",
