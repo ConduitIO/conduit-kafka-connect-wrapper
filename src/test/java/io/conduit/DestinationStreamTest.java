@@ -24,8 +24,7 @@ import java.util.Collection;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
@@ -46,6 +45,37 @@ public class DestinationStreamTest {
                 .field("name", Schema.STRING_SCHEMA)
                 .build();
         this.underTest = new DestinationStream(task, schema, streamObserver);
+    }
+
+    @Test
+    public void testWriteRecordNoSchema() {
+        DestinationStream underTest = new DestinationStream(task, null, streamObserver);
+        Destination.Run.Request request = newRequest();
+        Record record = request.getRecord();
+
+        underTest.onNext(request);
+
+        ArgumentCaptor<Collection<SinkRecord>> recordsCaptor = ArgumentCaptor.forClass(Collection.class);
+        verify(task).put(recordsCaptor.capture());
+
+        // verify that SinkRecord has correct content: schema + key + payload
+        // todo check timestamps too?
+        SinkRecord sinkRecord = recordsCaptor.getValue().iterator().next();
+        assertNull(sinkRecord.valueSchema());
+        assertEquals(record.getKey().getRawData().toStringUtf8(), sinkRecord.key());
+        assertEquals(
+                record.getPayload().getRawData(),
+                ByteString.copyFrom((byte[]) sinkRecord.value())
+        );
+
+        // task should be flushed, since Conduit doesn't (yet) support async. writes
+        verify(task).flush(argThat(m -> m.isEmpty()));
+        // no errors
+        verify(streamObserver, never()).onError(any());
+        // verify position
+        ArgumentCaptor<Destination.Run.Response> responseCaptor = ArgumentCaptor.forClass(Destination.Run.Response.class);
+        verify(streamObserver).onNext(responseCaptor.capture());
+        assertEquals(record.getPosition(), responseCaptor.getValue().getAckPosition());
     }
 
     @Test
@@ -72,6 +102,7 @@ public class DestinationStreamTest {
         verify(task).flush(argThat(m -> m.isEmpty()));
 
         // verify position
+        verify(streamObserver, never()).onError(any());
         ArgumentCaptor<Destination.Run.Response> responseCaptor = ArgumentCaptor.forClass(Destination.Run.Response.class);
         verify(streamObserver).onNext(responseCaptor.capture());
         assertEquals(record.getPosition(), responseCaptor.getValue().getAckPosition());

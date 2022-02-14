@@ -16,6 +16,7 @@ import org.slf4j.MDC;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.conduit.Utils.isEmpty;
 import static io.conduit.Utils.mapper;
 
 @Slf4j
@@ -58,13 +59,13 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
         String taskClass = config.remove("task.class");
         this.task = taskFactory.newSinkTask(taskClass);
-        this.schema = buildSchema(taskClass, config.remove("schema"));
+        this.schema = buildSchema(config.remove("schema"));
         this.config = config;
     }
 
     @SneakyThrows
-    private Schema buildSchema(String taskClass, String schemaString) {
-        if (!"io.aiven.connect.jdbc.sink.JdbcSinkTask".equals(taskClass)) {
+    private Schema buildSchema(String schemaString) {
+        if (isEmpty(schemaString)) {
             return null;
         }
         JsonNode schemaJson = mapper.readTree(schemaString);
