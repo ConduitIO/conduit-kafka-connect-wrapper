@@ -16,6 +16,8 @@ import org.apache.kafka.connect.sink.SinkTask;
 
 import java.util.List;
 
+import static io.conduit.Utils.jsonConv;
+import static io.conduit.Utils.mapper;
 import static java.util.Collections.emptyMap;
 import static java.util.UUID.randomUUID;
 
