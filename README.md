@@ -17,6 +17,29 @@ to also quickly copy the executable to Conduit's plugin directory (it assumes th
 a handshake with Conduit via standard output, and that is expected to be the first line in the standard output.
 2. Currently, only sink connectors are supported. Work is under way to support source connectors too.
 3. Currently, it's possible to use this plugin only on Unix-like systems.
+4. The JDBC Kafka connector requires appropriate JDBC drivers to work. For example, if you want PostgreSQL sink connectors
+to work, then you need the following dependencies in `pom.xml`:
+```xml
+<dependency>
+    <groupId>io.aiven</groupId>
+    <artifactId>aiven-kafka-connect-jdbc</artifactId>
+    <version>6.7.0-SNAPSHOT</version>
+</dependency>
+<dependency>
+    <groupId>org.postgresql</groupId>
+    <artifactId>postgresql</artifactId>
+    <version>42.2.23</version>
+</dependency>
+```
+5. Similarly, to be able to use another Kafka connector, it should be a matter of simply adding that connector
+as a dependency, e.g.:
+````xml
+<dependency>
+    <groupId>org.mongodb.kafka</groupId>
+    <artifactId>mongo-kafka-connect</artifactId>
+    <version>1.6.1</version>
+</dependency>
+````
 
 #### Configuration
 This plugin's configuration consists of the configuration of the requested Kafka connector, plus:
@@ -24,7 +47,7 @@ This plugin's configuration consists of the configuration of the requested Kafka
 | Name | Description | Required | Example | 
 | --- | --- | --- | --- |
 | `task.class` | The class of the requested connector | yes | `io.aiven.connect.jdbc.sink.JdbcSinkTask` |
-| `schema` | The schema of the records which will be written to a destinaton connector. | yes, if it's a destination connector | `{\"name\":\"customers\",\"fields\":{\"id\":\"INT32\",\"name\":\"STRING\",\"trial\":\"BOOLEAN\"}}` |
+| `schema` | The schema of the records which will be written to a destinaton connector. | yes, if it's a destination connector | `{"type":"struct","fields":[{"type":"int32","optional":true,"field":"id"},{"type":"string","optional":true,"field":"name"},{"type":"boolean","optional":true,"field":"trial"}],"name":"customers"}` |
 | `pipelineId` | The ID of the pipeline to which this connector will be added. | no | |
 | `connectorName` | The name of the connector which is to be created. Used in logs.| no | `prod-mysql-destination` |
 
@@ -32,9 +55,9 @@ Here's a full example, for a new Conduit destination connector, backed up by a J
 ```
 {
 	"task.class": "io.aiven.connect.jdbc.sink.JdbcSinkTask",
-	"schema": "{\"name\":\"customers\",\"fields\":{\"id\":\"INT32\",\"name\":\"STRING\",\"trial\":\"BOOLEAN\"}}",
+	"schema": "{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":true,\"field\":\"id\"},{\"type\":\"string\",\"optional\":true,\"field\":\"name\"},{\"type\":\"boolean\",\"optional\":true,\"field\":\"trial\"}],\"name\":\"customers\"}",
 	"connectorName": "local-pg-destination",
-	"pipelineId": "%s",
+	"pipelineId": "123-456-789",
 	"connection.url": "jdbc:postgresql://localhost/my-test-db",
 	"connection.user": "user",
 	"connection.password": "password123456",
