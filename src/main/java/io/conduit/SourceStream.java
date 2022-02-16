@@ -62,8 +62,6 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
     private void fillBuffer() {
         List<SourceRecord> polled = task.poll();
         while (Utils.isEmpty(polled)) {
-            // todo make configurable
-            Thread.sleep(200);
             polled = task.poll();
         }
         buffer.addAll(polled);

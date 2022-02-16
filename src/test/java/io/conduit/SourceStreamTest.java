@@ -42,8 +42,8 @@ public class SourceStreamTest {
     @Test
     public void testRunAfterInit() throws InterruptedException {
         new SourceStream(task, streamObserver, transformer);
-        Thread.sleep(100);
-        verify(task).poll();
+        Thread.sleep(50);
+        verify(task, atLeastOnce()).poll();
     }
 
     @Test
@@ -71,7 +71,7 @@ public class SourceStreamTest {
         when(transformer.apply(sourceRec)).thenReturn(conduitRec);
 
         new SourceStream(task, streamObserver, transformer);
-        Thread.sleep(1500);
+        Thread.sleep(50);
 
         ArgumentCaptor<Source.Run.Response> responseCaptor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(streamObserver, never()).onError(any());
@@ -85,7 +85,7 @@ public class SourceStreamTest {
         RuntimeException surprise = new RuntimeException("surprised ya, huh?");
         when(task.poll()).thenThrow(surprise);
         new SourceStream(task, streamObserver, transformer);
-        Thread.sleep(100);
+        Thread.sleep(50);
 
         verify(streamObserver, never()).onNext(any());
 
