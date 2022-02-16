@@ -54,7 +54,7 @@ public class TransformationsTest {
                 testSchema,
                 testValue
         );
-        Record conduitRec = Transformations.fromKafkaSource(sourceRecord);
+        Record.Builder conduitRec = Transformations.fromKafkaSource(sourceRecord);
         assertNotNull(conduitRec);
 
         // verify payload

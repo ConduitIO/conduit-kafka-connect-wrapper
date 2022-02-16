@@ -17,19 +17,17 @@ import static io.conduit.Utils.jsonConvSchemaless;
 import static java.util.Collections.emptyMap;
 
 public class Transformations {
-    public static final Record fromKafkaSource(SourceRecord sourceRecord) {
+    public static final Record.Builder fromKafkaSource(SourceRecord sourceRecord) {
         if (sourceRecord == null) {
             return null;
         }
         // NB: Aiven's JDBC source connector doesn't return keys, so we're skipping them here.
         return Record.newBuilder()
-                .setPayload(getPayload(sourceRecord))
-                .setPosition(getPosition(sourceRecord))
-                .build();
+                .setPayload(getPayload(sourceRecord));
     }
 
     @SneakyThrows
-    private static ByteString getPosition(SourceRecord sourceRecord) {
+    private static ByteString position(SourceRecord sourceRecord) {
         Map<String, Object> position = new HashMap<>();
         position.put("sourcePartition", sourceRecord.sourcePartition());
         position.put("sourceOffset", sourceRecord.sourceOffset());

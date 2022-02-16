@@ -1,5 +1,6 @@
 package io.conduit;
 
+import com.google.protobuf.ByteString;
 import io.conduit.grpc.Record;
 import io.conduit.grpc.Source;
 import io.grpc.Status;
@@ -9,9 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 import java.util.function.Function;
 
 /**
@@ -21,14 +20,16 @@ import java.util.function.Function;
 public class SourceStream implements StreamObserver<Source.Run.Request>, Runnable {
     private final SourceTask task;
     private final StreamObserver<Source.Run.Response> responseObserver;
-    private Function<SourceRecord, Record> transformer;
-    private final Queue<SourceRecord> buffer = new LinkedList<>();
     private final Thread thread;
     private boolean shouldRun = true;
 
+    private final Queue<SourceRecord> buffer = new LinkedList<>();
+    private final Function<SourceRecord, Record.Builder> transformer;
+    private final Map<Map<String, ?>, Map<String, ?>> positions = new HashMap<>();
+
     public SourceStream(SourceTask task,
                         StreamObserver<Source.Run.Response> responseObserver,
-                        Function<SourceRecord, Record> transformer) {
+                        Function<SourceRecord, Record.Builder> transformer) {
         this.task = task;
         this.responseObserver = responseObserver;
         this.transformer = transformer;
@@ -75,9 +76,16 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
         buffer.addAll(polled);
     }
 
+    @SneakyThrows
     private Source.Run.Response responseWith(SourceRecord record) {
+        positions.put(record.sourcePartition(), record.sourceOffset());
+        String json = Utils.mapper.writeValueAsString(positions);
+        ByteString position = ByteString.copyFromUtf8(json);
+        Record.Builder conduitRec = transformer.apply(record)
+                .setPosition(position);
+
         return Source.Run.Response.newBuilder()
-                .setRecord(transformer.apply(record))
+                .setRecord(conduitRec)
                 .build();
     }
 
