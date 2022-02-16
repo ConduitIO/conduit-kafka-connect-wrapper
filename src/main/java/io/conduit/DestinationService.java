@@ -19,6 +19,9 @@ import java.util.Map;
 import static io.conduit.Utils.isEmpty;
 import static io.conduit.Utils.mapper;
 
+/**
+ * A gRPC service exposing source plugin methods.
+ */
 @Slf4j
 public class DestinationService extends DestinationPluginGrpc.DestinationPluginImplBase {
     private final TaskFactory taskFactory;

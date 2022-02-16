@@ -47,11 +47,10 @@ public class SourceStreamTest {
     }
 
     @Test
-    public void testOnCompleted() throws InterruptedException {
+    public void testOnCompleted() {
         var underTest = new SourceStream(task, streamObserver, transformer);
         underTest.onCompleted();
 
-        verify(task, atMostOnce()).poll();
         verify(streamObserver).onCompleted();
     }
 

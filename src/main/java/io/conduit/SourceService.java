@@ -11,6 +11,9 @@ import org.slf4j.MDC;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * A gRPC service exposing source plugin methods.
+ */
 @Slf4j
 public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     private final TaskFactory taskFactory;

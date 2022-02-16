@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.Queue;
 import java.util.function.Function;
 
+/**
+ * A {@link io.grpc.stub.StreamObserver} implementation which exposes a Kafka connector source task through a gRPC stream.
+ */
 @Slf4j
 public class SourceStream implements StreamObserver<Source.Run.Request>, Runnable {
     private final SourceTask task;
@@ -29,7 +32,7 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
         this.task = task;
         this.responseObserver = responseObserver;
         this.transformer = transformer;
-        // todo remove logic from ctor
+        // todo move out logic from the constructor
         this.thread = new Thread(this);
         thread.setUncaughtExceptionHandler((t, e) -> {
             log.error("Uncaught exception for thread {}.", t.getName(), e);
@@ -54,7 +57,7 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
                 );
             }
         }
-        log.info("SourceStream thread is stopping...");
+        log.info("SourceStream loop stopped.");
     }
 
     @Override
@@ -95,6 +98,7 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
     }
 
     private void stop() {
+        log.info("Stopping...");
         shouldRun = false;
     }
 }
