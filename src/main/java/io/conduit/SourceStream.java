@@ -41,7 +41,6 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
                 if (buffer.isEmpty()) {
                     fillBuffer();
                 }
-                // todo handle null
                 SourceRecord record = buffer.poll();
                 responseObserver.onNext(responseWith(record));
             } catch (Exception e) {

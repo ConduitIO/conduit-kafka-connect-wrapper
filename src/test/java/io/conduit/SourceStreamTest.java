@@ -4,7 +4,9 @@ import com.google.protobuf.ByteString;
 import io.conduit.grpc.Data;
 import io.conduit.grpc.Record;
 import io.conduit.grpc.Source;
+import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
+import lombok.SneakyThrows;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,11 +22,11 @@ import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class SourceStreamTest {
-    private SourceStream underTest;
     @Mock
     private SourceTask task;
     @Mock
@@ -34,18 +36,21 @@ public class SourceStreamTest {
 
     @BeforeEach
     public void setUp() {
-        underTest = new SourceStream(task, streamObserver, transformer);
+
     }
 
     @Test
     public void testRunAfterInit() throws InterruptedException {
+        new SourceStream(task, streamObserver, transformer);
         Thread.sleep(100);
         verify(task).poll();
     }
 
     @Test
     public void testOnCompleted() throws InterruptedException {
+        var underTest = new SourceStream(task, streamObserver, transformer);
         underTest.onCompleted();
+
         verify(task, atMostOnce()).poll();
         verify(streamObserver).onCompleted();
     }
@@ -64,12 +69,31 @@ public class SourceStreamTest {
                 null
         );
         when(transformer.apply(sourceRec)).thenReturn(conduitRec);
+
+        new SourceStream(task, streamObserver, transformer);
         Thread.sleep(1500);
 
         ArgumentCaptor<Source.Run.Response> responseCaptor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(streamObserver, never()).onError(any());
         verify(streamObserver).onNext(responseCaptor.capture());
         assertEquals(conduitRec, responseCaptor.getValue().getRecord());
+    }
+
+    @SneakyThrows
+    @Test
+    public void testCannotReadRecord() {
+        RuntimeException surprise = new RuntimeException("surprised ya, huh?");
+        when(task.poll()).thenThrow(surprise);
+        new SourceStream(task, streamObserver, transformer);
+        Thread.sleep(100);
+
+        verify(streamObserver, never()).onNext(any());
+
+        ArgumentCaptor<Throwable> captor = ArgumentCaptor.forClass(Throwable.class);
+        verify(streamObserver, atLeastOnce()).onError(captor.capture());
+        Throwable t = captor.getValue();
+        assertInstanceOf(StatusException.class, t);
+        assertEquals(surprise, t.getCause());
     }
 
     private Record testConduitRec() {

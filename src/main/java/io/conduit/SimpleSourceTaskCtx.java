@@ -29,7 +29,10 @@ public class SimpleSourceTaskCtx implements SourceTaskContext {
         return new OffsetStorageReader() {
             @Override
             public <T> Map<String, Object> offset(Map<String, T> partition) {
-                return null;
+                if (partition.equals(sourcePartition)) {
+                    return sourceOffset;
+                }
+                return emptyMap();
             }
 
             @Override
