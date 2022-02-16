@@ -32,7 +32,7 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
     public DestinationStream(SinkTask task, Schema schema, StreamObserver<Destination.Run.Response> responseObserver) {
         this.task = task;
         this.schema = schema;
-        this.schemaJson = jsonConv.asJsonSchema(schema);
+        this.schemaJson = Utils.jsonConv.asJsonSchema(schema);
         this.responseObserver = responseObserver;
     }
 
@@ -71,17 +71,17 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
         // for each record, we're creating a new JSON object
         // and copying data into it.
         // something as simple as concatenating strings could work.
-        JsonNode payloadJson = mapper.readTree(
+        JsonNode payloadJson = Utils.mapper.readTree(
                 record.getPayload().getRawData().toByteArray()
         );
 
-        ObjectNode json = mapper.createObjectNode();
+        ObjectNode json = Utils.mapper.createObjectNode();
         json.set("schema", schemaJson);
         json.set("payload", payloadJson);
 
-        byte[] bytes = mapper.writeValueAsBytes(json);
+        byte[] bytes = Utils.mapper.writeValueAsBytes(json);
         // topic arg unused in the connect-json library
-        Struct struct = (Struct) jsonConv.toConnectData("", bytes).value();
+        Struct struct = (Struct) Utils.jsonConv.toConnectData("", bytes).value();
 
         return new SinkRecord(
                 schema.name(),
