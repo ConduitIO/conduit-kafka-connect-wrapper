@@ -82,7 +82,16 @@ public class SourceStreamTest {
     @SneakyThrows
     @Test
     public void testCannotReadRecord() {
-        RuntimeException surprise = new RuntimeException("surprised ya, huh?");
+        testConnectorTaskThrows(new RuntimeException("surprised ya, huh?"));
+    }
+
+    @SneakyThrows
+    @Test
+    public void testSourceTaskThrowsAnError() {
+        testConnectorTaskThrows(new Error("surprised ya, huh?"));
+    }
+
+    private void testConnectorTaskThrows(Throwable surprise) throws InterruptedException {
         when(task.poll()).thenThrow(surprise);
         new SourceStream(task, streamObserver, transformer);
         Thread.sleep(50);

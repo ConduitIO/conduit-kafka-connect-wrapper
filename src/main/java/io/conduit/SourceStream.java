@@ -29,8 +29,12 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
         this.task = task;
         this.responseObserver = responseObserver;
         this.transformer = transformer;
-        // todo catch errors from thread
+        // todo remove logic from ctor
         this.thread = new Thread(this);
+        thread.setUncaughtExceptionHandler((t, e) -> {
+            log.error("Uncaught exception for thread {}.", t.getName(), e);
+            onError(e);
+        });
         thread.start();
     }
 
@@ -50,6 +54,7 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
                 );
             }
         }
+        log.info("SourceStream thread is stopping...");
     }
 
     @Override
