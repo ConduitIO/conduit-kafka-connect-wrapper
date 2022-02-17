@@ -1,6 +1,5 @@
 package io.conduit;
 
-import com.google.protobuf.ByteString;
 import io.conduit.grpc.Record;
 import io.conduit.grpc.Source;
 import io.grpc.Status;
@@ -27,14 +26,17 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
 
     private final Queue<SourceRecord> buffer = new LinkedList<>();
     private final Function<SourceRecord, Record.Builder> transformer;
-    private final SourcePosition sourcePosition = new SourcePosition();
+    private final SourcePosition position;
 
     public SourceStream(SourceTask task,
+                        SourcePosition position,
                         StreamObserver<Source.Run.Response> responseObserver,
                         Function<SourceRecord, Record.Builder> transformer) {
         this.task = task;
+        this.position = position;
         this.responseObserver = responseObserver;
         this.transformer = transformer;
+
         // todo move out logic from the constructor
         this.thread = new Thread(this);
         thread.setUncaughtExceptionHandler((t, e) -> {
@@ -80,10 +82,10 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
 
     @SneakyThrows
     private Source.Run.Response responseWith(SourceRecord record) {
-        sourcePosition.add(record.sourcePartition(), record.sourceOffset());
+        position.add(record.sourcePartition(), record.sourceOffset());
 
         Record.Builder conduitRec = transformer.apply(record)
-                .setPosition(sourcePosition.asByteString());
+                .setPosition(position.asByteString());
 
         return Source.Run.Response.newBuilder()
                 .setRecord(conduitRec)

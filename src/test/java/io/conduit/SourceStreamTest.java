@@ -32,19 +32,21 @@ public class SourceStreamTest {
     @Mock
     private SourceTask task;
     @Mock
+    private SourcePosition position;
+    @Mock
     private StreamObserver<Source.Run.Response> streamObserver;
     @Mock
     private Function<SourceRecord, Record.Builder> transformer;
 
     @BeforeEach
     public void setUp() {
-
+        when(position.asByteString()).thenReturn(ByteString.copyFromUtf8("irrelevant"));
     }
 
     @Test
     @DisplayName("When SourceStream is created, the underlying SourceTask starts being polled.")
     public void testRunAfterInit() throws InterruptedException {
-        new SourceStream(task, streamObserver, transformer);
+        new SourceStream(task, position, streamObserver, transformer);
         Thread.sleep(50);
         verify(task, atLeastOnce()).poll();
     }
@@ -52,7 +54,7 @@ public class SourceStreamTest {
     @Test
     @DisplayName("When onCompleted is called, the underlying streams's onCompleted is called.")
     public void testOnCompleted() {
-        var underTest = new SourceStream(task, streamObserver, transformer);
+        var underTest = new SourceStream(task, position, streamObserver, transformer);
         underTest.onCompleted();
 
         verify(streamObserver).onCompleted();
@@ -74,7 +76,7 @@ public class SourceStreamTest {
         );
         when(transformer.apply(sourceRec)).thenReturn(conduitRec);
 
-        new SourceStream(task, streamObserver, transformer);
+        new SourceStream(task, position, streamObserver, transformer);
         Thread.sleep(250);
 
         var responseCaptor = ArgumentCaptor.forClass(Source.Run.Response.class);
@@ -99,7 +101,7 @@ public class SourceStreamTest {
 
     private void testConnectorTaskThrows(Throwable surprise) throws InterruptedException {
         when(task.poll()).thenThrow(surprise);
-        new SourceStream(task, streamObserver, transformer);
+        new SourceStream(task, position, streamObserver, transformer);
         Thread.sleep(50);
 
         verify(streamObserver, never()).onNext(any());
@@ -124,16 +126,13 @@ public class SourceStreamTest {
         when(transformer.apply(sr1)).thenReturn(cr1);
         when(transformer.apply(sr2)).thenReturn(cr2);
 
-        new SourceStream(task, streamObserver, transformer);
+        new SourceStream(task, position, streamObserver, transformer);
         Thread.sleep(500);
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(streamObserver, times(2)).onNext(captor.capture());
 
-        var parsed = SourcePosition.fromString(
-                captor.getValue().getRecord().getPosition().toStringUtf8()
-        );
-        assertEquals(Map.of("o1", "o1-value"), parsed.offsetFor(Map.of("p1", "p1-value")).asMap());
-        assertEquals(Map.of("o2", "o2-value"), parsed.offsetFor(Map.of("p2", "p2-value")).asMap());
+        verify(position).add(Map.of("p1", "p1-value"), Map.of("o1", "o1-value"));
+        verify(position).add(Map.of("p2", "p2-value"), Map.of("o2", "o2-value"));
     }
 
     private SourceRecord mockSourceRec(Map<String, ?> partition, Map<String, ?> offset) {
