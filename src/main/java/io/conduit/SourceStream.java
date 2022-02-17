@@ -82,9 +82,8 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
     private Source.Run.Response responseWith(SourceRecord record) {
         sourcePosition.add(record.sourcePartition(), record.sourceOffset());
 
-        ByteString position = ByteString.copyFrom(sourcePosition.jsonBytes());
         Record.Builder conduitRec = transformer.apply(record)
-                .setPosition(position);
+                .setPosition(sourcePosition.asByteString());
 
         return Source.Run.Response.newBuilder()
                 .setRecord(conduitRec)

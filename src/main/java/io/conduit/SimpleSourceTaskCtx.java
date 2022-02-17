@@ -34,7 +34,7 @@ public class SimpleSourceTaskCtx implements SourceTaskContext {
                 Map<Map<String, T>, Map<String, Object>> offsets = new HashMap<>();
                 for (Map<String, T> partition : partitions) {
                     SourceOffset offset = position.offsetFor(partition);
-                    if (offset.isEmpty()) {
+                    if (!offset.isEmpty()) {
                         offsets.put(partition, offset.asMap());
                     }
                 }

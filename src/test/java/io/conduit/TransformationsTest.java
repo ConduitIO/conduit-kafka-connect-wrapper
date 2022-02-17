@@ -1,7 +1,5 @@
 package io.conduit;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.conduit.grpc.Record;
 import lombok.SneakyThrows;
 import org.apache.kafka.connect.data.Schema;
@@ -11,7 +9,6 @@ import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import static io.conduit.Transformations.fromKafkaSource;
@@ -63,11 +60,6 @@ public class TransformationsTest {
         // verify key
         assertFalse(conduitRec.getKey().hasRawData());
         assertFalse(conduitRec.getKey().hasStructuredData());
-        // verify position
-        // it's a JSON object with the two keys mentioned below
-        Map position = Utils.mapper.readValue(conduitRec.getPosition().toStringUtf8(), Map.class);
-        assertEquals(sourceRecord.sourcePartition(), position.get("sourcePartition"));
-        assertEquals(sourceRecord.sourceOffset(), position.get("sourceOffset"));
     }
 
     private void assertMatch(Struct expected, com.google.protobuf.Struct payload) {

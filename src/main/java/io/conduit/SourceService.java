@@ -61,7 +61,7 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
         log.info("Starting the source.");
 
         try {
-            var position = Transformations.parsePosition(request.getPosition().toStringUtf8());
+            var position = SourcePosition.fromString(request.getPosition().toStringUtf8());
             task.initialize(
                     new SimpleSourceTaskCtx(config, position)
             );

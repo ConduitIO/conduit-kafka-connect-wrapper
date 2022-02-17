@@ -62,12 +62,4 @@ public class Transformations {
                 .setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
                 .build();
     }
-
-    @SneakyThrows
-    public static SourcePosition parsePosition(String position) {
-        if (Utils.isEmpty(position)) {
-            return new SourcePosition();
-        }
-        return Utils.mapper.readValue(position, SourcePosition.class);
-    }
 }

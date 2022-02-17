@@ -129,11 +129,11 @@ public class SourceStreamTest {
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(streamObserver, times(2)).onNext(captor.capture());
 
-        Map<String, Map<String, Object>> parsed = Transformations.parsePosition(
+        var parsed = SourcePosition.fromString(
                 captor.getValue().getRecord().getPosition().toStringUtf8()
         );
-        assertEquals(Map.of("o1", "o1-value"), parsed.get(Map.of("p1", "p1-value")));
-        assertEquals(Map.of("o2", "o2-value"), parsed.get(Map.of("p2", "p2-value")));
+        assertEquals(Map.of("o1", "o1-value"), parsed.offsetFor(Map.of("p1", "p1-value")).asMap());
+        assertEquals(Map.of("o2", "o2-value"), parsed.offsetFor(Map.of("p2", "p2-value")).asMap());
     }
 
     private SourceRecord mockSourceRec(Map<String, ?> partition, Map<String, ?> offset) {

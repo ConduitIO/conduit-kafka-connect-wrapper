@@ -1,16 +1,21 @@
 package io.conduit;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.Map;
 
 import static java.util.Collections.emptyMap;
 
 @EqualsAndHashCode
+@Getter
+@Setter
 public class SourceOffset {
-    private final Map<String, Object> map;
+    private final Map<String, ?> map;
 
-    public SourceOffset(Map<String, Object> map) {
+    public SourceOffset(Map<String, ?> map) {
         this.map = map;
     }
 
@@ -19,9 +24,10 @@ public class SourceOffset {
     }
 
     public Map<String, Object> asMap() {
-        return map;
+        return (Map<String, Object>) map;
     }
 
+    @JsonIgnore
     public boolean isEmpty() {
         return Utils.isEmpty(map);
     }
