@@ -19,6 +19,9 @@ import java.util.Map;
 import static io.conduit.Utils.isEmpty;
 import static io.conduit.Utils.mapper;
 
+/**
+ * A gRPC service exposing source plugin methods.
+ */
 @Slf4j
 public class DestinationService extends DestinationPluginGrpc.DestinationPluginImplBase {
     private final TaskFactory taskFactory;
@@ -46,7 +49,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
             responseObserver.onNext(Destination.Configure.Response.newBuilder().build());
             responseObserver.onCompleted();
         } catch (Exception e) {
-            log.error("Error while opening destination.", e);
+            log.error("Error while configuring destination.", e);
             responseObserver.onError(
                     Status.INTERNAL.withDescription("couldn't configure task: " + e.getMessage()).withCause(e).asException()
             );

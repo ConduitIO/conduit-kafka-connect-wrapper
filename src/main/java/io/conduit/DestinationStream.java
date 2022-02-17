@@ -21,6 +21,9 @@ import static io.conduit.Utils.mapper;
 import static java.util.Collections.emptyMap;
 import static java.util.UUID.randomUUID;
 
+/**
+ * A {@link io.grpc.stub.StreamObserver} implementation which exposes a Kafka connector sink task through a gRPC stream.
+ */
 @Slf4j
 public class DestinationStream implements StreamObserver<Destination.Run.Request> {
     private final SinkTask task;
