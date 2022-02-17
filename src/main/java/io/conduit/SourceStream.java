@@ -10,7 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
 import java.util.function.Function;
 
 /**
@@ -25,7 +27,7 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
 
     private final Queue<SourceRecord> buffer = new LinkedList<>();
     private final Function<SourceRecord, Record.Builder> transformer;
-    private final Map<Map<String, ?>, Map<String, ?>> positions = new HashMap<>();
+    private final SourcePosition sourcePosition = new SourcePosition();
 
     public SourceStream(SourceTask task,
                         StreamObserver<Source.Run.Response> responseObserver,
@@ -78,9 +80,9 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
 
     @SneakyThrows
     private Source.Run.Response responseWith(SourceRecord record) {
-        positions.put(record.sourcePartition(), record.sourceOffset());
-        String json = Utils.mapper.writeValueAsString(positions);
-        ByteString position = ByteString.copyFromUtf8(json);
+        sourcePosition.add(record.sourcePartition(), record.sourceOffset());
+
+        ByteString position = ByteString.copyFrom(sourcePosition.jsonBytes());
         Record.Builder conduitRec = transformer.apply(record)
                 .setPosition(position);
 

@@ -4,19 +4,16 @@ import org.apache.kafka.connect.source.SourceTaskContext;
 import org.apache.kafka.connect.storage.OffsetStorageReader;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
-
-import static java.util.Collections.emptyMap;
 
 public class SimpleSourceTaskCtx implements SourceTaskContext {
     private final Map<String, String> config;
-    private final Map<String, Object> sourcePartition;
-    private final Map<String, Object> sourceOffset;
+    private final SourcePosition position;
 
-    public SimpleSourceTaskCtx(Map<String, String> config, Map<String, Object> sourcePartition, Map<String, Object> sourceOffset) {
+    public SimpleSourceTaskCtx(Map<String, String> config, SourcePosition position) {
         this.config = config;
-        this.sourcePartition = sourcePartition;
-        this.sourceOffset = sourceOffset;
+        this.position = position;
     }
 
     @Override
@@ -29,20 +26,19 @@ public class SimpleSourceTaskCtx implements SourceTaskContext {
         return new OffsetStorageReader() {
             @Override
             public <T> Map<String, Object> offset(Map<String, T> partition) {
-                if (partition.equals(sourcePartition)) {
-                    return sourceOffset;
-                }
-                return emptyMap();
+                return position.offsetFor(partition).asMap();
             }
 
             @Override
             public <T> Map<Map<String, T>, Map<String, Object>> offsets(Collection<Map<String, T>> partitions) {
+                Map<Map<String, T>, Map<String, Object>> offsets = new HashMap<>();
                 for (Map<String, T> partition : partitions) {
-                    if (partition.equals(sourcePartition)) {
-                        return Map.of(partition, sourceOffset);
+                    SourceOffset offset = position.offsetFor(partition);
+                    if (offset.isEmpty()) {
+                        offsets.put(partition, offset.asMap());
                     }
                 }
-                return emptyMap();
+                return offsets;
             }
         };
     }

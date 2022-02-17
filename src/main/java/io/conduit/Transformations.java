@@ -9,12 +9,9 @@ import lombok.SneakyThrows;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 import static io.conduit.Utils.jsonConvSchemaless;
-import static java.util.Collections.emptyMap;
 
 public class Transformations {
     public static final Record.Builder fromKafkaSource(SourceRecord sourceRecord) {
@@ -24,15 +21,6 @@ public class Transformations {
         // NB: Aiven's JDBC source connector doesn't return keys, so we're skipping them here.
         return Record.newBuilder()
                 .setPayload(getPayload(sourceRecord));
-    }
-
-    @SneakyThrows
-    private static ByteString position(SourceRecord sourceRecord) {
-        Map<String, Object> position = new HashMap<>();
-        position.put("sourcePartition", sourceRecord.sourcePartition());
-        position.put("sourceOffset", sourceRecord.sourceOffset());
-        String json = Utils.mapper.writeValueAsString(position);
-        return ByteString.copyFromUtf8(json);
     }
 
     private static Data getPayload(SourceRecord sourceRecord) {
@@ -76,10 +64,10 @@ public class Transformations {
     }
 
     @SneakyThrows
-    public static Map<String, Map<String, Object>> parsePosition(String position) {
+    public static SourcePosition parsePosition(String position) {
         if (Utils.isEmpty(position)) {
-            return emptyMap();
+            return new SourcePosition();
         }
-        return Utils.mapper.readValue(position, Map.class);
+        return Utils.mapper.readValue(position, SourcePosition.class);
     }
 }

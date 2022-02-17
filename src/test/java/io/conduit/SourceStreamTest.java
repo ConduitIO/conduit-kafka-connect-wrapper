@@ -115,8 +115,8 @@ public class SourceStreamTest {
     @Test
     @DisplayName("Positions from records from different partitions (tables) are correctly merged.")
     public void testPositionsMerged() {
-        var sr1 = mockSourceRec(Map.of("p1", "1"), Map.of("o1", "2"));
-        var sr2 = mockSourceRec(Map.of("p2", "3"), Map.of("o2", "4"));
+        var sr1 = mockSourceRec(Map.of("p1", "p1-value"), Map.of("o1", "o1-value"));
+        var sr2 = mockSourceRec(Map.of("p2", "p2-value"), Map.of("o2", "o2-value"));
         var cr1 = testConduitRec();
         var cr2 = testConduitRec();
 
@@ -128,7 +128,12 @@ public class SourceStreamTest {
         Thread.sleep(500);
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(streamObserver, times(2)).onNext(captor.capture());
-        System.out.println();
+
+        Map<String, Map<String, Object>> parsed = Transformations.parsePosition(
+                captor.getValue().getRecord().getPosition().toStringUtf8()
+        );
+        assertEquals(Map.of("o1", "o1-value"), parsed.get(Map.of("p1", "p1-value")));
+        assertEquals(Map.of("o2", "o2-value"), parsed.get(Map.of("p2", "p2-value")));
     }
 
     private SourceRecord mockSourceRec(Map<String, ?> partition, Map<String, ?> offset) {

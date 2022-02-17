@@ -43,6 +43,10 @@ public final class Utils {
         return str == null || str.isBlank();
     }
 
+    public static <K, V> boolean isEmpty(Map<K, V> map) {
+        return map == null || map.isEmpty();
+    }
+
     public static <T> boolean isEmpty(Collection<T> coll) {
         return coll == null || coll.isEmpty();
     }

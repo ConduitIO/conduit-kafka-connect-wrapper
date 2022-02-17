@@ -61,9 +61,9 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
         log.info("Starting the source.");
 
         try {
-            Map<String, Map<String, Object>> position = Transformations.parsePosition(request.getPosition().toStringUtf8());
+            var position = Transformations.parsePosition(request.getPosition().toStringUtf8());
             task.initialize(
-                    new SimpleSourceTaskCtx(config, position.get("sourcePartition"), position.get("sourceOffset"))
+                    new SimpleSourceTaskCtx(config, position)
             );
             task.start(config);
             started = true;
