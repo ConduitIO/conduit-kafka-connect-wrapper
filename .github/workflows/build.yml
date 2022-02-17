@@ -17,5 +17,7 @@ jobs:
           java-version: '11'
           distribution: 'adopt'
           cache: 'maven'
+      - name: Install Maven dependencies
+        run: ./scripts/install-libs.sh
       - name: Build with Maven
         run: mvn clean compile
