@@ -36,6 +36,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
     }
 
     @Override
+
     public void configure(Destination.Configure.Request request, StreamObserver<Response> responseObserver) {
         log.info("Configuring the destination.");
 
@@ -60,8 +61,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
         MDC.put("pipelineId", config.remove("pipelineId"));
         MDC.put("connectorName", config.remove("connectorName"));
 
-        String taskClass = config.remove("task.class");
-        this.task = taskFactory.newSinkTask(taskClass);
+        this.task = taskFactory.newSinkTask(config.remove("task.class"));
         this.schema = buildSchema(config.remove("schema"));
         this.config = config;
     }

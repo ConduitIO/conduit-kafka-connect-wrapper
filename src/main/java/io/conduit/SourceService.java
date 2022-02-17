@@ -9,7 +9,6 @@ import org.apache.kafka.connect.source.SourceTask;
 import org.slf4j.MDC;
 
 import java.util.HashMap;
-import java.util.Map;
 
 /**
  * A gRPC service exposing source plugin methods.
@@ -52,8 +51,7 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
         MDC.put("pipelineId", config.remove("pipelineId"));
         MDC.put("connectorName", config.remove("connectorName"));
 
-        String taskClass = config.remove("task.class");
-        this.task = taskFactory.newSourceTask(taskClass);
+        this.task = taskFactory.newSourceTask(config.remove("task.class"));
         this.config = config;
     }
 
