@@ -10,16 +10,12 @@ import io.grpc.stub.StreamObserver;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 
 import java.util.List;
 
-import static io.conduit.Utils.jsonConv;
-import static io.conduit.Utils.mapper;
 import static java.util.Collections.emptyMap;
-import static java.util.UUID.randomUUID;
 
 @Slf4j
 public class DestinationStream implements StreamObserver<Destination.Run.Request> {
@@ -67,6 +63,24 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
 
     @SneakyThrows
     private SinkRecord toSinkRecord(Record record) {
+        Object value = getSinkRecordValue(record);
+        return new SinkRecord(
+                null,
+                0,
+                Schema.STRING_SCHEMA,
+                record.getKey().getRawData().toStringUtf8(),
+                schema,
+                value,
+                0
+        );
+    }
+
+    @SneakyThrows
+    private Object getSinkRecordValue(Record record) {
+        byte[] content = record.getPayload().getRawData().toByteArray();
+        if (schema == null) {
+            return content;
+        }
         // todo optimize memory usage here
         // for each record, we're creating a new JSON object
         // and copying data into it.
@@ -81,17 +95,7 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
 
         byte[] bytes = Utils.mapper.writeValueAsBytes(json);
         // topic arg unused in the connect-json library
-        Struct struct = (Struct) Utils.jsonConv.toConnectData("", bytes).value();
-
-        return new SinkRecord(
-                schema.name(),
-                0,
-                Schema.STRING_SCHEMA,
-                randomUUID().toString(),
-                schema,
-                struct,
-                0
-        );
+        return Utils.jsonConv.toConnectData("", bytes).value();
     }
 
     @Override

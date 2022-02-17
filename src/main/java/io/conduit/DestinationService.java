@@ -13,21 +13,27 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.sink.SinkTask;
 import org.slf4j.MDC;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.conduit.Utils.isEmpty;
 import static io.conduit.Utils.mapper;
 
 @Slf4j
 public class DestinationService extends DestinationPluginGrpc.DestinationPluginImplBase {
+    private final TaskFactory taskFactory;
     private SinkTask task;
     private Schema schema;
     private Map<String, String> config;
-    private DestinationStream stream;
+    private DestinationStream runStream;
     private boolean started;
 
+    public DestinationService(TaskFactory taskFactory) {
+        this.taskFactory = taskFactory;
+    }
+
     @Override
+
     public void configure(Destination.Configure.Request request, StreamObserver<Response> responseObserver) {
         log.info("Configuring the destination.");
 
@@ -52,24 +58,16 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
         MDC.put("pipelineId", config.remove("pipelineId"));
         MDC.put("connectorName", config.remove("connectorName"));
 
-        this.task = newTask(config.remove("task.class"));
+        this.task = taskFactory.newSinkTask(config.remove("task.class"));
         this.schema = buildSchema(config.remove("schema"));
         this.config = config;
     }
 
     @SneakyThrows
-    private SinkTask newTask(String className) {
-        Class<?> clazz = Class.forName(className);
-        Object taskObj = Arrays.stream(clazz.getConstructors())
-                .filter(c -> c.getParameterCount() == 0)
-                .findFirst()
-                .get()
-                .newInstance();
-        return (SinkTask) taskObj;
-    }
-
-    @SneakyThrows
     private Schema buildSchema(String schemaString) {
+        if (isEmpty(schemaString)) {
+            return null;
+        }
         JsonNode schemaJson = mapper.readTree(schemaString);
         return Utils.jsonConv.asConnectSchema(schemaJson);
     }
@@ -95,13 +93,14 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
     @Override
     public StreamObserver<Destination.Run.Request> run(StreamObserver<Destination.Run.Response> responseObserver) {
-        this.stream = new DestinationStream(task, schema, responseObserver);
-        return stream;
+        this.runStream = new DestinationStream(task, schema, responseObserver);
+        return runStream;
     }
 
     @Override
     public void stop(Destination.Stop.Request request, StreamObserver<Destination.Stop.Response> responseObserver) {
         // todo check if a record is being flushed
+        runStream.onCompleted();
         responseObserver.onNext(Destination.Stop.Response.newBuilder().build());
         responseObserver.onCompleted();
     }
