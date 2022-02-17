@@ -38,11 +38,6 @@ public class SourceStreamTest {
     @Mock
     private Function<SourceRecord, Record.Builder> transformer;
 
-    @BeforeEach
-    public void setUp() {
-        when(position.asByteString()).thenReturn(ByteString.copyFromUtf8("irrelevant"));
-    }
-
     @Test
     @DisplayName("When SourceStream is created, the underlying SourceTask starts being polled.")
     public void testRunAfterInit() throws InterruptedException {
@@ -74,6 +69,7 @@ public class SourceStreamTest {
                 List.of(sourceRec),
                 null
         );
+        when(position.asByteString()).thenReturn(ByteString.copyFromUtf8("irrelevant"));
         when(transformer.apply(sourceRec)).thenReturn(conduitRec);
 
         new SourceStream(task, position, streamObserver, transformer);
@@ -123,6 +119,7 @@ public class SourceStreamTest {
         var cr2 = testConduitRec();
 
         when(task.poll()).thenReturn(List.of(sr1, sr2), null);
+        when(position.asByteString()).thenReturn(ByteString.copyFromUtf8("irrelevant"));
         when(transformer.apply(sr1)).thenReturn(cr1);
         when(transformer.apply(sr2)).thenReturn(cr2);
 
