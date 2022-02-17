@@ -20,4 +20,4 @@ jobs:
       - name: Install Maven dependencies
         run: ./scripts/install-libs.sh
       - name: Build with Maven
-        run: mvn clean compile
+        run: mvn test
