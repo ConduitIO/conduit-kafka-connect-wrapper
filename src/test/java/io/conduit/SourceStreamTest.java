@@ -93,7 +93,7 @@ public class SourceStreamTest {
     private void testConnectorTaskThrows(Throwable surprise) throws InterruptedException {
         when(task.poll()).thenThrow(surprise);
         new SourceStream(task, streamObserver, transformer);
-        Thread.sleep(50);
+        Thread.sleep(100);
 
         verify(streamObserver, never()).onNext(any());
 
