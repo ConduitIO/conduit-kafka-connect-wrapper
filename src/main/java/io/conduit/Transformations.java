@@ -31,6 +31,8 @@ public class Transformations {
             throw new IllegalArgumentException("cannot parse struct without schema");
         }
         // Struct -> JSON string -> bytes
+        // todo this is a non-optimal way to do it
+        // however, for the first version of the plugin we're looking for making it work first.
         byte[] bytes = JsonFormat.printer()
                 .print(record.getPayload().getStructuredData())
                 .getBytes(StandardCharsets.UTF_8);
