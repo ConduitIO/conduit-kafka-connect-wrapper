@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
+import com.google.protobuf.util.JsonFormat;
 import io.conduit.grpc.Data;
 import io.conduit.grpc.Record;
 import lombok.SneakyThrows;
@@ -75,6 +76,20 @@ public class TransformationsTest {
     }
 
     @Test
+    public void testToSinkRecord_StructuredData_NoSchema() {
+        var rec = newRecordStructData();
+
+        var e = assertThrows(
+                IllegalArgumentException.class,
+                () -> Transformations.toStruct(rec, null)
+        );
+        assertEquals(
+                "cannot parse struct without schema",
+                e.getMessage()
+        );
+    }
+
+    @Test
     public void testToSinkRecord_StructuredData() {
         var rec = newRecordStructData();
 
@@ -100,11 +115,13 @@ public class TransformationsTest {
 
     @SneakyThrows
     private Data newStructPayload() {
-        com.google.protobuf.Struct struct = com.google.protobuf.Struct.parseFrom(
-                ByteString.copyFromUtf8(Utils.mapper.writeValueAsString(testRecord))
+        com.google.protobuf.Struct.Builder builder = com.google.protobuf.Struct.newBuilder();
+        JsonFormat.parser().merge(
+                Utils.mapper.writeValueAsString(testRecord),
+                builder
         );
         return Data.newBuilder()
-                .setStructuredData(struct)
+                .setStructuredData(builder.build())
                 .build();
     }
 
