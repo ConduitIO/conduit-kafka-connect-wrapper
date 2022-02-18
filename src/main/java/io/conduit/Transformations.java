@@ -19,6 +19,9 @@ public class Transformations {
             return null;
         }
         // NB: Aiven's JDBC source connector doesn't return keys, so we're skipping them here.
+        // The transformer returns a builder, so that it's easier to set other fields on the same record.
+        // We can return a record, but the caller would then need to transform it into a builder,
+        // which might create needless copies of fields.
         return Record.newBuilder()
                 .setPayload(getPayload(sourceRecord));
     }

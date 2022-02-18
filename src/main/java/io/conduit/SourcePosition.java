@@ -19,7 +19,7 @@ import java.util.Map;
 public class SourcePosition {
     // Keys are partitions as JSON strings (so that they can be easily deserialized),
     // and values are offsets, as defined by the Kafka Connect API.
-    // For more information, see the documentation
+    // For more information, see the documentation for org.apache.kafka.connect.source.SourceRecord.
     @JsonDeserialize(keyUsing = SourcePartitionKeyDeser.class)
     private final Map<SourcePartition, SourceOffset> positions = new HashMap<>();
 
@@ -36,13 +36,11 @@ public class SourcePosition {
         positions.put(new SourcePartition(partition), new SourceOffset(offset));
     }
 
-    public ByteString asByteString() {
-        return ByteString.copyFrom(jsonBytes());
-    }
-
     @SneakyThrows
-    private byte[] jsonBytes() {
-        return Utils.mapper.writeValueAsBytes(this);
+    public ByteString asByteString() {
+        return ByteString.copyFrom(
+                Utils.mapper.writeValueAsBytes(this)
+        );
     }
 
     public SourceOffset offsetFor(Map<String, ?> partition) {
