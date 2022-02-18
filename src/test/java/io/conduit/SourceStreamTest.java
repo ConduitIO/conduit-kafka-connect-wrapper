@@ -70,7 +70,7 @@ public class SourceStreamTest {
         when(transformer.apply(sourceRec)).thenReturn(conduitRec);
 
         new SourceStream(task, streamObserver, transformer);
-        Thread.sleep(100);
+        Thread.sleep(200);
 
         ArgumentCaptor<Source.Run.Response> responseCaptor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(streamObserver, never()).onError(any());
