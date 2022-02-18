@@ -65,7 +65,7 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
     private SinkRecord toSinkRecord(Record record) {
         Object value = getSinkRecordValue(record);
         return new SinkRecord(
-                null,
+                schema.name(),
                 0,
                 Schema.STRING_SCHEMA,
                 record.getKey().getRawData().toStringUtf8(),
