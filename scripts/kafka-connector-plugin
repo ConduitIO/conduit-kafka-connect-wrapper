@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+exec /usr/bin/env java -cp "pkg/plugins/kafka-connector-plugin/kafka-connector-plugin-0.1.0-SNAPSHOT.jar:pkg/plugins/kafka-connector-plugin/libs/*" io.conduit.Application
