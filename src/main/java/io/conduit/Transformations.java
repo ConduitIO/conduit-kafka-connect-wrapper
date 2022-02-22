@@ -9,8 +9,6 @@ import lombok.SneakyThrows;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
 
-import java.util.UUID;
-
 import static io.conduit.Utils.jsonConvSchemaless;
 
 public class Transformations {
@@ -57,12 +55,6 @@ public class Transformations {
     }
 
     private static Data getRawData(Object value) {
-        Data.Builder builder = Data.newBuilder();
-        if (value == null) {
-            return builder.build();
-        }
-        return builder
-                .setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
-                .build();
+        throw new UnsupportedOperationException("records with raw data not supported yet");
     }
 }
