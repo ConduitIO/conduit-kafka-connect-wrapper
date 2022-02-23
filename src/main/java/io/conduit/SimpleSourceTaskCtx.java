@@ -5,6 +5,7 @@ import org.apache.kafka.connect.storage.OffsetStorageReader;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 
 import static java.util.Collections.emptyMap;
 
@@ -32,7 +33,7 @@ public class SimpleSourceTaskCtx implements SourceTaskContext {
         return new OffsetStorageReader() {
             @Override
             public <T> Map<String, Object> offset(Map<String, T> partition) {
-                if (partition.equals(sourcePartition)) {
+                if (Objects.equals(partition, sourcePartition)) {
                     return sourceOffset;
                 }
                 return emptyMap();
@@ -41,7 +42,7 @@ public class SimpleSourceTaskCtx implements SourceTaskContext {
             @Override
             public <T> Map<Map<String, T>, Map<String, Object>> offsets(Collection<Map<String, T>> partitions) {
                 for (Map<String, T> partition : partitions) {
-                    if (partition.equals(sourcePartition)) {
+                    if (Objects.equals(partition, sourcePartition)) {
                         return Map.of(partition, sourceOffset);
                     }
                 }

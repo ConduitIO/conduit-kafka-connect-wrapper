@@ -14,6 +14,12 @@ public class ClasspathTaskFactory implements TaskFactory {
         return (SinkTask) newInstance(className);
     }
 
+    @SneakyThrows
+    @Override
+    public SourceTask newSourceTask(String className) {
+        return (SourceTask) newInstance(className);
+    }
+
     private Object newInstance(String className) throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException {
         Class<?> clazz = Class.forName(className);
         Object taskObj = Arrays.stream(clazz.getConstructors())
@@ -22,11 +28,5 @@ public class ClasspathTaskFactory implements TaskFactory {
                 .get()
                 .newInstance();
         return taskObj;
-    }
-
-    @SneakyThrows
-    @Override
-    public SourceTask newSourceTask(String className) {
-        return (SourceTask) newInstance(className);
     }
 }
