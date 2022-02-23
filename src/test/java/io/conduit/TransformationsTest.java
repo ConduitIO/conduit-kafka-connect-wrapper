@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static io.conduit.Transformations.fromKafkaSource;
 import static org.junit.jupiter.api.Assertions.*;
@@ -39,6 +40,12 @@ public class TransformationsTest {
                 .field("balance", Schema.FLOAT64_SCHEMA)
                 .build();
         schemaJson = Utils.jsonConv.asJsonSchema(testSchema);
+        testValue = new Struct(testSchema)
+                .put("id", 123)
+                .put("name", "foobar")
+                .put("trial", true)
+                .put("balance", 33.44)
+                .put("interests", List.of("aaa", "bbb"));
         testRecord = Utils.mapper.createObjectNode()
                 .put("id", 123)
                 .put("name", "foobar")
@@ -82,8 +89,15 @@ public class TransformationsTest {
     private void assertMatch(Struct expected, com.google.protobuf.Struct payload) {
         assertEquals(expected.get("id"), (int) payload.getFieldsOrThrow("id").getNumberValue());
         assertEquals(expected.get("name"), payload.getFieldsOrThrow("name").getStringValue());
-        assertEquals(expected.get("company"), payload.getFieldsOrThrow("company").getStringValue());
-        assertEquals(expected.get("verified"), payload.getFieldsOrThrow("verified").getBoolValue());
+        assertEquals(expected.get("trial"), payload.getFieldsOrThrow("trial").getBoolValue());
+        assertEquals(expected.get("balance"), payload.getFieldsOrThrow("balance").getNumberValue());
+        List<String> interestsExpected = expected.getArray("interests");
+        List<String> interestsActual = payload.getFieldsOrThrow("interests")
+                .getListValue().getValuesList()
+                .stream()
+                .map(v -> v.getStringValue())
+                .collect(Collectors.toList());
+        assertEquals(interestsExpected, interestsActual);
     }
 
     @Test
