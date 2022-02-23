@@ -15,9 +15,10 @@ public class Server {
     }
 
     public Server(ServerBuilder<?> serverBuilder) {
-        DestinationService destService = new DestinationService(new ClasspathTaskFactory());
+        ClasspathTaskFactory taskFactory = new ClasspathTaskFactory();
         server = serverBuilder
-                .addService(destService)
+                .addService(new DestinationService(taskFactory))
+                .addService(new SourceService(taskFactory))
                 .build();
     }
 
@@ -25,7 +26,7 @@ public class Server {
         log.info("Starting server...");
         server.start();
         log.info("Started on port {}", getPort());
-        
+
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             // Use stderr here since the logger may have been reset by its JVM shutdown hook.
             System.err.println("*** shutting down gRPC server since JVM is shutting down");

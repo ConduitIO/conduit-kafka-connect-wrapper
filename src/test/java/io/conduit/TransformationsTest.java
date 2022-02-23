@@ -11,21 +11,27 @@ import lombok.SneakyThrows;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import static io.conduit.Transformations.fromKafkaSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TransformationsTest {
+    private Schema testSchema;
+    private Struct testValue;
     private ObjectNode schemaJson;
     private JsonNode testRecord;
 
     @BeforeEach
     public void setUp() {
-        Schema schema = new SchemaBuilder(Schema.Type.STRUCT)
+        testSchema = new SchemaBuilder(Schema.Type.STRUCT)
                 .name("customers")
                 .field("id", Schema.INT32_SCHEMA)
                 .field("name", Schema.STRING_SCHEMA)
@@ -33,13 +39,65 @@ public class TransformationsTest {
                 .field("trial", SchemaBuilder.BOOLEAN_SCHEMA)
                 .field("balance", Schema.FLOAT64_SCHEMA)
                 .build();
-        schemaJson = Utils.jsonConv.asJsonSchema(schema);
+        schemaJson = Utils.jsonConv.asJsonSchema(testSchema);
+        testValue = new Struct(testSchema)
+                .put("id", 123)
+                .put("name", "foobar")
+                .put("trial", true)
+                .put("balance", 33.44)
+                .put("interests", List.of("aaa", "bbb"));
         testRecord = Utils.mapper.createObjectNode()
                 .put("id", 123)
                 .put("name", "foobar")
                 .put("trial", true)
                 .put("balance", 33.44)
                 .set("interests", Utils.mapper.createArrayNode().add("aaa").add("bbb"));
+    }
+
+    @Test
+    public void testFromKafkaSource_Null() {
+        assertNull(fromKafkaSource(null));
+    }
+
+    @SneakyThrows
+    @Test
+    public void testFromKafkaSource_WithValueSchema_NoKeySchema() {
+        var sourceRecord = new SourceRecord(
+                Map.of("test-partition", "test_table"),
+                Map.of("test-offset", 123456L),
+                "test-topic",
+                2,
+                testSchema,
+                testValue
+        );
+        Record conduitRec = Transformations.fromKafkaSource(sourceRecord);
+        assertNotNull(conduitRec);
+
+        // verify payload
+        var payload = conduitRec.getPayload().getStructuredData();
+        assertMatch(testValue, payload);
+        // verify key
+        assertFalse(conduitRec.getKey().hasRawData());
+        assertFalse(conduitRec.getKey().hasStructuredData());
+        // verify position
+        // it's a JSON object with the two keys mentioned below
+        Map position = Utils.mapper.readValue(conduitRec.getPosition().toStringUtf8(), Map.class);
+        assertEquals(sourceRecord.sourcePartition(), position.get("sourcePartition"));
+        assertEquals(sourceRecord.sourceOffset(), position.get("sourceOffset"));
+    }
+
+    private void assertMatch(Struct expected, com.google.protobuf.Struct payload) {
+        assertEquals(expected.get("id"), (int) payload.getFieldsOrThrow("id").getNumberValue());
+        assertEquals(expected.get("name"), payload.getFieldsOrThrow("name").getStringValue());
+        assertEquals(expected.get("trial"), payload.getFieldsOrThrow("trial").getBoolValue());
+        assertEquals(expected.get("balance"), payload.getFieldsOrThrow("balance").getNumberValue());
+        List<String> interestsExpected = expected.getArray("interests");
+        List<String> interestsActual = payload.getFieldsOrThrow("interests")
+                .getListValue().getValuesList()
+                .stream()
+                .map(v -> v.getStringValue())
+                .collect(Collectors.toList());
+        assertEquals(interestsExpected, interestsActual);
     }
 
     @Test
