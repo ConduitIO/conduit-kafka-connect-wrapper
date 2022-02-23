@@ -80,7 +80,8 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
 
     @Override
     public StreamObserver<Source.Run.Request> run(StreamObserver<Source.Run.Response> responseObserver) {
-        this.runStream = new SourceStream(task, responseObserver, Transformations::fromKafkaSource);
+        runStream = new SourceStream(task, responseObserver, Transformations::fromKafkaSource);
+        runStream.start();
         return runStream;
     }
 

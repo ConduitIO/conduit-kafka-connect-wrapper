@@ -41,7 +41,7 @@ public class SourceStreamTest {
 
     @Test
     public void testRunAfterInit() throws InterruptedException {
-        new SourceStream(task, streamObserver, transformer);
+        new SourceStream(task, streamObserver, transformer).start();
         Thread.sleep(50);
         verify(task, atLeastOnce()).poll();
     }
@@ -69,8 +69,8 @@ public class SourceStreamTest {
         );
         when(transformer.apply(sourceRec)).thenReturn(conduitRec);
 
-        new SourceStream(task, streamObserver, transformer);
-        Thread.sleep(200);
+        new SourceStream(task, streamObserver, transformer).start();
+        Thread.sleep(300);
 
         ArgumentCaptor<Source.Run.Response> responseCaptor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(streamObserver, never()).onError(any());
@@ -92,7 +92,7 @@ public class SourceStreamTest {
 
     private void testConnectorTaskThrows(Throwable surprise) throws InterruptedException {
         when(task.poll()).thenThrow(surprise);
-        new SourceStream(task, streamObserver, transformer);
+        new SourceStream(task, streamObserver, transformer).start();
         Thread.sleep(100);
 
         verify(streamObserver, never()).onNext(any());
