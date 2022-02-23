@@ -1,6 +1,5 @@
 package io.conduit;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.ByteString;
 import io.conduit.grpc.Destination;
@@ -63,7 +62,7 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
 
     @SneakyThrows
     private SinkRecord toSinkRecord(Record record) {
-        Object value = getSinkRecordValue(record);
+        Object value = Transformations.toStruct(record, schemaJson);
         return new SinkRecord(
                 schema != null ? schema.name() : null,
                 0,
@@ -73,29 +72,6 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
                 value,
                 0
         );
-    }
-
-    @SneakyThrows
-    private Object getSinkRecordValue(Record record) {
-        byte[] content = record.getPayload().getRawData().toByteArray();
-        if (schema == null) {
-            return content;
-        }
-        // todo optimize memory usage here
-        // for each record, we're creating a new JSON object
-        // and copying data into it.
-        // something as simple as concatenating strings could work.
-        JsonNode payloadJson = Utils.mapper.readTree(
-                record.getPayload().getRawData().toByteArray()
-        );
-
-        ObjectNode json = Utils.mapper.createObjectNode();
-        json.set("schema", schemaJson);
-        json.set("payload", payloadJson);
-
-        byte[] bytes = Utils.mapper.writeValueAsBytes(json);
-        // topic arg unused in the connect-json library
-        return Utils.jsonConv.toConnectData("", bytes).value();
     }
 
     @Override
