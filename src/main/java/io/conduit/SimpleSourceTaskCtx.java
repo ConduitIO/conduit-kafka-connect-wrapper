@@ -41,6 +41,10 @@ public class SimpleSourceTaskCtx implements SourceTaskContext {
 
             @Override
             public <T> Map<Map<String, T>, Map<String, Object>> offsets(Collection<Map<String, T>> partitions) {
+                if (Utils.isEmpty(partitions)) {
+                    return emptyMap();
+                }
+
                 for (Map<String, T> partition : partitions) {
                     if (Objects.equals(partition, sourcePartition)) {
                         return Map.of(partition, sourceOffset);
