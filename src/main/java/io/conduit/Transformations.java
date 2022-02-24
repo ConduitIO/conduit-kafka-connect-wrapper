@@ -1,8 +1,23 @@
+/*
+ * Copyright 2022 Meroxa, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.conduit;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -16,7 +31,6 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
 
 import static io.conduit.Utils.jsonConvSchemaless;
-import static java.util.Collections.emptyMap;
 
 public class Transformations {
     public static final Record.Builder fromKafkaSource(SourceRecord sourceRecord) {
@@ -65,14 +79,6 @@ public class Transformations {
         throw new UnsupportedOperationException("records with raw data not supported yet");
     }
 
-    @SneakyThrows
-    public static Map<String, Map<String, Object>> parsePosition(String position) {
-        if (Utils.isEmpty(position)) {
-            return emptyMap();
-        }
-        return Utils.mapper.readValue(position, Map.class);
-    }
-
     public static Object toStruct(Record record, ObjectNode schemaJson) {
         if (record == null) {
             throw new IllegalArgumentException("record is null");
@@ -89,7 +95,7 @@ public class Transformations {
     }
 
     @SneakyThrows
-    public static Object parseStructured(Record record, ObjectNode schemaJson) {
+    private static Object parseStructured(Record record, ObjectNode schemaJson) {
         if (schemaJson == null) {
             throw new IllegalArgumentException("cannot parse struct without schema");
         }
@@ -103,7 +109,7 @@ public class Transformations {
     }
 
     @SneakyThrows
-    public static Object parseRawJson(Record record, ObjectNode schemaJson) {
+    private static Object parseRawJson(Record record, ObjectNode schemaJson) {
         byte[] content = record.getPayload().getRawData().toByteArray();
         if (schemaJson == null) {
             return content;

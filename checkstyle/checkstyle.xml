@@ -25,6 +25,12 @@
     <property name="optional" value="true"/>
   </module>
 
+  <!-- See http://checkstyle.sourceforge.net/config_header.html#RegexpHeader -->
+  <module name="RegexpHeader">
+    <property name="fileExtensions" value="java"/>
+    <property name="headerFile" value="${config_loc}/java.header" default="checkstyle/java.header"/>
+  </module>
+
   <!-- Checks for whitespace                               -->
   <!-- See http://checkstyle.org/config_whitespace.html -->
   <module name="FileTabCharacter">
@@ -37,7 +43,12 @@
     <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
   </module>
 
+  <!-- Filter out Checkstyle warnings that have been suppressed with the @SuppressWarnings annotation -->
+  <module name="SuppressWarningsFilter" />
+
   <module name="TreeWalker">
+    <!-- Make the @SuppressWarnings annotations available to Checkstyle -->
+    <module name="SuppressWarningsHolder" />
     <module name="OuterTypeFilename"/>
     <module name="IllegalTokenText">
       <property name="tokens" value="STRING_LITERAL, CHAR_LITERAL"/>
@@ -322,7 +333,7 @@
     <module name="MissingJavadocMethod">
       <property name="scope" value="public"/>
       <property name="minLineCount" value="2"/>
-      <property name="allowedAnnotations" value="Override, Test, SneakyThrows, Slf4j"/>
+      <property name="allowedAnnotations" value="Override, Test"/>
       <property name="tokens" value="METHOD_DEF, ANNOTATION_FIELD_DEF"/>
     </module>
     <module name="MissingJavadocType">
