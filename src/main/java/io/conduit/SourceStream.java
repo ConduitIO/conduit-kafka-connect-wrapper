@@ -21,14 +21,18 @@ import java.util.function.Function;
 public class SourceStream implements StreamObserver<Source.Run.Request>, Runnable {
     private final SourceTask task;
     private final StreamObserver<Source.Run.Response> responseObserver;
-    private final Function<SourceRecord, Record> transformer;
-    private final Queue<SourceRecord> buffer = new LinkedList<>();
     private boolean shouldRun = true;
 
+    private final Queue<SourceRecord> buffer = new LinkedList<>();
+    private final Function<SourceRecord, Record.Builder> transformer;
+    private final SourcePosition position;
+
     public SourceStream(SourceTask task,
+                        SourcePosition position,
                         StreamObserver<Source.Run.Response> responseObserver,
-                        Function<SourceRecord, Record> transformer) {
+                        Function<SourceRecord, Record.Builder> transformer) {
         this.task = task;
+        this.position = position;
         this.responseObserver = responseObserver;
         this.transformer = transformer;
     }
@@ -67,9 +71,15 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
         buffer.addAll(polled);
     }
 
+    @SneakyThrows
     private Source.Run.Response responseWith(SourceRecord record) {
+        position.add(record.sourcePartition(), record.sourceOffset());
+
+        Record.Builder conduitRec = transformer.apply(record)
+                .setPosition(position.asByteString());
+
         return Source.Run.Response.newBuilder()
-                .setRecord(transformer.apply(record))
+                .setRecord(conduitRec)
                 .build();
     }
 

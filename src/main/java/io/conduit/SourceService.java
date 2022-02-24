@@ -21,6 +21,7 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     private HashMap<String, String> config;
     private boolean started;
     private SourceStream runStream;
+    private SourcePosition position;
 
     public SourceService(TaskFactory taskFactory) {
         this.taskFactory = taskFactory;
@@ -60,9 +61,9 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
         log.info("Starting the source.");
 
         try {
-            Map<String, Map<String, Object>> position = Transformations.parsePosition(request.getPosition().toStringUtf8());
+            this.position = SourcePosition.fromString(request.getPosition().toStringUtf8());
             task.initialize(
-                    new SimpleSourceTaskCtx(config, position.get("sourcePartition"), position.get("sourceOffset"))
+                    new SimpleSourceTaskCtx(config, position)
             );
             task.start(config);
             started = true;
@@ -80,7 +81,12 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
 
     @Override
     public StreamObserver<Source.Run.Request> run(StreamObserver<Source.Run.Response> responseObserver) {
-        runStream = new SourceStream(task, responseObserver, Transformations::fromKafkaSource);
+        this.runStream = new SourceStream(
+                task,
+                position,
+                responseObserver,
+                Transformations::fromKafkaSource
+        );
         runStream.start();
         return runStream;
     }

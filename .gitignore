@@ -3,3 +3,4 @@ target/
 *.iml
 dependency-reduced-pom.xml
 kafka-connector-plugin
+.DS_Store

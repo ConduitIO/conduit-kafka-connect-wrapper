@@ -70,7 +70,7 @@ public class TransformationsTest {
                 testSchema,
                 testValue
         );
-        Record conduitRec = Transformations.fromKafkaSource(sourceRecord);
+        Record.Builder conduitRec = Transformations.fromKafkaSource(sourceRecord);
         assertNotNull(conduitRec);
 
         // verify payload
@@ -79,11 +79,6 @@ public class TransformationsTest {
         // verify key
         assertFalse(conduitRec.getKey().hasRawData());
         assertFalse(conduitRec.getKey().hasStructuredData());
-        // verify position
-        // it's a JSON object with the two keys mentioned below
-        Map position = Utils.mapper.readValue(conduitRec.getPosition().toStringUtf8(), Map.class);
-        assertEquals(sourceRecord.sourcePartition(), position.get("sourcePartition"));
-        assertEquals(sourceRecord.sourceOffset(), position.get("sourceOffset"));
     }
 
     private void assertMatch(Struct expected, com.google.protobuf.Struct payload) {

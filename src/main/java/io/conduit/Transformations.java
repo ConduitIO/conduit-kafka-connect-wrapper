@@ -13,33 +13,22 @@ import org.apache.kafka.connect.source.SourceRecord;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
 
 import static io.conduit.Utils.jsonConvSchemaless;
 import static java.util.Collections.emptyMap;
 
 public class Transformations {
-    public static final Record fromKafkaSource(SourceRecord sourceRecord) {
+    public static final Record.Builder fromKafkaSource(SourceRecord sourceRecord) {
         if (sourceRecord == null) {
             return null;
         }
         // NB: Aiven's JDBC source connector doesn't return keys, so we're skipping them here.
+        // The transformer returns a builder, so that it's easier to set other fields on the same record.
+        // We can return a record, but the caller would then need to transform it into a builder,
+        // which might create needless copies of fields.
         return Record.newBuilder()
-                .setPayload(getPayload(sourceRecord))
-                .setPosition(getPosition(sourceRecord))
-                .build();
-    }
-
-    @SneakyThrows
-    private static ByteString getPosition(SourceRecord sourceRecord) {
-        Map<String, Object> position = new HashMap<>();
-        // We assume all records come from a single source partition (e.g. table in a DB)
-        // Support for multiple partitions will be added separately.
-        position.put("sourcePartition", sourceRecord.sourcePartition());
-        position.put("sourceOffset", sourceRecord.sourceOffset());
-        String json = Utils.mapper.writeValueAsString(position);
-        return ByteString.copyFromUtf8(json);
+                .setPayload(getPayload(sourceRecord));
     }
 
     private static Data getPayload(SourceRecord sourceRecord) {
