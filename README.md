@@ -3,18 +3,22 @@ The Kafka connector Conduit plugin's goal is to make it possible to use existing
 
 #### Pre-requisites
 * JDK 11
-* To use the JDBC Kafka connectors, you need to have a JDBC connector jar installed to your local Maven repository. To do so:
-    * Clone https://github.com/meroxa/aiven-kafka-connect-jdbc
-    * `git checkout fix-gradle-publishToMavenLocal`
-    * `./gradlew build publishToMavenLocal`
-        
-      Add `-x test` if you want to skip tests. If publishing was successful you'll see the dependency in `~/.m2/repository/io/aiven/aiven-kafka-connect-jdbc/`.
-    * This is because in the upstream repository (Aiven's repository), publishing to Maven locally doesn't work. The branch above has a fix.
 * The plugin needs to have write permissions to the directory /var/log/kafka-connector-plugin/
+* Currently, only Unix-like OSes are supported.
 
 #### How to build
 Run `scripts/package.sh` to build an executable. For development purposes, a utility script, `scripts/copy.sh`, is provided 
 to also quickly copy the executable to Conduit's plugin directory (it assumes that the repository is at `../conduit`).
+
+### Loading connectors
+The plugin will load connectors and all the other dependencies from a `libs` directory, which is expected to be in the 
+same directory as the plugin executable itself. For example, if the plugin executable is at `/abc/def/kafka-connector-plugin`,
+then the dependencies are expected to be in `/abc/def/libs`.
+
+The plugin will be able to find the dependencies as soon as they are put into `libs`. 
+
+By default, Aiven's JDBC connector is shipped in the `libs` directory. A JDBC connector (generally) will require a 
+database-specific driver to work (for example, PostgreSQL's driver can be found [here](https://mvnrepository.com/artifact/org.postgresql/postgresql)).
 
 #### General notes
 
@@ -22,29 +26,6 @@ to also quickly copy the executable to Conduit's plugin directory (it assumes th
 a handshake with Conduit via standard output, and that is expected to be the first line in the standard output.
 2. Currently, only sink connectors are supported. Work is under way to support source connectors too.
 3. Currently, it's possible to use this plugin only on Unix-like systems.
-4. The JDBC Kafka connector requires appropriate JDBC drivers to work. For example, if you want PostgreSQL sink connectors
-to work, then you need the following dependencies in `pom.xml`:
-```xml
-<dependency>
-    <groupId>io.aiven</groupId>
-    <artifactId>aiven-kafka-connect-jdbc</artifactId>
-    <version>6.7.0-SNAPSHOT</version>
-</dependency>
-<dependency>
-    <groupId>org.postgresql</groupId>
-    <artifactId>postgresql</artifactId>
-    <version>42.2.23</version>
-</dependency>
-```
-5. Similarly, to be able to use another Kafka connector, it should be a matter of simply adding that connector
-as a dependency, e.g.:
-````xml
-<dependency>
-    <groupId>org.mongodb.kafka</groupId>
-    <artifactId>mongo-kafka-connect</artifactId>
-    <version>1.6.1</version>
-</dependency>
-````
 
 #### Configuration
 This plugin's configuration consists of the configuration of the requested Kafka connector, plus:

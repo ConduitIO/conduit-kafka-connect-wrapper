@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+exec /usr/bin/env java -cp "$SCRIPT_DIR/kafka-connector-plugin-0.1.0-SNAPSHOT.jar:$SCRIPT_DIR/libs/*" io.conduit.Application
