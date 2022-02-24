@@ -124,6 +124,9 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
         shouldRun = false;
     }
 
+    /**
+     * Starts this stream. The method is not blocking -- the actual work is done in a separate thread.
+     */
     public void start() {
         Thread thread = new Thread(this);
         thread.setUncaughtExceptionHandler((t, e) -> {

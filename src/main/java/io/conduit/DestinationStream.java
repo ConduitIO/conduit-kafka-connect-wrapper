@@ -84,7 +84,7 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
 
     @SneakyThrows
     private SinkRecord toSinkRecord(Record record) {
-        Object value = Transformations.toStruct(record, schemaJson);
+        Object value = Transformations.toConnectData(record, schemaJson);
         return new SinkRecord(
                 schema != null ? schema.name() : null,
                 0,

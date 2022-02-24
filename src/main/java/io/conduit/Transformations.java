@@ -32,7 +32,13 @@ import org.apache.kafka.connect.source.SourceRecord;
 
 import static io.conduit.Utils.jsonConvSchemaless;
 
+/**
+ * A class holding common transformations between Conduit and Kafka connect data types.
+ */
 public class Transformations {
+    /**
+     * Transforms a Kafka Connect {@link SourceRecord} into a Conduit record. Only the payload is set.
+     */
     public static final Record.Builder fromKafkaSource(SourceRecord sourceRecord) {
         if (sourceRecord == null) {
             return null;
@@ -79,7 +85,12 @@ public class Transformations {
         throw new UnsupportedOperationException("records with raw data not supported yet");
     }
 
-    public static Object toStruct(Record record, ObjectNode schemaJson) {
+    /**
+     * Transforms the input Conduit record into a Kafka connect data type
+     * (if the record contains structured data or if a schema is provided).
+     * Otherwise, returns the raw payload's byte data.
+     */
+    public static Object toConnectData(Record record, ObjectNode schemaJson) {
         if (record == null) {
             throw new IllegalArgumentException("record is null");
         }

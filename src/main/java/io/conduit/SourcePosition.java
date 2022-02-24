@@ -29,6 +29,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 
+/**
+ * Represents a position in a Kafka source connector.
+ */
 @EqualsAndHashCode
 @Getter
 @Setter
@@ -39,6 +42,9 @@ public class SourcePosition {
     @JsonDeserialize(keyUsing = SourcePartitionKeyDeser.class)
     private final Map<SourcePartition, SourceOffset> positions = new HashMap<>();
 
+    /**
+     * Parses a string position into a POJO.
+     */
     @SneakyThrows
     public static SourcePosition fromString(String position) {
         if (Utils.isEmpty(position)) {
@@ -52,6 +58,9 @@ public class SourcePosition {
         positions.put(new SourcePartition(partition), new SourceOffset(offset));
     }
 
+    /**
+     * Returns this position as a JSON string, wrapped in a {@link ByteString}.
+     */
     @SneakyThrows
     public ByteString asByteString() {
         return ByteString.copyFrom(

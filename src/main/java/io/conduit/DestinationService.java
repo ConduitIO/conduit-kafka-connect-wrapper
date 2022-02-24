@@ -52,7 +52,6 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
     }
 
     @Override
-
     public void configure(Destination.Configure.Request request, StreamObserver<Response> responseObserver) {
         log.info("Configuring the destination.");
 

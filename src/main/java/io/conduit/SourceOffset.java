@@ -25,6 +25,9 @@ import lombok.Setter;
 
 import static java.util.Collections.emptyMap;
 
+/**
+ * A wrapper for an offset map in a Kafka source connector.
+ */
 @EqualsAndHashCode
 @Getter
 @Setter

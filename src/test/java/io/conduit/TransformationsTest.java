@@ -99,7 +99,7 @@ public class TransformationsTest {
     public void testToSinkRecord_NoRecord() {
         var e = assertThrows(
                 IllegalArgumentException.class,
-                () -> Transformations.toStruct(null, null)
+                () -> Transformations.toConnectData(null, null)
         );
         assertEquals("record is null", e.getMessage());
     }
@@ -109,7 +109,7 @@ public class TransformationsTest {
         var rec = Record.newBuilder().build();
         var e = assertThrows(
                 IllegalArgumentException.class,
-                () -> Transformations.toStruct(rec, null)
+                () -> Transformations.toConnectData(rec, null)
         );
         assertEquals("record has no payload", e.getMessage());
     }
@@ -117,7 +117,7 @@ public class TransformationsTest {
     @Test
     public void testToSinkRecord_RawData() {
         var rec = newRecordRawData();
-        var sinkRecObj = Transformations.toStruct(rec, schemaJson);
+        var sinkRecObj = Transformations.toConnectData(rec, schemaJson);
         assertInstanceOf(Struct.class, sinkRecObj);
 
         Struct value = (Struct) sinkRecObj;
@@ -134,7 +134,7 @@ public class TransformationsTest {
 
         var e = assertThrows(
                 IllegalArgumentException.class,
-                () -> Transformations.toStruct(rec, null)
+                () -> Transformations.toConnectData(rec, null)
         );
         assertEquals(
                 "cannot parse struct without schema",
@@ -146,7 +146,7 @@ public class TransformationsTest {
     public void testToSinkRecord_StructuredData() {
         var rec = newRecordStructData();
 
-        verifySinkRecord(Transformations.toStruct(rec, schemaJson));
+        verifySinkRecord(Transformations.toConnectData(rec, schemaJson));
     }
 
     public void verifySinkRecord(Object actualObj) {

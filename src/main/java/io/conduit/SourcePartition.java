@@ -25,6 +25,9 @@ import lombok.SneakyThrows;
 
 import static java.util.Collections.emptyMap;
 
+/**
+ * A wrapper for a partition map in a Kafka source connector.
+ */
 @EqualsAndHashCode
 @Getter
 @Setter

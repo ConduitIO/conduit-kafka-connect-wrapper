@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.connect.json.JsonConverter;
 
+@SuppressWarnings("checkstyle:MissingJavadocType")
 public final class Utils {
     public static final ObjectMapper mapper = new ObjectMapper()
             .configure(DeserializationFeature.USE_LONG_FOR_INTS, true);

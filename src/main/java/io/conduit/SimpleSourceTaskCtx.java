@@ -25,6 +25,10 @@ import org.apache.kafka.connect.storage.OffsetStorageReader;
 
 import static java.util.Collections.emptyMap;
 
+/**
+ * A {@link SourceTaskContext} implementation which also provides
+ * the source task's configuration and position (a mapping from partitions to offsets).
+ */
 public class SimpleSourceTaskCtx implements SourceTaskContext {
     private final Map<String, String> config;
     private final SourcePosition position;

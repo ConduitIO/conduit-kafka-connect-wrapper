@@ -43,20 +43,20 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     }
 
     @Override
-    public void configure(Source.Configure.Request request, StreamObserver<Source.Configure.Response> responseObserver) {
+    public void configure(Source.Configure.Request req, StreamObserver<Source.Configure.Response> respObserver) {
         log.info("Configuring the source.");
 
         try {
             // the returned config map is unmodifiable, so we make a copy
             // since we need to remove some keys
-            doConfigure(new HashMap<>(request.getConfigMap()));
+            doConfigure(new HashMap<>(req.getConfigMap()));
             log.info("Done configuring the source.");
 
-            responseObserver.onNext(Source.Configure.Response.newBuilder().build());
-            responseObserver.onCompleted();
+            respObserver.onNext(Source.Configure.Response.newBuilder().build());
+            respObserver.onCompleted();
         } catch (Exception e) {
             log.error("Error while configuring source.", e);
-            responseObserver.onError(
+            respObserver.onError(
                     Status.INTERNAL
                             .withDescription("couldn't configure task: " + e.getMessage())
                             .withCause(e)
