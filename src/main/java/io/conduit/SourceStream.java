@@ -21,7 +21,6 @@ import java.util.function.Function;
 public class SourceStream implements StreamObserver<Source.Run.Request>, Runnable {
     private final SourceTask task;
     private final StreamObserver<Source.Run.Response> responseObserver;
-    private final Thread thread;
     private boolean shouldRun = true;
 
     private final Queue<SourceRecord> buffer = new LinkedList<>();
@@ -36,14 +35,6 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
         this.position = position;
         this.responseObserver = responseObserver;
         this.transformer = transformer;
-
-        // todo move out logic from the constructor
-        this.thread = new Thread(this);
-        thread.setUncaughtExceptionHandler((t, e) -> {
-            log.error("Uncaught exception for thread {}.", t.getName(), e);
-            onError(e);
-        });
-        thread.start();
     }
 
     @Override
@@ -111,5 +102,14 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
     private void stop() {
         log.info("Stopping...");
         shouldRun = false;
+    }
+
+    public void start() {
+        Thread thread = new Thread(this);
+        thread.setUncaughtExceptionHandler((t, e) -> {
+            log.error("Uncaught exception for thread {}.", t.getName(), e);
+            onError(e);
+        });
+        thread.start();
     }
 }

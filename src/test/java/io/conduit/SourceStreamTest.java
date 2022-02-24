@@ -40,7 +40,7 @@ public class SourceStreamTest {
     @Test
     @DisplayName("When SourceStream is created, the underlying SourceTask starts being polled.")
     public void testRunAfterInit() throws InterruptedException {
-        new SourceStream(task, position, streamObserver, transformer);
+        new SourceStream(task, position, streamObserver, transformer).start();
         Thread.sleep(50);
         verify(task, atLeastOnce()).poll();
     }
@@ -71,8 +71,8 @@ public class SourceStreamTest {
         when(position.asByteString()).thenReturn(ByteString.copyFromUtf8("irrelevant"));
         when(transformer.apply(sourceRec)).thenReturn(conduitRec);
 
-        new SourceStream(task, position, streamObserver, transformer);
-        Thread.sleep(250);
+        new SourceStream(task, position, streamObserver, transformer).start();
+        Thread.sleep(300);
 
         var responseCaptor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(streamObserver, never()).onError(any());
@@ -97,7 +97,7 @@ public class SourceStreamTest {
     private void testConnectorTaskThrows(Throwable surprise) throws InterruptedException {
         when(task.poll()).thenThrow(surprise);
 
-        new SourceStream(task, position, streamObserver, transformer);
+        new SourceStream(task, position, streamObserver, transformer).start();
         Thread.sleep(100);
 
         verify(streamObserver, never()).onNext(any());
@@ -123,7 +123,7 @@ public class SourceStreamTest {
         when(transformer.apply(sr1)).thenReturn(cr1);
         when(transformer.apply(sr2)).thenReturn(cr2);
 
-        new SourceStream(task, position, streamObserver, transformer);
+        new SourceStream(task, position, streamObserver, transformer).start();
         Thread.sleep(500);
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(streamObserver, times(2)).onNext(captor.capture());

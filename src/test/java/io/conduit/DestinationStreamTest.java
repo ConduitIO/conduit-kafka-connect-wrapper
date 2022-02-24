@@ -10,7 +10,6 @@ import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -69,11 +69,11 @@ public class DestinationStreamTest {
         );
 
         // task should be flushed, since Conduit doesn't (yet) support async. writes
-        verify(task).flush(argThat(m -> m.isEmpty()));
+        verify(task).flush(argThat(Map::isEmpty));
         // no errors
         verify(streamObserver, never()).onError(any());
         // verify position
-        ArgumentCaptor<Destination.Run.Response> responseCaptor = ArgumentCaptor.forClass(Destination.Run.Response.class);
+        var responseCaptor = ArgumentCaptor.forClass(Destination.Run.Response.class);
         verify(streamObserver).onNext(responseCaptor.capture());
         assertEquals(record.getPosition(), responseCaptor.getValue().getAckPosition());
     }
@@ -94,16 +94,12 @@ public class DestinationStreamTest {
         assertEquals(schema, sinkRecord.valueSchema());
         assertEquals(record.getKey().getRawData().toStringUtf8(), sinkRecord.key());
 
-        Struct value = (Struct) sinkRecord.value();
-        assertEquals(123, value.get("id"));
-        assertEquals("foobar", value.get("name"));
-
         // task should be flushed, since Conduit doesn't (yet) support async. writes
-        verify(task).flush(argThat(m -> m.isEmpty()));
+        verify(task).flush(argThat(Map::isEmpty));
 
         // verify position
         verify(streamObserver, never()).onError(any());
-        ArgumentCaptor<Destination.Run.Response> responseCaptor = ArgumentCaptor.forClass(Destination.Run.Response.class);
+        var responseCaptor = ArgumentCaptor.forClass(Destination.Run.Response.class);
         verify(streamObserver).onNext(responseCaptor.capture());
         assertEquals(record.getPosition(), responseCaptor.getValue().getAckPosition());
     }
@@ -133,7 +129,7 @@ public class DestinationStreamTest {
         ArgumentCaptor<Collection<SinkRecord>> recordsCaptor = ArgumentCaptor.forClass(Collection.class);
         verify(task).put(recordsCaptor.capture());
         // verify exception
-        ArgumentCaptor<Exception> exception = ArgumentCaptor.forClass(Exception.class);
+        var exception = ArgumentCaptor.forClass(Exception.class);
         verify(streamObserver).onError(exception.capture());
 
         assertInstanceOf(StatusException.class, exception.getValue());

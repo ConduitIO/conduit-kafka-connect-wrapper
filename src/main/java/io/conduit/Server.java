@@ -15,9 +15,10 @@ public class Server {
     }
 
     public Server(ServerBuilder<?> serverBuilder) {
+        ClasspathTaskFactory taskFactory = new ClasspathTaskFactory();
         server = serverBuilder
-                .addService(new DestinationService(new ClasspathTaskFactory()))
-                .addService(new SourceService(new ClasspathTaskFactory()))
+                .addService(new DestinationService(taskFactory))
+                .addService(new SourceService(taskFactory))
                 .build();
     }
 

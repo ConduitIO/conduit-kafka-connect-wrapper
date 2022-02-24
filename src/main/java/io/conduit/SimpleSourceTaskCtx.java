@@ -7,6 +7,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Collections.emptyMap;
+
 public class SimpleSourceTaskCtx implements SourceTaskContext {
     private final Map<String, String> config;
     private final SourcePosition position;
@@ -31,6 +33,10 @@ public class SimpleSourceTaskCtx implements SourceTaskContext {
 
             @Override
             public <T> Map<Map<String, T>, Map<String, Object>> offsets(Collection<Map<String, T>> partitions) {
+                if (Utils.isEmpty(partitions)) {
+                    return emptyMap();
+                }
+
                 Map<Map<String, T>, Map<String, Object>> offsets = new HashMap<>();
                 for (Map<String, T> partition : partitions) {
                     SourceOffset offset = position.offsetFor(partition);

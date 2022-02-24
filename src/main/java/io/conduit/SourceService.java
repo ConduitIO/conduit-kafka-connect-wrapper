@@ -9,6 +9,7 @@ import org.apache.kafka.connect.source.SourceTask;
 import org.slf4j.MDC;
 
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A gRPC service exposing source plugin methods.
@@ -86,6 +87,7 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
                 responseObserver,
                 Transformations::fromKafkaSource
         );
+        runStream.start();
         return runStream;
     }
 
