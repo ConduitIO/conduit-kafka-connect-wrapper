@@ -1,5 +1,7 @@
 package io.conduit;
 
+import java.util.HashMap;
+
 import io.conduit.grpc.Source;
 import io.conduit.grpc.SourcePluginGrpc;
 import io.grpc.Status;
@@ -7,9 +9,6 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.source.SourceTask;
 import org.slf4j.MDC;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * A gRPC service exposing source plugin methods.

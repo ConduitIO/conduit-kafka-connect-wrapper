@@ -1,11 +1,11 @@
 package io.conduit;
 
+import java.util.Map;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
-
-import java.util.Map;
 
 import static java.util.Collections.emptyMap;
 

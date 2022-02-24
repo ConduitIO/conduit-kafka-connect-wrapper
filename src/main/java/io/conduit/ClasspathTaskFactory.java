@@ -1,11 +1,11 @@
 package io.conduit;
 
+import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
+
 import lombok.SneakyThrows;
 import org.apache.kafka.connect.sink.SinkTask;
 import org.apache.kafka.connect.source.SourceTask;
-
-import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
 
 public class ClasspathTaskFactory implements TaskFactory {
     @SneakyThrows

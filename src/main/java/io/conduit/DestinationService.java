@@ -1,5 +1,8 @@
 package io.conduit;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import io.conduit.grpc.Destination;
 import io.conduit.grpc.Destination.Configure.Response;
@@ -12,9 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.sink.SinkTask;
 import org.slf4j.MDC;
-
-import java.util.HashMap;
-import java.util.Map;
 
 import static io.conduit.Utils.isEmpty;
 import static io.conduit.Utils.mapper;

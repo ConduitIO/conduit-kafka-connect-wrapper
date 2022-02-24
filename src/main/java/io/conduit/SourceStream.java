@@ -1,5 +1,10 @@
 package io.conduit;
 
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+import java.util.function.Function;
+
 import io.conduit.grpc.Record;
 import io.conduit.grpc.Source;
 import io.grpc.Status;
@@ -8,11 +13,6 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
-
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.function.Function;
 
 /**
  * A {@link io.grpc.stub.StreamObserver} implementation which exposes a Kafka connector source task through a gRPC stream.

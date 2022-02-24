@@ -1,11 +1,11 @@
 package io.conduit;
 
+import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.Map;
 
 import static java.util.Collections.emptyMap;
 

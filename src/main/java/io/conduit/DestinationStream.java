@@ -1,5 +1,7 @@
 package io.conduit;
 
+import java.util.List;
+
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.ByteString;
 import io.conduit.grpc.Destination;
@@ -11,8 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
-
-import java.util.List;
 
 import static java.util.Collections.emptyMap;
 
