@@ -41,7 +41,10 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
         } catch (Exception e) {
             log.error("Error while configuring source.", e);
             responseObserver.onError(
-                    Status.INTERNAL.withDescription("couldn't configure task: " + e.getMessage()).withCause(e).asException()
+                    Status.INTERNAL
+                            .withDescription("couldn't configure task: " + e.getMessage())
+                            .withCause(e)
+                            .asException()
             );
         }
     }

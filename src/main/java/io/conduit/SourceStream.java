@@ -15,7 +15,8 @@ import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 
 /**
- * A {@link io.grpc.stub.StreamObserver} implementation which exposes a Kafka connector source task through a gRPC stream.
+ * A {@link io.grpc.stub.StreamObserver} implementation which exposes a Kafka connector source task
+ * through a gRPC stream.
  */
 @Slf4j
 public class SourceStream implements StreamObserver<Source.Run.Request>, Runnable {
@@ -49,7 +50,10 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
             } catch (Exception e) {
                 log.error("Couldn't write record.", e);
                 responseObserver.onError(
-                        Status.INTERNAL.withDescription("couldn't read record: " + e.getMessage()).withCause(e).asException()
+                        Status.INTERNAL
+                                .withDescription("couldn't read record: " + e.getMessage())
+                                .withCause(e)
+                                .asException()
                 );
             }
         }

@@ -51,7 +51,10 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
         } catch (Exception e) {
             log.error("Error while configuring destination.", e);
             responseObserver.onError(
-                    Status.INTERNAL.withDescription("couldn't configure task: " + e.getMessage()).withCause(e).asException()
+                    Status.INTERNAL
+                            .withDescription("couldn't configure task: " + e.getMessage())
+                            .withCause(e)
+                            .asException()
             );
         }
     }

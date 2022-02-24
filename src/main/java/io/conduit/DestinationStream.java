@@ -46,7 +46,10 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
         } catch (Exception e) {
             log.error("Couldn't write record.", e);
             responseObserver.onError(
-                    Status.INTERNAL.withDescription("couldn't write record: " + e.getMessage()).withCause(e).asException()
+                    Status.INTERNAL
+                            .withDescription("couldn't write record: " + e.getMessage())
+                            .withCause(e)
+                            .asException()
             );
         }
     }
