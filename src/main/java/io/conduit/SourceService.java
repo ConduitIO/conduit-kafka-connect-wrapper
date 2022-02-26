@@ -1,4 +1,22 @@
+/*
+ * Copyright 2022 Meroxa, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.conduit;
+
+import java.util.HashMap;
 
 import io.conduit.grpc.Source;
 import io.conduit.grpc.SourcePluginGrpc;
@@ -7,9 +25,6 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.source.SourceTask;
 import org.slf4j.MDC;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * A gRPC service exposing source plugin methods.
@@ -28,21 +43,24 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     }
 
     @Override
-    public void configure(Source.Configure.Request request, StreamObserver<Source.Configure.Response> responseObserver) {
+    public void configure(Source.Configure.Request req, StreamObserver<Source.Configure.Response> respObserver) {
         log.info("Configuring the source.");
 
         try {
             // the returned config map is unmodifiable, so we make a copy
             // since we need to remove some keys
-            doConfigure(new HashMap<>(request.getConfigMap()));
+            doConfigure(new HashMap<>(req.getConfigMap()));
             log.info("Done configuring the source.");
 
-            responseObserver.onNext(Source.Configure.Response.newBuilder().build());
-            responseObserver.onCompleted();
+            respObserver.onNext(Source.Configure.Response.newBuilder().build());
+            respObserver.onCompleted();
         } catch (Exception e) {
             log.error("Error while configuring source.", e);
-            responseObserver.onError(
-                    Status.INTERNAL.withDescription("couldn't configure task: " + e.getMessage()).withCause(e).asException()
+            respObserver.onError(
+                    Status.INTERNAL
+                            .withDescription("couldn't configure task: " + e.getMessage())
+                            .withCause(e)
+                            .asException()
             );
         }
     }

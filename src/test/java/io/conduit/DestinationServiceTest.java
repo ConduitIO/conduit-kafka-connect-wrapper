@@ -1,5 +1,7 @@
 package io.conduit;
 
+import java.util.Map;
+
 import io.conduit.grpc.Destination;
 import io.grpc.stub.StreamObserver;
 import org.apache.kafka.connect.sink.SinkTask;
@@ -10,8 +12,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;

@@ -1,11 +1,30 @@
-package io.conduit;
+/*
+ * Copyright 2022 Meroxa, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-import io.grpc.ServerBuilder;
-import lombok.extern.slf4j.Slf4j;
+package io.conduit;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import io.grpc.ServerBuilder;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * A wrapper around {@link io.grpc.Server}, which also adds shutdown hooks.
+ */
 @Slf4j
 public class Server {
     private final io.grpc.Server server;
@@ -22,6 +41,12 @@ public class Server {
                 .build();
     }
 
+    /**
+     * Starts this server on the configured port. Also adds a JVM shutdown hook,
+     * so that the server is shut down, when the JVM shutdown is triggered.
+     *
+     *@throws IOException if the server cannot be started
+     */
     public void start() throws IOException {
         log.info("Starting server...");
         server.start();
@@ -39,12 +64,23 @@ public class Server {
         }));
     }
 
+    /**
+     * Initiates an orderly shutdown of the server and waits at most 30 seconds
+     * for the server to terminate (i.e. no running calls).
+     *
+     *@throws InterruptedException if interrupted while waiting
+     */
     public void stop() throws InterruptedException {
         if (server != null) {
             server.shutdown().awaitTermination(30, TimeUnit.SECONDS);
         }
     }
 
+    /**
+     * Waits for the server to become terminated.
+     *
+     *@throws InterruptedException if interrupted while blocking
+     */
     public void blockUntilShutdown() throws InterruptedException {
         if (server != null) {
             server.awaitTermination();

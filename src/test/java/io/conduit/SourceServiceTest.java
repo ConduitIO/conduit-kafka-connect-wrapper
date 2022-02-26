@@ -1,5 +1,7 @@
 package io.conduit;
 
+import java.util.Map;
+
 import io.conduit.grpc.Source;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
@@ -11,8 +13,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
