@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Struct;
+import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.JsonFormat;
 import io.conduit.grpc.Data;
 import io.conduit.grpc.Record;
@@ -48,7 +49,8 @@ public class Transformations {
         // We can return a record, but the caller would then need to transform it into a builder,
         // which might create needless copies of fields.
         return Record.newBuilder()
-                .setPayload(getPayload(sourceRecord));
+                .setPayload(getPayload(sourceRecord))
+                .setCreatedAt(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1000).build());
     }
 
     private static Data getPayload(SourceRecord sourceRecord) {

@@ -17,8 +17,10 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 
 import static io.conduit.Transformations.fromKafkaSource;
 import static org.junit.jupiter.api.Assertions.*;
@@ -76,6 +78,10 @@ public class TransformationsTest {
         // verify payload
         var payload = conduitRec.getPayload().getStructuredData();
         assertMatch(testValue, payload);
+        // assert timestamp is within last second
+        assertTrue(
+                conduitRec.getCreatedAt().getSeconds() * 1000 > System.currentTimeMillis() - 1000
+        );
         // verify key
         assertFalse(conduitRec.getKey().hasRawData());
         assertFalse(conduitRec.getKey().hasStructuredData());
