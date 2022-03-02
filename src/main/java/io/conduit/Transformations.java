@@ -50,7 +50,15 @@ public class Transformations {
         // which might create needless copies of fields.
         return Record.newBuilder()
                 .setPayload(getPayload(sourceRecord))
-                .setCreatedAt(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1000).build());
+                .setCreatedAt(currentTimestamp());
+    }
+
+    private static Timestamp currentTimestamp() {
+        long millis = System.currentTimeMillis();
+        return Timestamp.newBuilder()
+                .setSeconds(millis / 1000)
+                .setNanos((int) (millis % 1000) * 1000)
+                .build();
     }
 
     private static Data getPayload(SourceRecord sourceRecord) {
