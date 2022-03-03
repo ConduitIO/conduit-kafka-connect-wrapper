@@ -6,6 +6,15 @@ The Kafka connector Conduit plugin's goal is to make it possible to use existing
 * The plugin needs to have write permissions to the directory /var/log/kafka-connector-plugin/
 * Currently, only Unix-like OSes are supported.
 
+### Development
+The complete server-side code for this plugin is **not** committed to the repo. Rather, it's generated from a proto file,
+when the project is compiled.
+
+IDEs may not automatically add the generated sources to the class. If that's the case, you need to:
+1. Run `mvn clean compile` (so that the needed code is generated)
+2. Change the project settings in your IDE to include the generated source. In IntelliJ, for example, you do that by going
+to File > Project structure > Project Settings > Modules. Then, right-click on `target/generated-source` and select "Sources".
+
 #### How to build
 Run `scripts/package.sh` to build an executable. For development purposes, a utility script, `scripts/copy.sh`, is provided 
 to also quickly copy the executable to Conduit's plugin directory (it assumes that the repository is at `../conduit`).
