@@ -18,6 +18,13 @@
         <kafka.version>3.1.0</kafka.version>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>confluent-repo</id>
+            <url>https://packages.confluent.io/maven/</url>
+        </repository>
+    </repositories>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -112,6 +119,12 @@
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-json</artifactId>
             <version>${kafka.version}</version>
+        </dependency>
+        <!-- todo double check license -->
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-connect-avro-converter</artifactId>
+            <version>7.0.1</version>
         </dependency>
     </dependencies>
 

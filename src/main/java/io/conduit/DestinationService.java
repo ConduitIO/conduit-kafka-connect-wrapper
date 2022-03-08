@@ -43,6 +43,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
     private final TaskFactory taskFactory;
     private SinkTask task;
     private Schema schema;
+    private boolean schemaAutoGen;
     private Map<String, String> config;
     private DestinationStream runStream;
     private boolean started;
@@ -81,6 +82,10 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
         this.task = taskFactory.newSinkTask(config.remove("task.class"));
         this.schema = buildSchema(config.remove("schema"));
+        this.schemaAutoGen = Boolean.parseBoolean(config.remove("schema.autogenerate"));
+        if (schema != null && schemaAutoGen) {
+            throw new IllegalStateException("You should either set the schema or have it auto-generated, but not both.");
+        }
         this.config = config;
     }
 
@@ -114,7 +119,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
     @Override
     public StreamObserver<Destination.Run.Request> run(StreamObserver<Destination.Run.Response> responseObserver) {
-        this.runStream = new DestinationStream(task, schema, responseObserver);
+        this.runStream = new DestinationStream(task, schema, schemaAutoGen, responseObserver);
         return runStream;
     }
 
