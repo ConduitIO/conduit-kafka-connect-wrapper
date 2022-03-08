@@ -1,6 +1,5 @@
 package io.conduit;
 
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -27,15 +26,14 @@ public class DefaultSchemaProvider implements SchemaProvider {
     @SneakyThrows
     @Override
     public Schema provide(Record record, String name) {
-        byte[] bytes;
+        String json;
         if (record.getPayload().hasStructuredData()) {
-            bytes = JsonFormat.printer()
-                    .print(record.getPayload().getStructuredData())
-                    .getBytes(StandardCharsets.UTF_8);
+            json = JsonFormat.printer()
+                    .print(record.getPayload().getStructuredData());
         } else {
-            bytes = record.getPayload().getRawData().toStringUtf8().getBytes(StandardCharsets.UTF_8);
+            json = record.getPayload().getRawData().toStringUtf8();
         }
-        return provide(Utils.mapper.readTree(bytes), name);
+        return provide(Utils.mapper.readTree(json), name);
     }
 
     private Schema provide(JsonNode json, String name) {

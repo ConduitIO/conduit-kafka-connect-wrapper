@@ -18,7 +18,6 @@ package io.conduit;
 
 import java.util.List;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.ByteString;
 import io.conduit.grpc.Destination;
 import io.conduit.grpc.Record;
@@ -38,17 +37,13 @@ import static java.util.Collections.emptyMap;
 @Slf4j
 public class DestinationStream implements StreamObserver<Destination.Run.Request> {
     private final SinkTask task;
-    private final Schema schema;
-    // cached JSON object
-    private final ObjectNode schemaJson;
+    private SchemaProvider schemaProvider;
     private boolean schemaAutoGen;
     private final StreamObserver<Destination.Run.Response> responseObserver;
 
-    public DestinationStream(SinkTask task, Schema schema, boolean schemaAutoGen, StreamObserver<Destination.Run.Response> responseObserver) {
+    public DestinationStream(SinkTask task, SchemaProvider schemaProvider, StreamObserver<Destination.Run.Response> responseObserver) {
         this.task = task;
-        this.schema = schema;
-        this.schemaJson = Utils.jsonConv.asJsonSchema(schema);
-        this.schemaAutoGen = schemaAutoGen;
+        this.schemaProvider = schemaProvider;
         this.responseObserver = responseObserver;
     }
 
@@ -86,16 +81,17 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
 
     @SneakyThrows
     private SinkRecord toSinkRecord(Record record) {
-        var schemaUsed = schemaAutoGen ? null : schema;
-        var schemaJsonUsed = schemaAutoGen ? Utils.jsonConv.asJsonSchema(schemaUsed) : schemaJson;
+        var schema = schemaProvider.provide(record, "todo");
+        // todo cache JSON object for FixedSchemaProvider
+        var schemaJson = Utils.jsonConv.asJsonSchema(schema);
 
-        Object value = Transformations.toConnectData(record, schemaJsonUsed);
+        Object value = Transformations.toConnectData(record, schemaJson);
         return new SinkRecord(
-                schemaUsed != null ? schemaUsed.name() : null,
+                schema != null ? schema.name() : null,
                 0,
                 Schema.STRING_SCHEMA,
                 record.getKey().getRawData().toStringUtf8(),
-                schemaUsed,
+                schema,
                 value,
                 0
         );

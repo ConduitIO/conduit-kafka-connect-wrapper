@@ -5,7 +5,6 @@ import java.util.Map;
 import io.conduit.grpc.Destination;
 import io.grpc.stub.StreamObserver;
 import org.apache.kafka.connect.sink.SinkTask;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -41,18 +40,20 @@ public class DestinationServiceTest {
     public void testSetSchemaAndSchemaAutogenerate() {
         when(taskFactory.newSinkTask("io.aiven.connect.jdbc.sink.JdbcSinkTask")).thenReturn(task);
 
-        var e = Assertions.assertThrows(
-                IllegalStateException.class,
-                () -> underTest.configure(
-                        newConfigRequest(Map.of(
-                                "task.class", "io.aiven.connect.jdbc.sink.JdbcSinkTask",
-                                "schema", "{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":true,\"field\":\"id\"}],\"optional\":false,\"name\":\"test_schema\"}",
-                                "schema.autogenerate", "true"
-                        )),
-                        cfgStream
-                )
+        underTest.configure(
+                newConfigRequest(Map.of(
+                        "task.class", "io.aiven.connect.jdbc.sink.JdbcSinkTask",
+                        "schema", "{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":true,\"field\":\"id\"}],\"optional\":false,\"name\":\"test_schema\"}",
+                        "schema.autogenerate", "true"
+                )),
+                cfgStream
         );
-        assertEquals("You should either set the schema or have it auto-generated, but not both.", e.getMessage());
+        var captor = ArgumentCaptor.forClass(Throwable.class);
+        verify(cfgStream).onError(captor.capture());
+        assertEquals(
+                "INTERNAL: couldn't configure task: You should either set the schema or have it auto-generated, but not both.",
+                captor.getValue().getMessage()
+        );
     }
 
     @Test

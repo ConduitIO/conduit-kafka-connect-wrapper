@@ -42,11 +42,10 @@ import static io.conduit.Utils.mapper;
 public class DestinationService extends DestinationPluginGrpc.DestinationPluginImplBase {
     private final TaskFactory taskFactory;
     private SinkTask task;
-    private Schema schema;
-    private boolean schemaAutoGen;
     private Map<String, String> config;
     private DestinationStream runStream;
     private boolean started;
+    private SchemaProvider schemaProvider;
 
     public DestinationService(TaskFactory taskFactory) {
         this.taskFactory = taskFactory;
@@ -81,10 +80,15 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
         MDC.put("connectorName", config.remove("connectorName"));
 
         this.task = taskFactory.newSinkTask(config.remove("task.class"));
-        this.schema = buildSchema(config.remove("schema"));
-        this.schemaAutoGen = Boolean.parseBoolean(config.remove("schema.autogenerate"));
+        var schema = buildSchema(config.remove("schema"));
+        var schemaAutoGen = Boolean.parseBoolean(config.remove("schema.autogenerate"));
         if (schema != null && schemaAutoGen) {
             throw new IllegalStateException("You should either set the schema or have it auto-generated, but not both.");
+        }
+        if (schemaAutoGen) {
+            this.schemaProvider = new DefaultSchemaProvider();
+        } else {
+            this.schemaProvider = new FixedSchemaProvider(schema);
         }
         this.config = config;
     }
@@ -119,7 +123,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
     @Override
     public StreamObserver<Destination.Run.Request> run(StreamObserver<Destination.Run.Response> responseObserver) {
-        this.runStream = new DestinationStream(task, schema, schemaAutoGen, responseObserver);
+        this.runStream = new DestinationStream(task, schemaProvider, responseObserver);
         return runStream;
     }
 
