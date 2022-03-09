@@ -18,7 +18,6 @@ package io.conduit;
 
 import java.util.List;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.ByteString;
 import io.conduit.grpc.Destination;
 import io.conduit.grpc.Record;
@@ -38,15 +37,12 @@ import static java.util.Collections.emptyMap;
 @Slf4j
 public class DestinationStream implements StreamObserver<Destination.Run.Request> {
     private final SinkTask task;
-    private final Schema schema;
-    // cached JSON object
-    private final ObjectNode schemaJson;
+    private final SchemaProvider schemaProvider;
     private final StreamObserver<Destination.Run.Response> responseObserver;
 
-    public DestinationStream(SinkTask task, Schema schema, StreamObserver<Destination.Run.Response> responseObserver) {
+    public DestinationStream(SinkTask task, SchemaProvider schemaProvider, StreamObserver<Destination.Run.Response> responseObserver) {
         this.task = task;
-        this.schema = schema;
-        this.schemaJson = Utils.jsonConv.asJsonSchema(schema);
+        this.schemaProvider = schemaProvider;
         this.responseObserver = responseObserver;
     }
 
@@ -84,6 +80,10 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
 
     @SneakyThrows
     private SinkRecord toSinkRecord(Record record) {
+        // todo cache the JSON object
+        var schema = schemaProvider.provide(record);
+        var schemaJson = Utils.jsonConv.asJsonSchema(schema);
+
         Object value = Transformations.toConnectData(record, schemaJson);
         return new SinkRecord(
                 schema != null ? schema.name() : null,

@@ -85,12 +85,21 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
     }
 
     private SchemaProvider buildSchemaProvider(Map<String, String> config) {
-        Schema schema = buildSchema(config.remove("schema"));
-        boolean autogenerate = Boolean.parseBoolean(config.remove("schema.autogenerate.enabled"));
-        if (schema != null && autogenerate) {
+        if (config.containsKey("schema") && config.containsKey("schema.autogenerate.enabled")) {
             throw new IllegalArgumentException("You cannot provide a schema and use schema auto-generation at the same time.");
         }
-        return null;
+
+        if (config.containsKey("schema")) {
+            return new FixedSchemaProvider(buildSchema(config.remove("schema")));
+        }
+
+        if (config.containsKey("schema.autogenerate.enabled")) {
+            boolean autogenerate = Boolean.parseBoolean(config.remove("schema.autogenerate.enabled"));
+            String name = config.remove("schema.autogenerate.name");
+            return new DefaultSchemaProvider(name);
+        }
+        // No schema information provided, so no schema is to be used.
+        return new FixedSchemaProvider(null);
     }
 
     @SneakyThrows
@@ -123,7 +132,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
     @Override
     public StreamObserver<Destination.Run.Request> run(StreamObserver<Destination.Run.Response> responseObserver) {
-        this.runStream = new DestinationStream(task, schema, responseObserver);
+        this.runStream = new DestinationStream(task, schemaProvider, responseObserver);
         return runStream;
     }
 

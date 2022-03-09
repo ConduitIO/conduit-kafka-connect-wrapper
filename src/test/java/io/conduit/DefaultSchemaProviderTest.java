@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class DefaultSchemaProviderTest {
     @Test
     public void testRawJsonData() {
-        DefaultSchemaProvider underTest = new DefaultSchemaProvider();
+        DefaultSchemaProvider underTest = new DefaultSchemaProvider("myschema");
         ObjectNode json = Utils.mapper.createObjectNode()
                 .put("byteField", (byte) 5)
                 .put("shortField", (short) 25)
@@ -36,7 +36,7 @@ public class DefaultSchemaProviderTest {
                         .build()
                 ).build();
 
-        Schema result = underTest.provide(record, "myschema");
+        Schema result = underTest.provide(record);
 
         assertEquals("myschema", result.name());
         assertEquals(json.size(), result.fields().size());
@@ -57,7 +57,7 @@ public class DefaultSchemaProviderTest {
 
     @Test
     public void testStructuredData() {
-        DefaultSchemaProvider underTest = new DefaultSchemaProvider();
+        DefaultSchemaProvider underTest = new DefaultSchemaProvider("myschema");
         var struct = Struct.newBuilder()
                 .putFields("byteField", Value.newBuilder().setNumberValue((byte) 5).build())
                 .putFields("shortField", Value.newBuilder().setNumberValue((short) 25).build())
@@ -81,7 +81,7 @@ public class DefaultSchemaProviderTest {
                         .build()
                 ).build();
 
-        Schema result = underTest.provide(record, "myschema");
+        Schema result = underTest.provide(record);
         assertEquals("myschema", result.name());
         assertEquals(struct.getFieldsCount(), result.fields().size());
         assertEquals(Schema.Type.STRUCT, result.type());

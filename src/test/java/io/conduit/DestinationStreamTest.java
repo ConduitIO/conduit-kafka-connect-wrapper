@@ -44,7 +44,7 @@ public class DestinationStreamTest {
                 .field("id", Schema.INT32_SCHEMA)
                 .field("name", Schema.STRING_SCHEMA)
                 .build();
-        this.underTest = new DestinationStream(task, schema, streamObserver);
+        this.underTest = new DestinationStream(task, new FixedSchemaProvider(schema), streamObserver);
     }
 
     @Test
