@@ -49,7 +49,7 @@ public class DestinationStreamTest {
 
     @Test
     public void testWriteRecordNoSchema() {
-        DestinationStream underTest = new DestinationStream(task, null, streamObserver);
+        DestinationStream underTest = new DestinationStream(task, new FixedSchemaProvider(null), streamObserver);
         Destination.Run.Request request = newRequest();
         Record record = request.getRecord();
 
