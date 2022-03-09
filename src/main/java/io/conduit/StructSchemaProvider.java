@@ -19,13 +19,13 @@ public class StructSchemaProvider implements SchemaProvider {
         if (!record.hasPayload()) {
             return null;
         }
-        if (record.getPayload().hasStructuredData()) {
-            return provideForStruct(record.getPayload().getStructuredData());
+        if (!record.getPayload().hasStructuredData()) {
+            throw new IllegalArgumentException("Record has no structured payload.");
         }
-        return null;
+        return schemaForStruct(record.getPayload().getStructuredData());
     }
 
-    private Schema provideForStruct(Struct struct) {
+    private Schema schemaForStruct(Struct struct) {
         SchemaBuilder builder = new SchemaBuilder(Schema.Type.STRUCT)
                 .name(name)
                 .optional();
@@ -34,7 +34,7 @@ public class StructSchemaProvider implements SchemaProvider {
             if (overrides != null && overrides.field(key) != null) {
                 builder.field(key, overrides.field(key).schema());
             } else {
-                Schema fieldSchema = provideForValue(value);
+                Schema fieldSchema = schemaForValue(value);
                 if (fieldSchema != null) {
                     builder.field(key, fieldSchema);
                 }
@@ -44,7 +44,7 @@ public class StructSchemaProvider implements SchemaProvider {
         return builder.build();
     }
 
-    private Schema provideForValue(Value value) {
+    private Schema schemaForValue(Value value) {
         if (value.hasBoolValue()) {
             return Schema.OPTIONAL_BOOLEAN_SCHEMA;
         }
@@ -55,15 +55,15 @@ public class StructSchemaProvider implements SchemaProvider {
             return Schema.OPTIONAL_STRING_SCHEMA;
         }
         if (value.hasStructValue()) {
-            return provideForStruct(value.getStructValue());
+            return schemaForStruct(value.getStructValue());
         }
         if (value.hasListValue()) {
-            return provideForList(value.getListValue());
+            return schemaForList(value.getListValue());
         }
         return null;
     }
 
-    private Schema provideForList(ListValue list) {
+    private Schema schemaForList(ListValue list) {
         // if there are no values, we can't determine what's the array element type.
         if (list == null || list.getValuesCount() == 0) {
             return null;
@@ -71,7 +71,7 @@ public class StructSchemaProvider implements SchemaProvider {
         // todo in theory at least, list values can be of different types
         // handle that case here
         return SchemaBuilder
-                .array(provideForValue(list.getValues(0)))
+                .array(schemaForValue(list.getValues(0)))
                 .optional()
                 .build();
     }
