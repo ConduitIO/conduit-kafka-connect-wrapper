@@ -96,7 +96,8 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
         if (config.containsKey("schema.autogenerate.enabled")) {
             boolean autogenerate = Boolean.parseBoolean(config.remove("schema.autogenerate.enabled"));
             String name = config.remove("schema.autogenerate.name");
-            return new DefaultSchemaProvider(name);
+            Schema overrides = buildSchema(config.remove("schema.autogenerate.overrides"));
+            return new DefaultSchemaProvider(name, overrides);
         }
         // No schema information provided, so no schema is to be used.
         return new FixedSchemaProvider(null);

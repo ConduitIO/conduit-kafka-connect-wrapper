@@ -3,10 +3,7 @@ package io.conduit;
 import java.nio.charset.StandardCharsets;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.ListValue;
-import com.google.protobuf.Struct;
-import com.google.protobuf.Value;
+import com.google.protobuf.*;
 import io.conduit.grpc.Data;
 import io.conduit.grpc.Record;
 import org.apache.kafka.connect.data.Schema;
@@ -14,10 +11,11 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+// todo add test for unknown types
 public class DefaultSchemaProviderTest {
     @Test
     public void testRawJsonData() {
-        DefaultSchemaProvider underTest = new DefaultSchemaProvider("myschema");
+        DefaultSchemaProvider underTest = new DefaultSchemaProvider("myschema", null);
         ObjectNode json = Utils.mapper.createObjectNode()
                 .put("byteField", (byte) 5)
                 .put("shortField", (short) 25)
@@ -57,7 +55,7 @@ public class DefaultSchemaProviderTest {
 
     @Test
     public void testStructuredData() {
-        DefaultSchemaProvider underTest = new DefaultSchemaProvider("myschema");
+        DefaultSchemaProvider underTest = new DefaultSchemaProvider("myschema", null);
         var struct = Struct.newBuilder()
                 .putFields("byteField", Value.newBuilder().setNumberValue((byte) 5).build())
                 .putFields("shortField", Value.newBuilder().setNumberValue((short) 25).build())
@@ -67,6 +65,7 @@ public class DefaultSchemaProviderTest {
                 // .putFields("bytesField", Value.newBuilder().set.build())
                 .putFields("floatField", Value.newBuilder().setNumberValue(12.34f).build())
                 .putFields("doubleField", Value.newBuilder().setNumberValue(12.34d).build())
+                .putFields("nullValueField", Value.newBuilder().setNullValue(NullValue.NULL_VALUE).build())
                 .putFields(
                         "stringArrayField",
                         Value.newBuilder()
@@ -83,7 +82,8 @@ public class DefaultSchemaProviderTest {
 
         Schema result = underTest.provide(record);
         assertEquals("myschema", result.name());
-        assertEquals(struct.getFieldsCount(), result.fields().size());
+        // not counting the null field
+        assertEquals(struct.getFieldsCount() - 1, result.fields().size());
         assertEquals(Schema.Type.STRUCT, result.type());
         // When parsing raw JSON, we interpret ints as longs
         assertEquals(Schema.Type.FLOAT64, result.field("byteField").schema().type());

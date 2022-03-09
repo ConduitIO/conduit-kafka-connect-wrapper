@@ -1,33 +1,75 @@
 package io.conduit;
 
-import java.util.Map;
-
+import com.google.protobuf.ListValue;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import io.conduit.grpc.Record;
+import lombok.AllArgsConstructor;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
+@AllArgsConstructor
 public class DefaultSchemaProvider implements SchemaProvider {
     private final String name;
+    private final Schema overrides;
 
-    public DefaultSchemaProvider(String name) {
-        this.name = name;
-    }
-
+    // todo configure usage of optional values
     @Override
     public Schema provide(Record record) {
         if (!record.hasPayload()) {
             return null;
         }
         if (record.getPayload().hasStructuredData()) {
-            return provideForStructured(record);
+            return provideForStruct(record.getPayload().getStructuredData());
         }
         return null;
     }
 
-    private Schema provideForStructured(Record record) {
-        Struct struct = record.getPayload().getStructuredData();
-        Map<String, Value> fieldsMap = struct.getFieldsMap();
+    private Schema provideForStruct(Struct struct) {
+        SchemaBuilder builder = new SchemaBuilder(Schema.Type.STRUCT)
+                .name(name)
+                .optional();
+
+        struct.getFieldsMap().forEach((key, value) -> {
+            if (overrides != null && overrides.field(key) != null) {
+                builder.field(key, overrides.field(key).schema());
+            } else {
+                Schema fieldSchema = provideForValue(value);
+                if (fieldSchema != null) {
+                    builder.field(key, fieldSchema);
+                }
+            }
+        });
+
+        return builder.build();
+    }
+
+    private Schema provideForValue(Value value) {
+        if (value.hasBoolValue()) {
+            return Schema.OPTIONAL_BOOLEAN_SCHEMA;
+        }
+        if (value.hasNumberValue()) {
+            return Schema.OPTIONAL_FLOAT64_SCHEMA;
+        }
+        if (value.hasStringValue()) {
+            return Schema.OPTIONAL_STRING_SCHEMA;
+        }
+        if (value.hasStructValue()) {
+            return provideForStruct(value.getStructValue());
+        }
+        if (value.hasListValue()) {
+            return provideForList(value.getListValue());
+        }
         return null;
+    }
+
+    private Schema provideForList(ListValue list) {
+        if (list == null || list.getValuesCount() == 0) {
+            return null;
+        }
+        return SchemaBuilder
+                .array(provideForValue(list.getValues(0)))
+                .optional()
+                .build();
     }
 }
