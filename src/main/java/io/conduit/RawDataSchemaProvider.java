@@ -60,6 +60,8 @@ public class RawDataSchemaProvider implements SchemaProvider {
                 return schemaForArray(json);
             case NUMBER:
                 return schemaForNumber(json);
+            case BOOLEAN:
+                return Schema.OPTIONAL_BOOLEAN_SCHEMA;
             default:
                 return null;
         }
