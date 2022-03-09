@@ -40,7 +40,9 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
     private final SchemaProvider schemaProvider;
     private final StreamObserver<Destination.Run.Response> responseObserver;
 
-    public DestinationStream(SinkTask task, SchemaProvider schemaProvider, StreamObserver<Destination.Run.Response> responseObserver) {
+    public DestinationStream(SinkTask task,
+                             SchemaProvider schemaProvider,
+                             StreamObserver<Destination.Run.Response> responseObserver) {
         this.task = task;
         this.schemaProvider = schemaProvider;
         this.responseObserver = responseObserver;

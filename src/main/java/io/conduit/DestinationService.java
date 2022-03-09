@@ -86,7 +86,9 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
     private SchemaProvider buildSchemaProvider(Map<String, String> config) {
         if (config.containsKey("schema") && config.containsKey("schema.autogenerate.enabled")) {
-            throw new IllegalArgumentException("You cannot provide a schema and use schema auto-generation at the same time.");
+            throw new IllegalArgumentException(
+                    "You cannot provide a schema and use schema auto-generation at the same time."
+            );
         }
 
         if (config.containsKey("schema")) {
