@@ -39,12 +39,13 @@ a handshake with Conduit via standard output, and that is expected to be the fir
 #### Configuration
 This plugin's configuration consists of the configuration of the requested Kafka connector, plus:
 
-| Name | Description | Required | Example | 
-| --- | --- | --- | --- |
-| `task.class` | The class of the requested connector | yes | `io.aiven.connect.jdbc.sink.JdbcSinkTask` |
-| `schema` | The schema of the records which will be written to a destinaton connector. | yes, if it's a destination connector | `{"type":"struct","fields":[{"type":"int32","optional":true,"field":"id"},{"type":"string","optional":true,"field":"name"},{"type":"boolean","optional":true,"field":"trial"}],"name":"customers"}` |
-| `pipelineId` | The ID of the pipeline to which this connector will be added. | no | |
-| `connectorName` | The name of the connector which is to be created. Used in logs.| no | `prod-mysql-destination` |
+| Name                          | Description                                                                                  | Required                                                              | Default | Example                                                                                                                                                                                             | 
+|-------------------------------|----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `task.class`                  | The class of the requested connector                                                         | yes                                                                   | none    | `io.aiven.connect.jdbc.sink.JdbcSinkTask`                                                                                                                                                           |
+| `schema`                      | The schema of the records which will be written to a destination connector.                  | the plugin doesn't require it, but the underlying Kafka connector may | none    | `{"type":"struct","fields":[{"type":"int32","optional":true,"field":"id"},{"type":"string","optional":true,"field":"name"},{"type":"boolean","optional":true,"field":"trial"}],"name":"customers"}` |
+| `schema.autogenerate.enabled` | Automatically generate schemas (destination connector). Cannot be `true` is a schema is set. | no                                                                    | `false` | `true`                                                                                                                                                                                              |
+| `pipelineId`                  | The ID of the pipeline to which this connector will be added.                                | no                                                                    | none    |                                                                                                                                                                                                     |
+| `connectorName`               | The name of the connector which is to be created. Used in logs.                              | no                                                                    | none    | `prod-mysql-destination`                                                                                                                                                                            |
 
 Here's a full example, for a new Conduit destination connector, backed up by a JDBC Kafka sink connector.
 ```
@@ -61,3 +62,6 @@ Here's a full example, for a new Conduit destination connector, backed up by a J
 	"batch.size": "10"
 }
 ```
+
+### Schema auto-generation
+If `schema.autogenerate.enabled` is set to `true`, the plugin will try to automatically generate schemas for a destination.

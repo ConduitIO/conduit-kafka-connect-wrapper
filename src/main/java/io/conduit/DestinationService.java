@@ -42,10 +42,10 @@ import static io.conduit.Utils.mapper;
 public class DestinationService extends DestinationPluginGrpc.DestinationPluginImplBase {
     private final TaskFactory taskFactory;
     private SinkTask task;
-    private Schema schema;
     private Map<String, String> config;
     private DestinationStream runStream;
     private boolean started;
+    private SchemaProvider schemaProvider;
 
     public DestinationService(TaskFactory taskFactory) {
         this.taskFactory = taskFactory;
@@ -80,8 +80,17 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
         MDC.put("connectorName", config.remove("connectorName"));
 
         this.task = taskFactory.newSinkTask(config.remove("task.class"));
-        this.schema = buildSchema(config.remove("schema"));
+        this.schemaProvider = buildSchemaProvider(config);
         this.config = config;
+    }
+
+    private SchemaProvider buildSchemaProvider(Map<String, String> config) {
+        Schema schema = buildSchema(config.remove("schema"));
+        boolean autogenerate = Boolean.parseBoolean(config.remove("schema.autogenerate.enabled"));
+        if (schema != null && autogenerate) {
+            throw new IllegalArgumentException("You cannot provide a schema and use schema auto-generation at the same time.");
+        }
+        return null;
     }
 
     @SneakyThrows
