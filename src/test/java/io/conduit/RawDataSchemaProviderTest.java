@@ -17,9 +17,9 @@ public class RawDataSchemaProviderTest {
     public void testFull() {
         RawDataSchemaProvider underTest = new RawDataSchemaProvider("myschema", null);
         ObjectNode json = Utils.mapper.createObjectNode()
-                .put("byteField", (byte) 5)
-                .put("shortField", (short) 25)
-                .put("intField", 123)
+                .put("byteField", Byte.MAX_VALUE)
+                .put("shortField", Short.MAX_VALUE)
+                .put("intField", Integer.MAX_VALUE)
                 .put("longField", Long.MAX_VALUE)
                 .put("stringField", "test string")
                 .put("bytesField", "test bytes".getBytes(StandardCharsets.UTF_8))

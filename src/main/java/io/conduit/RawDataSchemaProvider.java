@@ -99,15 +99,10 @@ public class RawDataSchemaProvider implements SchemaProvider {
     }
 
     private Schema schemaForNumber(JsonNode json) {
-        if (json.isShort()) {
-            return Schema.OPTIONAL_INT16_SCHEMA;
+        if (json.isIntegralNumber()) {
+            return schemaForIntegralNumber(json);
         }
-        if (json.isInt()) {
-            return Schema.OPTIONAL_INT32_SCHEMA;
-        }
-        if (json.isLong()) {
-            return Schema.OPTIONAL_INT64_SCHEMA;
-        }
+
         if (json.isFloat()) {
             return Schema.OPTIONAL_FLOAT32_SCHEMA;
         }
@@ -115,6 +110,20 @@ public class RawDataSchemaProvider implements SchemaProvider {
             return Schema.OPTIONAL_FLOAT64_SCHEMA;
         }
         return null;
+    }
+
+    private Schema schemaForIntegralNumber(JsonNode json) {
+        long l = json.longValue();
+        if (Byte.MIN_VALUE <= l && l <= Byte.MAX_VALUE) {
+            return Schema.OPTIONAL_INT8_SCHEMA;
+        }
+        if (Short.MIN_VALUE <= l && l <= Short.MAX_VALUE) {
+            return Schema.OPTIONAL_INT16_SCHEMA;
+        }
+        if (Integer.MIN_VALUE <= l && l <= Integer.MAX_VALUE) {
+            return Schema.OPTIONAL_INT32_SCHEMA;
+        }
+        return Schema.OPTIONAL_INT64_SCHEMA;
     }
 
     private JsonNode parseJson(byte[] bytes) {
