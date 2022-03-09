@@ -64,9 +64,12 @@ public class DefaultSchemaProvider implements SchemaProvider {
     }
 
     private Schema provideForList(ListValue list) {
+        // if there are no values, we can't determine what's the array element type.
         if (list == null || list.getValuesCount() == 0) {
             return null;
         }
+        // todo in theory at least, list values can be of different types
+        // handle that case here
         return SchemaBuilder
                 .array(provideForValue(list.getValues(0)))
                 .optional()
