@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class DefaultSchemaProviderTest {
     @Test
     public void testRawJsonData() {
-        DefaultSchemaProvider underTest = new DefaultSchemaProvider("myschema", null);
+        StructSchemaProvider underTest = new StructSchemaProvider("myschema", null);
         ObjectNode json = Utils.mapper.createObjectNode()
                 .put("byteField", (byte) 5)
                 .put("shortField", (short) 25)
@@ -55,7 +55,7 @@ public class DefaultSchemaProviderTest {
 
     @Test
     public void testStructuredData() {
-        DefaultSchemaProvider underTest = new DefaultSchemaProvider("myschema", null);
+        StructSchemaProvider underTest = new StructSchemaProvider("myschema", null);
         var struct = Struct.newBuilder()
                 .putFields("byteField", Value.newBuilder().setNumberValue((byte) 5).build())
                 .putFields("shortField", Value.newBuilder().setNumberValue((short) 25).build())

@@ -9,7 +9,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 @AllArgsConstructor
-public class DefaultSchemaProvider implements SchemaProvider {
+public class StructSchemaProvider implements SchemaProvider {
     private final String name;
     private final Schema overrides;
 
