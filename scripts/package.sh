@@ -1,2 +1,3 @@
 #!/bin/bash
-mvn clean package -Dcheckstyle.skip -DskipTests
+mvn clean package
+
