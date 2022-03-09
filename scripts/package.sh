@@ -1,2 +1,2 @@
 #!/bin/bash
-mvn clean package
+mvn clean package -Dcheckstype.skip
