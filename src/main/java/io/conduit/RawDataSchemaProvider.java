@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import org.apache.kafka.connect.data.Schema;
 
 @AllArgsConstructor
-public class JsonSchemaProvider implements SchemaProvider {
+public class RawDataSchemaProvider implements SchemaProvider {
     private final String name;
     private final Schema overrides;
 

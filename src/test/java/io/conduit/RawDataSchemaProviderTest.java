@@ -12,10 +12,10 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 // todo add test for unknown types
-public class JsonSchemaProviderTest {
+public class RawDataSchemaProviderTest {
     @Test
     public void testFull() {
-        StructSchemaProvider underTest = new StructSchemaProvider("myschema", null);
+        RawDataSchemaProvider underTest = new RawDataSchemaProvider("myschema", null);
         ObjectNode json = Utils.mapper.createObjectNode()
                 .put("byteField", (byte) 5)
                 .put("shortField", (short) 25)
