@@ -32,7 +32,6 @@ public class StructSchemaProvider implements SchemaProvider {
     private final String name;
     private final Schema overrides;
 
-    // todo configure usage of optional values
     @Override
     public Schema provide(Record record) {
         if (!record.hasPayload()) {
