@@ -32,7 +32,6 @@ public class StructSchemaProvider implements SchemaProvider {
     private final String name;
     private final Schema overrides;
 
-    // todo configure usage of optional values
     @Override
     public Schema provide(Record record) {
         if (!record.hasPayload()) {
@@ -67,6 +66,7 @@ public class StructSchemaProvider implements SchemaProvider {
         if (value.hasBoolValue()) {
             return Schema.OPTIONAL_BOOLEAN_SCHEMA;
         }
+        // google.protobuf.Struct only has double values, no integers etc.
         if (value.hasNumberValue()) {
             return Schema.OPTIONAL_FLOAT64_SCHEMA;
         }

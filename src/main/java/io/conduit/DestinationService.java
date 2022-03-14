@@ -85,7 +85,9 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
     }
 
     private SchemaProvider buildSchemaProvider(Map<String, String> config) {
-        if (config.containsKey("schema") && config.containsKey("schema.autogenerate.enabled")) {
+        boolean autogenerate = Boolean.parseBoolean(config.remove("schema.autogenerate.enabled"));
+
+        if (config.containsKey("schema") && autogenerate) {
             throw new IllegalArgumentException(
                     "You cannot provide a schema and use schema auto-generation at the same time."
             );
@@ -95,9 +97,12 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
             return new FixedSchemaProvider(buildSchema(config.remove("schema")));
         }
 
-        if (config.containsKey("schema.autogenerate.enabled")) {
-            boolean autogenerate = Boolean.parseBoolean(config.remove("schema.autogenerate.enabled"));
+        if (autogenerate) {
             String name = config.remove("schema.autogenerate.name");
+            if (name == null) {
+                throw new IllegalArgumentException("Schema name not provided");
+            }
+
             Schema overrides = buildSchema(config.remove("schema.autogenerate.overrides"));
             return new CombinedSchemaProvider(name, overrides);
         }
