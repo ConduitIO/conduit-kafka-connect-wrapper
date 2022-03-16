@@ -15,9 +15,11 @@ IDEs may not automatically add the generated sources to the class. If that's the
 2. Change the project settings in your IDE to include the generated source. In IntelliJ, for example, you do that by going
 to File > Project structure > Project Settings > Modules. Then, right-click on `target/generated-source` and select "Sources".
 
-#### How to build
-Run `scripts/package.sh` to build an executable. For development purposes, a utility script, `scripts/copy.sh`, is provided 
-to also quickly copy the executable to Conduit's plugin directory (it assumes that the repository is at `../conduit`).
+#### Building and using the connector
+Run `scripts/package.sh` to build an executable. `scripts/copy.sh` will create a directory called `dist` with following contents:
+1. A script (which runs the connector)
+2. The connector JAR itself
+3. Directory `libs` with Aiven's JDBC connector (but no JDBC drivers).
 
 ### Loading connectors
 The plugin will load connectors and all the other dependencies from a `libs` directory, which is expected to be in the 
