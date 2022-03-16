@@ -42,10 +42,10 @@ import static io.conduit.Utils.mapper;
 public class DestinationService extends DestinationPluginGrpc.DestinationPluginImplBase {
     private final TaskFactory taskFactory;
     private SinkTask task;
-    private Schema schema;
     private Map<String, String> config;
     private DestinationStream runStream;
     private boolean started;
+    private SchemaProvider schemaProvider;
 
     public DestinationService(TaskFactory taskFactory) {
         this.taskFactory = taskFactory;
@@ -80,8 +80,34 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
         MDC.put("connectorName", config.remove("connectorName"));
 
         this.task = taskFactory.newSinkTask(config.remove("task.class"));
-        this.schema = buildSchema(config.remove("schema"));
+        this.schemaProvider = buildSchemaProvider(config);
         this.config = config;
+    }
+
+    private SchemaProvider buildSchemaProvider(Map<String, String> config) {
+        boolean autogenerate = Boolean.parseBoolean(config.remove("schema.autogenerate.enabled"));
+
+        if (config.containsKey("schema") && autogenerate) {
+            throw new IllegalArgumentException(
+                    "You cannot provide a schema and use schema auto-generation at the same time."
+            );
+        }
+
+        if (config.containsKey("schema")) {
+            return new FixedSchemaProvider(buildSchema(config.remove("schema")));
+        }
+
+        if (autogenerate) {
+            String name = config.remove("schema.autogenerate.name");
+            if (name == null) {
+                throw new IllegalArgumentException("Schema name not provided");
+            }
+
+            Schema overrides = buildSchema(config.remove("schema.autogenerate.overrides"));
+            return new CombinedSchemaProvider(name, overrides);
+        }
+        // No schema information provided, so no schema is to be used.
+        return new FixedSchemaProvider(null);
     }
 
     @SneakyThrows
@@ -114,7 +140,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
     @Override
     public StreamObserver<Destination.Run.Request> run(StreamObserver<Destination.Run.Response> responseObserver) {
-        this.runStream = new DestinationStream(task, schema, responseObserver);
+        this.runStream = new DestinationStream(task, schemaProvider, responseObserver);
         return runStream;
     }
 

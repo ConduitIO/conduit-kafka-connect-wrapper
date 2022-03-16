@@ -13,6 +13,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,34 +36,46 @@ public class DestinationServiceTest {
     }
 
     @Test
-    @DisplayName("SinkTask with required schema created")
-    public void testCreateTaskSchemaRequired() {
-        when(taskFactory.newSinkTask("io.aiven.connect.jdbc.sink.JdbcSinkTask")).thenReturn(task);
+    @DisplayName("Cannot provide schema and auto-generate schema at same time")
+    public void testProvideSchemaRequestAutogenerate() {
+        when(taskFactory.newSinkTask("io.foo.bar")).thenReturn(task);
 
         underTest.configure(
                 newConfigRequest(Map.of(
-                        "task.class", "io.aiven.connect.jdbc.sink.JdbcSinkTask",
-                        "schema", "{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":true,\"field\":\"id\"}],\"optional\":false,\"name\":\"test_schema\"}"
+                        "task.class", "io.foo.bar",
+                        "schema", "something",
+                        "schema.autogenerate.enabled", "true"
                 )),
                 cfgStream
         );
 
-        verify(cfgStream).onNext(any(Destination.Configure.Response.class));
-        verify(cfgStream).onCompleted();
+        var captor = ArgumentCaptor.forClass(Throwable.class);
+        verify(cfgStream).onError(captor.capture());
+        assertEquals(
+                "INTERNAL: couldn't configure task: You cannot provide a schema and use schema auto-generation at the same time.",
+                captor.getValue().getMessage()
+        );
     }
 
     @Test
-    @DisplayName("SinkTask created, schema not required")
-    public void testCreateTaskSchemaNotRequired() {
+    @DisplayName("Cannot provide schema and auto-generate schema at same time")
+    public void testSchemaAutogenerationNameRequired() {
         when(taskFactory.newSinkTask("io.foo.bar")).thenReturn(task);
 
         underTest.configure(
-                newConfigRequest(Map.of("task.class", "io.foo.bar")),
+                newConfigRequest(Map.of(
+                        "task.class", "io.foo.bar",
+                        "schema.autogenerate.enabled", "true"
+                )),
                 cfgStream
         );
 
-        verify(cfgStream).onNext(any(Destination.Configure.Response.class));
-        verify(cfgStream).onCompleted();
+        var captor = ArgumentCaptor.forClass(Throwable.class);
+        verify(cfgStream).onError(captor.capture());
+        assertEquals(
+                "INTERNAL: couldn't configure task: Schema name not provided",
+                captor.getValue().getMessage()
+        );
     }
 
     @Test
