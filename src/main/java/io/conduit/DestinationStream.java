@@ -84,9 +84,8 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
     private SinkRecord toSinkRecord(Record record) {
         // todo cache the JSON object
         var schema = schemaProvider.provide(record);
-        var schemaJson = Utils.jsonConv.asJsonSchema(schema);
 
-        Object value = Transformations.toConnectData(record, schemaJson);
+        Object value = Transformations.toConnectData(record, schema);
         return new SinkRecord(
                 schema != null ? schema.name() : null,
                 0,
