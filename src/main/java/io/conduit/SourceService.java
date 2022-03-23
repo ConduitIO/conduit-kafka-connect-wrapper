@@ -16,7 +16,7 @@
 
 package io.conduit;
 
-import java.util.HashMap;
+import java.util.Map;
 
 import io.conduit.grpc.Source;
 import io.conduit.grpc.SourcePluginGrpc;
@@ -33,7 +33,7 @@ import org.slf4j.MDC;
 public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     private final TaskFactory taskFactory;
     private SourceTask task;
-    private HashMap<String, String> config;
+    private Map<String, String> config;
     private boolean started;
     private SourceStream runStream;
     private SourcePosition position;
@@ -49,7 +49,7 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
         try {
             // the returned config map is unmodifiable, so we make a copy
             // since we need to remove some keys
-            doConfigure(new HashMap<>(req.getConfigMap()));
+            doConfigure(Config.fromMap(req.getConfigMap()));
             log.info("Done configuring the source.");
 
             respObserver.onNext(Source.Configure.Response.newBuilder().build());
@@ -65,13 +65,13 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
         }
     }
 
-    private void doConfigure(HashMap<String, String> config) {
+    private void doConfigure(Config config) {
         // logging
-        MDC.put("pipelineId", config.remove("pipelineId"));
-        MDC.put("connectorName", config.remove("connectorName"));
+        MDC.put("pipelineId", config.getPipelineId());
+        MDC.put("connectorName", config.getConnectorName());
 
-        this.task = taskFactory.newSourceTask(config.remove("task.class"));
-        this.config = config;
+        this.task = taskFactory.newSourceTask(config.getTaskClass());
+        this.config = config.getKafkaConnectorCfg();
     }
 
     @Override

@@ -16,24 +16,17 @@
 
 package io.conduit;
 
-import java.util.HashMap;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.conduit.grpc.Destination;
 import io.conduit.grpc.Destination.Configure.Response;
 import io.conduit.grpc.Destination.Teardown;
 import io.conduit.grpc.DestinationPluginGrpc;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.sink.SinkTask;
 import org.slf4j.MDC;
-
-import static io.conduit.Utils.isEmpty;
-import static io.conduit.Utils.mapper;
 
 /**
  * A gRPC service exposing source plugin methods.
@@ -58,7 +51,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
         try {
             // the returned config map is unmodifiable, so we make a copy
             // since we need to remove some keys
-            doConfigure(new HashMap<>(request.getConfigMap()));
+            doConfigure(DestinationConfig.fromMap(request.getConfigMap()));
             log.info("Done configuring the destination.");
 
             responseObserver.onNext(Destination.Configure.Response.newBuilder().build());
@@ -74,49 +67,37 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
         }
     }
 
-    private void doConfigure(Map<String, String> config) {
+    private void doConfigure(DestinationConfig config) {
         // logging
-        MDC.put("pipelineId", config.remove("pipelineId"));
-        MDC.put("connectorName", config.remove("connectorName"));
+        MDC.put("pipelineId", config.getPipelineId());
+        MDC.put("connectorName", config.getConnectorName());
 
-        this.task = taskFactory.newSinkTask(config.remove("task.class"));
+        this.task = taskFactory.newSinkTask(config.getTaskClass());
         this.schemaProvider = buildSchemaProvider(config);
-        this.config = config;
+        this.config = config.getKafkaConnectorCfg();
     }
 
-    private SchemaProvider buildSchemaProvider(Map<String, String> config) {
-        boolean autogenerate = Boolean.parseBoolean(config.remove("schema.autogenerate.enabled"));
-
-        if (config.containsKey("schema") && autogenerate) {
+    private SchemaProvider buildSchemaProvider(DestinationConfig config) {
+        if (config.hasSchema() && config.isSchemaAutogenerate()) {
             throw new IllegalArgumentException(
                     "You cannot provide a schema and use schema auto-generation at the same time."
             );
         }
 
-        if (config.containsKey("schema")) {
-            return new FixedSchemaProvider(buildSchema(config.remove("schema")));
+        if (config.hasSchema()) {
+            return new FixedSchemaProvider(config.getSchema());
         }
 
-        if (autogenerate) {
-            String name = config.remove("schema.autogenerate.name");
+        if (config.isSchemaAutogenerate()) {
+            String name = config.getSchemaName();
             if (name == null) {
                 throw new IllegalArgumentException("Schema name not provided");
             }
 
-            Schema overrides = buildSchema(config.remove("schema.autogenerate.overrides"));
-            return new CombinedSchemaProvider(name, overrides);
+            return new CombinedSchemaProvider(name, config.getOverrides());
         }
         // No schema information provided, so no schema is to be used.
         return new FixedSchemaProvider(null);
-    }
-
-    @SneakyThrows
-    private Schema buildSchema(String schemaString) {
-        if (isEmpty(schemaString)) {
-            return null;
-        }
-        JsonNode schemaJson = mapper.readTree(schemaString);
-        return Utils.jsonConv.asConnectSchema(schemaJson);
     }
 
     @Override
