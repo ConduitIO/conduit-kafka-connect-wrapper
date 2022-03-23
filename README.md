@@ -3,7 +3,7 @@ The Kafka connector Conduit plugin's goal is to make it possible to use existing
 
 #### Pre-requisites
 * JDK 11
-* The plugin needs to have write permissions to the directory /var/log/kafka-connector-plugin/
+* The plugin needs to have write permissions to the directory /var/log/conduit-kafka-connect-wrapper/
 * Currently, only Unix-like OSes are supported.
 
 ### Development
@@ -23,7 +23,7 @@ Run `scripts/package.sh` to build an executable. `scripts/copy.sh` will create a
 
 ### Loading connectors
 The plugin will load connectors and all the other dependencies from a `libs` directory, which is expected to be in the 
-same directory as the plugin executable itself. For example, if the plugin executable is at `/abc/def/kafka-connector-plugin`,
+same directory as the plugin executable itself. For example, if the plugin executable is at `/abc/def/conduit-kafka-connect-wrapper`,
 then the dependencies are expected to be in `/abc/def/libs`.
 
 The plugin will be able to find the dependencies as soon as they are put into `libs`. 
@@ -33,7 +33,7 @@ database-specific driver to work (for example, PostgreSQL's driver can be found 
 
 #### General notes
 
-1. Logs are written to `/var/log/kafka-connector-plugin/`, and not stdout. This is because the plugin is required to perform
+1. Logs are written to `/var/log/conduit-kafka-connect-wrapper/`, and not stdout. This is because the plugin is required to perform
 a handshake with Conduit via standard output, and that is expected to be the first line in the standard output.
 2. Currently, only sink connectors are supported. Work is under way to support source connectors too.
 3. Currently, it's possible to use this plugin only on Unix-like systems.
