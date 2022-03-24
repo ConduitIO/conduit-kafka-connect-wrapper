@@ -1,10 +1,12 @@
-### Conduit plugin for Kafka connectors
-The Kafka connector Conduit plugin's goal is to make it possible to use existing Kafka connectors with Conduit.  
+### Conduit's Kafka connector wrapper 
+The goal of Conduit's Kafka connector wrapper is to make it possible to use existing Kafka connectors with Conduit.
 
-#### Pre-requisites
+### Pre-requisites
 * JDK 11
-* The plugin needs to have write permissions to the directory /var/log/conduit-kafka-connect-wrapper/
 * Currently, only Unix-like OSes are supported.
+
+### Logging
+The connector exposes a gRPC streaming method, `plugin.GRPCStdio/StreamStdio`, through which logs are sent to Conduit.
 
 ### Development
 The complete server-side code for this plugin is **not** committed to the repo. Rather, it's generated from a proto file,
@@ -31,13 +33,6 @@ The plugin will be able to find the dependencies as soon as they are put into `l
 By default, Aiven's JDBC connector is shipped in the `libs` directory. A JDBC connector (generally) will require a 
 database-specific driver to work (for example, PostgreSQL's driver can be found [here](https://mvnrepository.com/artifact/org.postgresql/postgresql)).
 
-#### General notes
-
-1. Logs are written to `/var/log/conduit-kafka-connect-wrapper/`, and not stdout. This is because the plugin is required to perform
-a handshake with Conduit via standard output, and that is expected to be the first line in the standard output.
-2. Currently, only sink connectors are supported. Work is under way to support source connectors too.
-3. Currently, it's possible to use this plugin only on Unix-like systems.
-
 #### Configuration
 This plugin's configuration consists of the configuration of the requested Kafka connector, plus:
 
@@ -48,16 +43,12 @@ This plugin's configuration consists of the configuration of the requested Kafka
 | `schema.autogenerate.enabled`   | Automatically generate schemas (destination connector). Cannot be `true` if a schema is set. | no                                                                    | `false` | `true`                                                                                                                                                                                              |
 | `schema.autogenerate.name`      | Name of automatically generated schema.                                                      | yes, if schema auto-generation is turned on                           | none    | `customers`                                                                                                                                                                                         |
 | `schema.autogenerate.overrides` | A (partial) schema which overrides types in the auto-generated schema.                       | no                                                                    | none    | `{"type":"struct","fields":[{"type":"boolean","optional":true,"field":"joined"}],"name":"customers"}`                                                                                               |
-| `pipelineId`                    | The ID of the pipeline to which this connector will be added.                                | no                                                                    | none    |                                                                                                                                                                                                     |
-| `connectorName`                 | The name of the connector which is to be created. Used in logs.                              | no                                                                    | none    | `prod-mysql-destination`                                                                                                                                                                            |
 
 Here's a full example, for a new Conduit destination connector, backed up by a JDBC Kafka sink connector.
 ```
 {
 	"task.class": "io.aiven.connect.jdbc.sink.JdbcSinkTask",
 	"schema": "{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":true,\"field\":\"id\"},{\"type\":\"string\",\"optional\":true,\"field\":\"name\"},{\"type\":\"boolean\",\"optional\":true,\"field\":\"trial\"}],\"name\":\"customers\"}",
-	"connectorName": "local-pg-destination",
-	"pipelineId": "123-456-789",
 	"connection.url": "jdbc:postgresql://localhost/my-test-db",
 	"connection.user": "user",
 	"connection.password": "password123456",
@@ -106,4 +97,4 @@ follows:
 | NullValue                           | STRUCT                                                                            |
 | ListValue                           | ARRAY, where element types correspond to element type from the protobuf ListValue |
 
-3. Records with raw data - TBD
+2. Records with raw data - TBD

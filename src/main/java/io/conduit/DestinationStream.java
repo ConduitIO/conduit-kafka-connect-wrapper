@@ -49,7 +49,7 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
 
     @Override
     public void onNext(Destination.Run.Request request) {
-        log.debug("Writing record...");
+        Logger.get().info("Writing record...");
         try {
             // Currently, Conduit requires all writes to be asynchronous.
             // See: pkg/connector/destination.go, method Write().
@@ -57,7 +57,7 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
             doWrite(record);
             responseObserver.onNext(responseWith(record.getPosition()));
         } catch (Exception e) {
-            log.error("Couldn't write record.", e);
+            Logger.get().error("Couldn't write record.", e);
             responseObserver.onError(
                     Status.INTERNAL
                             .withDescription("couldn't write record: " + e.getMessage())
@@ -99,7 +99,7 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
 
     @Override
     public void onError(Throwable t) {
-        log.error("Experienced an error.", t);
+        Logger.get().error("Experienced an error.", t);
         responseObserver.onError(
                 Status.INTERNAL.withDescription("Error: " + t.getMessage()).withCause(t).asException()
         );
@@ -107,7 +107,7 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
 
     @Override
     public void onCompleted() {
-        log.info("Completed.");
+        Logger.get().info("Completed.");
         responseObserver.onCompleted();
     }
 }

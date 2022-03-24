@@ -24,41 +24,37 @@ import io.conduit.grpc.Destination.Teardown;
 import io.conduit.grpc.DestinationPluginGrpc;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.sink.SinkTask;
-import org.slf4j.MDC;
 
 /**
  * A gRPC service exposing source plugin methods.
  */
 public class DestinationService extends DestinationPluginGrpc.DestinationPluginImplBase {
     private final TaskFactory taskFactory;
-    private final Logger log;
     private SinkTask task;
     private Map<String, String> config;
     private DestinationStream runStream;
     private boolean started;
     private SchemaProvider schemaProvider;
 
-    public DestinationService(TaskFactory taskFactory, Logger log) {
+    public DestinationService(TaskFactory taskFactory) {
         this.taskFactory = taskFactory;
-        this.log = log;
     }
 
     @Override
     public void configure(Destination.Configure.Request request, StreamObserver<Response> responseObserver) {
-        log.info("Configuring the destination.");
+        Logger.get().info("Configuring the destination.");
 
         try {
             // the returned config map is unmodifiable, so we make a copy
             // since we need to remove some keys
             doConfigure(DestinationConfig.fromMap(request.getConfigMap()));
-            log.info("Done configuring the destination.");
+            Logger.get().info("Done configuring the destination.");
 
             responseObserver.onNext(Destination.Configure.Response.newBuilder().build());
             responseObserver.onCompleted();
         } catch (Exception e) {
-            log.error("Error while configuring destination.", e);
+            Logger.get().error("Error while configuring destination.", e);
             responseObserver.onError(
                     Status.INTERNAL
                             .withDescription("couldn't configure task: " + e.getMessage())
@@ -69,10 +65,6 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
     }
 
     private void doConfigure(DestinationConfig config) {
-        // logging
-        MDC.put("pipelineId", config.getPipelineId());
-        MDC.put("connectorName", config.getConnectorName());
-
         this.task = taskFactory.newSinkTask(config.getTaskClass());
         this.schemaProvider = buildSchemaProvider(config);
         this.config = config.getKafkaConnectorCfg();
@@ -103,17 +95,17 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
     @Override
     public void start(Destination.Start.Request request, StreamObserver<Destination.Start.Response> responseObserver) {
-        log.info("Starting the destination.");
+        Logger.get().info("Starting the destination.");
 
         try {
             task.start(config);
             started = true;
-            log.info("Destination started.");
+            Logger.get().info("Destination started.");
 
             responseObserver.onNext(Destination.Start.Response.newBuilder().build());
             responseObserver.onCompleted();
         } catch (Exception e) {
-            log.error("Error while starting.", e);
+            Logger.get().error("Error while starting.", e);
             responseObserver.onError(
                     Status.INTERNAL.withDescription("couldn't start task: " + e.getMessage()).withCause(e).asException()
             );
@@ -136,16 +128,16 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
     @Override
     public void teardown(Teardown.Request request, StreamObserver<Teardown.Response> responseObserver) {
-        log.info("Tearing down...");
+        Logger.get().info("Tearing down...");
         try {
             if (task != null && started) {
                 task.stop();
             }
             responseObserver.onNext(Teardown.Response.newBuilder().build());
             responseObserver.onCompleted();
-            log.info("Torn down.");
+            Logger.get().info("Torn down.");
         } catch (Exception e) {
-            log.error("Couldn't tear down.", e);
+            Logger.get().error("Couldn't tear down.", e);
             responseObserver.onError(
                     Status.INTERNAL.withDescription("Couldn't tear down: " + e.getMessage()).withCause(e).asException()
             );

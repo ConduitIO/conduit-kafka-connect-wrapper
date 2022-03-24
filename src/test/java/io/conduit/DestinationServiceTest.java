@@ -15,7 +15,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class DestinationServiceTest {
@@ -31,7 +32,7 @@ public class DestinationServiceTest {
 
     @BeforeEach
     public void setUp() {
-        this.underTest = new DestinationService(taskFactory, mock(Logger.class));
+        this.underTest = new DestinationService(taskFactory);
     }
 
     @Test

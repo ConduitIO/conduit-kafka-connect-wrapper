@@ -34,11 +34,10 @@ public class Server {
 
     public Server(ServerBuilder<?> serverBuilder) {
         ClasspathTaskFactory taskFactory = new ClasspathTaskFactory();
-        GrpcStdio logger = new GrpcStdio();
         server = serverBuilder
-                .addService(new DestinationService(taskFactory, logger))
-                .addService(new SourceService(taskFactory, logger))
-                .addService(logger)
+                .addService(new DestinationService(taskFactory))
+                .addService(new SourceService(taskFactory))
+                .addService(GrpcStdio.get())
                 .build();
     }
 
