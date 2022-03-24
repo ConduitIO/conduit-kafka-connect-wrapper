@@ -18,10 +18,12 @@ IDEs may not automatically add the generated sources to the class. If that's the
 to File > Project structure > Project Settings > Modules. Then, right-click on `target/generated-source` and select "Sources".
 
 #### Building and using the connector
-Run `scripts/package.sh` to build an executable. `scripts/copy.sh` will create a directory called `dist` with following contents:
+Run `scripts/dist.sh` to build an executable. `scripts/dist.sh` will create a directory called `dist` with following contents:
 1. A script (which runs the connector)
 2. The connector JAR itself
 3. Directory `libs` with Aiven's JDBC connector (but no JDBC drivers).
+
+When creating a Conduit connector, the plugin path you need to use is the path to `conduit-kafka-connect-wrapper`.
 
 ### Loading connectors
 The plugin will load connectors and all the other dependencies from a `libs` directory, which is expected to be in the 
