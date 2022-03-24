@@ -29,7 +29,6 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 /**
  * A {@link SchemaProvider} implementation providing schemas for {@link Record}s which have raw data.
  */
-@Slf4j
 @AllArgsConstructor
 public class RawDataSchemaProvider implements SchemaProvider {
     private final String name;

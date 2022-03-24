@@ -29,17 +29,18 @@ import org.slf4j.MDC;
 /**
  * A gRPC service exposing source plugin methods.
  */
-@Slf4j
 public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     private final TaskFactory taskFactory;
+    private final Logger log;
     private SourceTask task;
     private Map<String, String> config;
     private boolean started;
     private SourceStream runStream;
     private SourcePosition position;
 
-    public SourceService(TaskFactory taskFactory) {
+    public SourceService(TaskFactory taskFactory, Logger log) {
         this.taskFactory = taskFactory;
+        this.log = log;
     }
 
     @Override

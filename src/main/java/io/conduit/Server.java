@@ -25,7 +25,6 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * A wrapper around {@link io.grpc.Server}, which also adds shutdown hooks.
  */
-@Slf4j
 public class Server {
     private final io.grpc.Server server;
 
@@ -35,9 +34,11 @@ public class Server {
 
     public Server(ServerBuilder<?> serverBuilder) {
         ClasspathTaskFactory taskFactory = new ClasspathTaskFactory();
+        GrpcStdio logger = new GrpcStdio();
         server = serverBuilder
-                .addService(new DestinationService(taskFactory))
-                .addService(new SourceService(taskFactory))
+                .addService(new DestinationService(taskFactory, logger))
+                .addService(new SourceService(taskFactory, logger))
+                .addService(logger)
                 .build();
     }
 
@@ -45,12 +46,10 @@ public class Server {
      * Starts this server on the configured port. Also adds a JVM shutdown hook,
      * so that the server is shut down, when the JVM shutdown is triggered.
      *
-     *@throws IOException if the server cannot be started
+     * @throws IOException if the server cannot be started
      */
     public void start() throws IOException {
-        log.info("Starting server...");
         server.start();
-        log.info("Started on port {}", getPort());
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             // Use stderr here since the logger may have been reset by its JVM shutdown hook.
@@ -68,7 +67,7 @@ public class Server {
      * Initiates an orderly shutdown of the server and waits at most 30 seconds
      * for the server to terminate (i.e. no running calls).
      *
-     *@throws InterruptedException if interrupted while waiting
+     * @throws InterruptedException if interrupted while waiting
      */
     public void stop() throws InterruptedException {
         if (server != null) {
@@ -79,7 +78,7 @@ public class Server {
     /**
      * Waits for the server to become terminated.
      *
-     *@throws InterruptedException if interrupted while blocking
+     * @throws InterruptedException if interrupted while blocking
      */
     public void blockUntilShutdown() throws InterruptedException {
         if (server != null) {

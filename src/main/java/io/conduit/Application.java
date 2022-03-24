@@ -17,14 +17,12 @@
 package io.conduit;
 
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 
 import static java.lang.Integer.parseInt;
 
 /**
  * The plugin's entry point.
  */
-@Slf4j
 public class Application {
     @SneakyThrows
     @SuppressWarnings("checkstyle:MissingJavadocMethod")

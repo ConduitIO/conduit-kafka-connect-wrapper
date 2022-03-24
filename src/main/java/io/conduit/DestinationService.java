@@ -31,17 +31,18 @@ import org.slf4j.MDC;
 /**
  * A gRPC service exposing source plugin methods.
  */
-@Slf4j
 public class DestinationService extends DestinationPluginGrpc.DestinationPluginImplBase {
     private final TaskFactory taskFactory;
+    private final Logger log;
     private SinkTask task;
     private Map<String, String> config;
     private DestinationStream runStream;
     private boolean started;
     private SchemaProvider schemaProvider;
 
-    public DestinationService(TaskFactory taskFactory) {
+    public DestinationService(TaskFactory taskFactory, Logger log) {
         this.taskFactory = taskFactory;
+        this.log = log;
     }
 
     @Override

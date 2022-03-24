@@ -29,7 +29,7 @@ public class SourceServiceTest {
 
     @BeforeEach
     public void setUp() {
-        underTest = new SourceService(taskFactory);
+        underTest = new SourceService(taskFactory, mock(Logger.class));
     }
 
     @Test
