@@ -25,6 +25,8 @@ import plugin.GRPCStdioGrpc;
  * The {@link GrpcStdio} streams logs to the host process.
  */
 public class GrpcStdio extends GRPCStdioGrpc.GRPCStdioImplBase implements Logger {
+    // We need a singleton, so that the same instance exposed as a gRPC service
+    // is used by all classes for logging.
     private static final GrpcStdio INSTANCE = new GrpcStdio();
 
     public static GrpcStdio get() {
