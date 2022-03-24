@@ -39,8 +39,8 @@ public class Config {
     private String pipelineId;
     @JsonProperty("connector.name")
     private String connectorName;
-    @JsonProperty("task.class")
-    private String taskClass;
+    @JsonProperty("connector.class")
+    private String connectorClass;
     private Map<String, String> kafkaConnectorCfg = new HashMap<>();
 
     /**

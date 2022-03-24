@@ -19,7 +19,9 @@ package io.conduit;
 import java.util.Arrays;
 
 import lombok.SneakyThrows;
+import org.apache.kafka.connect.sink.SinkConnector;
 import org.apache.kafka.connect.sink.SinkTask;
+import org.apache.kafka.connect.source.SourceConnector;
 import org.apache.kafka.connect.source.SourceTask;
 
 /**
@@ -29,14 +31,16 @@ import org.apache.kafka.connect.source.SourceTask;
 public class ClasspathTaskFactory implements TaskFactory {
     @SneakyThrows
     @Override
-    public SinkTask newSinkTask(String className) {
-        return (SinkTask) newInstance(className);
+    public SinkTask newSinkTask(String connectorClass) {
+        SinkConnector connector = (SinkConnector) newInstance(connectorClass);
+        return (SinkTask) newInstance(connector.taskClass().getCanonicalName());
     }
 
     @SneakyThrows
     @Override
-    public SourceTask newSourceTask(String className) {
-        return (SourceTask) newInstance(className);
+    public SourceTask newSourceTask(String connectorClass) {
+        SourceConnector connector = (SourceConnector) newInstance(connectorClass);
+        return (SourceTask) newInstance(connector.taskClass().getCanonicalName());
     }
 
     @SneakyThrows

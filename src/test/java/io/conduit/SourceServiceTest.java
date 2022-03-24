@@ -65,7 +65,10 @@ public class SourceServiceTest {
     public void testStartTask() {
         when(taskFactory.newSourceTask("io.foo.bar")).thenReturn(task);
         underTest.configure(
-                newConfigRequest(Map.of("wrapper.task.class", "io.foo.bar", "another.param", "another.value")),
+                newConfigRequest(Map.of(
+                        "wrapper.connector.class", "io.foo.bar",
+                        "another.param", "another.value"
+                )),
                 mock(StreamObserver.class)
         );
 
@@ -88,7 +91,10 @@ public class SourceServiceTest {
         doThrow(exception).when(task).start(anyMap());
 
         underTest.configure(
-                newConfigRequest(Map.of("wrapper.task.class", "io.foo.bar", "another.param", "another.value")),
+                newConfigRequest(Map.of(
+                        "wrapper.connector.class", "io.foo.bar",
+                        "another.param", "another.value"
+                )),
                 mock(StreamObserver.class)
         );
 

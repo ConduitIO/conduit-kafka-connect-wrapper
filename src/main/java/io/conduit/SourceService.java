@@ -70,7 +70,7 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
         MDC.put("pipelineId", config.getPipelineId());
         MDC.put("connectorName", config.getConnectorName());
 
-        this.task = taskFactory.newSourceTask(config.getTaskClass());
+        this.task = taskFactory.newSourceTask(config.getConnectorClass());
         this.config = config.getKafkaConnectorCfg();
     }
 

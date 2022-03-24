@@ -72,7 +72,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
         MDC.put("pipelineId", config.getPipelineId());
         MDC.put("connectorName", config.getConnectorName());
 
-        this.task = taskFactory.newSinkTask(config.getTaskClass());
+        this.task = taskFactory.newSinkTask(config.getConnectorClass());
         this.schemaProvider = buildSchemaProvider(config);
         this.config = config.getKafkaConnectorCfg();
     }

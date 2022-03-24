@@ -42,7 +42,7 @@ public class DestinationServiceTest {
 
         underTest.configure(
                 newConfigRequest(Map.of(
-                        "wrapper.task.class", "io.foo.bar",
+                        "wrapper.connector.class", "io.foo.bar",
                         "wrapper.schema", "{\"type\":\"struct\",\"fields\":[{\"type\":\"boolean\",\"optional\":true,\"field\":\"joined\"}],\"name\":\"customers\"}",
                         "wrapper.schema.autogenerate.enabled", "true"
                 )),
@@ -64,7 +64,7 @@ public class DestinationServiceTest {
 
         underTest.configure(
                 newConfigRequest(Map.of(
-                        "wrapper.task.class", "io.foo.bar",
+                        "wrapper.connector.class", "io.foo.bar",
                         "wrapper.schema.autogenerate.enabled", "true"
                 )),
                 cfgStream
@@ -83,7 +83,10 @@ public class DestinationServiceTest {
     public void testStartTask() {
         when(taskFactory.newSinkTask("io.foo.bar")).thenReturn(task);
         underTest.configure(
-                newConfigRequest(Map.of("wrapper.task.class", "io.foo.bar", "another.param", "another.value")),
+                newConfigRequest(Map.of(
+                        "wrapper.connector.class", "io.foo.bar",
+                        "another.param", "another.value"
+                )),
                 cfgStream
         );
         underTest.start(newStartRequest(), startStream);
