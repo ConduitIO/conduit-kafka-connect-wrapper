@@ -21,6 +21,9 @@ package io.conduit;
  * using {@link String#format(String, Object...)}.
  */
 public interface Logger {
+    /**
+     * Returns a default {@link Logger} implementation.
+     */
     static Logger get() {
         return GrpcStdio.get();
     }
