@@ -43,7 +43,7 @@ This plugin's configuration consists of the configuration of the requested Kafka
 
 | Name                            | Description                                                                                  | Required                                                              | Default | Example                                                                                                                                                                                             | 
 |---------------------------------|----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `task.class`                    | The class of the requested connector                                                         | yes                                                                   | none    | `io.aiven.connect.jdbc.sink.JdbcSinkTask`                                                                                                                                                           |
+| `connector.class`               | The class of the requested connector.                                                        | yes                                                                   | none    | `io.aiven.connect.jdbc.sink.JdbcSinkTask`                                                                                                                                                           |
 | `schema`                        | The schema of the records which will be written to a destination connector.                  | the plugin doesn't require it, but the underlying Kafka connector may | none    | `{"type":"struct","fields":[{"type":"int32","optional":true,"field":"id"},{"type":"string","optional":true,"field":"name"},{"type":"boolean","optional":true,"field":"trial"}],"name":"customers"}` |
 | `schema.autogenerate.enabled`   | Automatically generate schemas (destination connector). Cannot be `true` if a schema is set. | no                                                                    | `false` | `true`                                                                                                                                                                                              |
 | `schema.autogenerate.name`      | Name of automatically generated schema.                                                      | yes, if schema auto-generation is turned on                           | none    | `customers`                                                                                                                                                                                         |
@@ -52,18 +52,18 @@ This plugin's configuration consists of the configuration of the requested Kafka
 | `connectorName`                 | The name of the connector which is to be created. Used in logs.                              | no                                                                    | none    | `prod-mysql-destination`                                                                                                                                                                            |
 
 Here's a full example, for a new Conduit destination connector, backed up by a JDBC Kafka sink connector.
-```
+```json
 {
-	"task.class": "io.aiven.connect.jdbc.sink.JdbcSinkTask",
-	"schema": "{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":true,\"field\":\"id\"},{\"type\":\"string\",\"optional\":true,\"field\":\"name\"},{\"type\":\"boolean\",\"optional\":true,\"field\":\"trial\"}],\"name\":\"customers\"}",
-	"connectorName": "local-pg-destination",
-	"pipelineId": "123-456-789",
-	"connection.url": "jdbc:postgresql://localhost/my-test-db",
-	"connection.user": "user",
-	"connection.password": "password123456",
-	"auto.create":    "true",
-	"auto.evolve":    "true",
-	"batch.size": "10"
+  "wrapper.connector.class": "io.aiven.connect.jdbc.JdbcSourceConnector",
+  "wrapper.connector.name": "my-pg-source",
+  "wrapper.pipeline.id": "239bb7a4-dafd-4ee3-8a01-2b0d95b3be0e",
+  "connection.url": "jdbc:postgresql://localhost/test-db",
+  "connection.user": "test-user",
+  "connection.password": "Passw0rd",
+  "incrementing.column.name": "id",
+  "mode": "incrementing",
+  "tables": "my_table",
+  "topic.prefix": "my_topic_prefix"
 }
 ```
 
