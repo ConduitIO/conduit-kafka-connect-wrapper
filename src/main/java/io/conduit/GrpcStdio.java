@@ -46,27 +46,37 @@ public class GrpcStdio extends GRPCStdioGrpc.GRPCStdioImplBase implements Logger
 
     @Override
     public void info(String format, Object... args) {
+        // Conduit didn't initiate the stream yet, so we simply return
         if (stream == null) {
             return;
         }
-        stream.onNext(
-                plugin.GrpcStdio.StdioData.newBuilder()
-                        .setChannel(plugin.GrpcStdio.StdioData.Channel.STDOUT)
-                        .setData(ByteString.copyFromUtf8(String.format(format, args)))
-                        .build()
-        );
+        try {
+            stream.onNext(
+                    plugin.GrpcStdio.StdioData.newBuilder()
+                            .setChannel(plugin.GrpcStdio.StdioData.Channel.STDOUT)
+                            .setData(ByteString.copyFromUtf8(String.format(format, args)))
+                            .build()
+            );
+        } catch (Exception e) {
+            // We do not want logging to break the application
+        }
     }
 
     @Override
     public void error(String format, Object... args) {
+        // Conduit didn't initiate the stream yet, so we simply return
         if (stream == null) {
             return;
         }
-        stream.onNext(
-                plugin.GrpcStdio.StdioData.newBuilder()
-                        .setChannel(plugin.GrpcStdio.StdioData.Channel.STDERR)
-                        .setData(ByteString.copyFromUtf8(String.format(format, args)))
-                        .build()
-        );
+        try {
+            stream.onNext(
+                    plugin.GrpcStdio.StdioData.newBuilder()
+                            .setChannel(plugin.GrpcStdio.StdioData.Channel.STDERR)
+                            .setData(ByteString.copyFromUtf8(String.format(format, args)))
+                            .build()
+            );
+        } catch (Exception e) {
+            // We do not want logging to break the application
+        }
     }
 }
