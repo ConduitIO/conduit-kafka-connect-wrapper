@@ -6,7 +6,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.JsonFormat;
@@ -17,23 +16,20 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
 
 import static io.conduit.Transformations.fromKafkaSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TransformationsTest {
-    private Schema testSchema;
+    private Schema schemaStruct;
     private Struct testValue;
-    private ObjectNode schemaJson;
     private JsonNode testRecord;
 
     @BeforeEach
     public void setUp() {
-        testSchema = new SchemaBuilder(Schema.Type.STRUCT)
+        schemaStruct = new SchemaBuilder(Schema.Type.STRUCT)
                 .name("customers")
                 .field("id", Schema.INT32_SCHEMA)
                 .field("name", Schema.STRING_SCHEMA)
@@ -41,8 +37,8 @@ public class TransformationsTest {
                 .field("trial", SchemaBuilder.BOOLEAN_SCHEMA)
                 .field("balance", Schema.FLOAT64_SCHEMA)
                 .build();
-        schemaJson = Utils.jsonConv.asJsonSchema(testSchema);
-        testValue = new Struct(testSchema)
+
+        testValue = new Struct(schemaStruct)
                 .put("id", 123)
                 .put("name", "foobar")
                 .put("trial", true)
@@ -69,7 +65,7 @@ public class TransformationsTest {
                 Map.of("test-offset", 123456L),
                 "test-topic",
                 2,
-                testSchema,
+                schemaStruct,
                 testValue
         );
         Record.Builder conduitRec = Transformations.fromKafkaSource(sourceRecord);
@@ -121,9 +117,33 @@ public class TransformationsTest {
     }
 
     @Test
-    public void testToSinkRecord_RawData() {
+    public void testToSinkRecord_RawDataBytes() {
+        var schema = new SchemaBuilder(Schema.Type.BYTES)
+                .name("my-bytes-schema")
+                .optional()
+                .build();
         var rec = newRecordRawData();
-        var sinkRecObj = Transformations.toConnectData(rec, schemaJson);
+        var sinkRecObj = Transformations.toConnectData(rec, schema);
+        assertInstanceOf(byte[].class, sinkRecObj);
+        assertArrayEquals(rec.getPayload().getRawData().toByteArray(), (byte[]) sinkRecObj);
+    }
+
+    @Test
+    public void testToSinkRecord_RawDataString() {
+        var schema = new SchemaBuilder(Schema.Type.STRING)
+                .name("my-string-schema")
+                .optional()
+                .build();
+        var rec = newRecordRawData();
+        var sinkRecObj = Transformations.toConnectData(rec, schema);
+        assertInstanceOf(String.class, sinkRecObj);
+        assertEquals(rec.getPayload().getRawData().toStringUtf8(), (String) sinkRecObj);
+    }
+
+    @Test
+    public void testToSinkRecord_RawDataJson() {
+        var rec = newRecordRawDataJson();
+        var sinkRecObj = Transformations.toConnectData(rec, schemaStruct);
         assertInstanceOf(Struct.class, sinkRecObj);
 
         Struct value = (Struct) sinkRecObj;
@@ -152,7 +172,7 @@ public class TransformationsTest {
     public void testToSinkRecord_StructuredData() {
         var rec = newRecordStructData();
 
-        verifySinkRecord(Transformations.toConnectData(rec, schemaJson));
+        verifySinkRecord(Transformations.toConnectData(rec, schemaStruct));
     }
 
     public void verifySinkRecord(Object actualObj) {
@@ -184,6 +204,15 @@ public class TransformationsTest {
                 .build();
     }
 
+    private Record newRecordRawDataJson() {
+        return Record.newBuilder()
+                .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
+                .setPayload(newRawPayloadJson())
+                .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
+                .setCreatedAt(Timestamp.newBuilder().setSeconds(123456).build())
+                .build();
+    }
+
     private Record newRecordRawData() {
         return Record.newBuilder()
                 .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
@@ -195,6 +224,13 @@ public class TransformationsTest {
 
     @SneakyThrows
     private Data newRawPayload() {
+        return Data.newBuilder()
+                .setRawData(ByteString.copyFromUtf8("payload-" + UUID.randomUUID()))
+                .build();
+    }
+
+    @SneakyThrows
+    private Data newRawPayloadJson() {
         return Data.newBuilder()
                 .setRawData(ByteString.copyFromUtf8(Utils.mapper.writeValueAsString(testRecord)))
                 .build();

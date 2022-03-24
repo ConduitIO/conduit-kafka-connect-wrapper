@@ -19,7 +19,6 @@ package io.conduit;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Struct;
@@ -100,7 +99,7 @@ public class Transformations {
      * (if the record contains structured data or if a schema is provided).
      * Otherwise, returns the raw payload's byte data.
      */
-    public static Object toConnectData(Record record, ObjectNode schemaJson) {
+    public static Object toConnectData(Record record, Schema schema) {
         if (record == null) {
             throw new IllegalArgumentException("record is null");
         }
@@ -109,15 +108,15 @@ public class Transformations {
         }
 
         if (record.getPayload().hasStructuredData()) {
-            return Transformations.parseStructured(record, schemaJson);
+            return Transformations.parseStructured(record, schema);
         } else {
-            return Transformations.parseRawJson(record, schemaJson);
+            return Transformations.parseRaw(record, schema);
         }
     }
 
     @SneakyThrows
-    private static Object parseStructured(Record record, ObjectNode schemaJson) {
-        if (schemaJson == null) {
+    private static Object parseStructured(Record record, Schema schema) {
+        if (schema == null) {
             throw new IllegalArgumentException("cannot parse struct without schema");
         }
         // Struct -> JSON string -> bytes
@@ -126,28 +125,32 @@ public class Transformations {
         byte[] bytes = JsonFormat.printer()
                 .print(record.getPayload().getStructuredData())
                 .getBytes(StandardCharsets.UTF_8);
-        return bytesToStruct(bytes, schemaJson);
+        return jsonToStruct(bytes, schema);
     }
 
     @SneakyThrows
-    private static Object parseRawJson(Record record, ObjectNode schemaJson) {
+    private static Object parseRaw(Record record, Schema schema) {
         byte[] content = record.getPayload().getRawData().toByteArray();
-        if (schemaJson == null) {
+        if (schema == null) {
             return content;
         }
-        return bytesToStruct(content, schemaJson);
+        if (Schema.Type.STRING.equals(schema.type())) {
+            return new String(content, StandardCharsets.UTF_8);
+        }
+        if (!Schema.Type.STRUCT.equals(schema.type())) {
+            return content;
+        }
+        return jsonToStruct(content, schema);
     }
 
-    private static Object bytesToStruct(byte[] content, ObjectNode schemaJson) throws IOException {
+    private static Object jsonToStruct(byte[] content, Schema schema) throws IOException {
         // todo optimize memory usage here
         // for each record, we're creating a new JSON object
         // and copying data into it.
         // something as simple as concatenating strings could work.
-        JsonNode payloadJson = Utils.mapper.readTree(content);
-
         ObjectNode json = Utils.mapper.createObjectNode();
-        json.set("schema", schemaJson);
-        json.set("payload", payloadJson);
+        json.set("schema", Utils.jsonConv.asJsonSchema(schema));
+        json.set("payload", Utils.mapper.readTree(content));
 
         byte[] bytes = Utils.mapper.writeValueAsBytes(json);
         // topic arg unused in the connect-json library
