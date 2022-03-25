@@ -57,15 +57,6 @@ public class GrpcStdio extends GRPCStdioGrpc.GRPCStdioImplBase implements Logger
         }
     }
 
-    private void logToStream(String format, Object[] args, plugin.GrpcStdio.StdioData.Channel channel) {
-        stream.onNext(
-                plugin.GrpcStdio.StdioData.newBuilder()
-                        .setChannel(channel)
-                        .setData(ByteString.copyFromUtf8(String.format(format, args)))
-                        .build()
-        );
-    }
-
     @Override
     public void error(String format, Object... args) {
         // Conduit didn't initiate the stream yet, so we simply return
@@ -77,5 +68,14 @@ public class GrpcStdio extends GRPCStdioGrpc.GRPCStdioImplBase implements Logger
         } catch (Exception e) {
             // We do not want logging to break the application
         }
+    }
+
+    private void logToStream(String format, Object[] args, plugin.GrpcStdio.StdioData.Channel channel) {
+        stream.onNext(
+                plugin.GrpcStdio.StdioData.newBuilder()
+                        .setChannel(channel)
+                        .setData(ByteString.copyFromUtf8(String.format(format, args)))
+                        .build()
+        );
     }
 }
