@@ -51,15 +51,19 @@ public class GrpcStdio extends GRPCStdioGrpc.GRPCStdioImplBase implements Logger
             return;
         }
         try {
-            stream.onNext(
-                    plugin.GrpcStdio.StdioData.newBuilder()
-                            .setChannel(plugin.GrpcStdio.StdioData.Channel.STDOUT)
-                            .setData(ByteString.copyFromUtf8(String.format(format, args)))
-                            .build()
-            );
+            logToStream(format, args, plugin.GrpcStdio.StdioData.Channel.STDOUT);
         } catch (Exception e) {
             // We do not want logging to break the application
         }
+    }
+
+    private void logToStream(String format, Object[] args, plugin.GrpcStdio.StdioData.Channel channel) {
+        stream.onNext(
+                plugin.GrpcStdio.StdioData.newBuilder()
+                        .setChannel(channel)
+                        .setData(ByteString.copyFromUtf8(String.format(format, args)))
+                        .build()
+        );
     }
 
     @Override
@@ -69,12 +73,7 @@ public class GrpcStdio extends GRPCStdioGrpc.GRPCStdioImplBase implements Logger
             return;
         }
         try {
-            stream.onNext(
-                    plugin.GrpcStdio.StdioData.newBuilder()
-                            .setChannel(plugin.GrpcStdio.StdioData.Channel.STDERR)
-                            .setData(ByteString.copyFromUtf8(String.format(format, args)))
-                            .build()
-            );
+            logToStream(format, args, plugin.GrpcStdio.StdioData.Channel.STDERR);
         } catch (Exception e) {
             // We do not want logging to break the application
         }
