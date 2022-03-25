@@ -23,7 +23,7 @@ import org.apache.kafka.connect.source.SourceTask;
  * A factory for Kafka Connect tasks.
  */
 public interface TaskFactory {
-    SinkTask newSinkTask(String className);
+    SinkTask newSinkTask(String connectorClass);
 
-    SourceTask newSourceTask(String className);
+    SourceTask newSourceTask(String connectorClass);
 }

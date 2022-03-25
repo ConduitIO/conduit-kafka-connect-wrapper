@@ -38,25 +38,25 @@ database-specific driver to work (for example, PostgreSQL's driver can be found 
 #### Configuration
 This plugin's configuration consists of the configuration of the requested Kafka connector, plus:
 
-| Name                            | Description                                                                                  | Required                                                              | Default | Example                                                                                                                                                                                             | 
-|---------------------------------|----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `task.class`                    | The class of the requested connector                                                         | yes                                                                   | none    | `io.aiven.connect.jdbc.sink.JdbcSinkTask`                                                                                                                                                           |
-| `schema`                        | The schema of the records which will be written to a destination connector.                  | the plugin doesn't require it, but the underlying Kafka connector may | none    | `{"type":"struct","fields":[{"type":"int32","optional":true,"field":"id"},{"type":"string","optional":true,"field":"name"},{"type":"boolean","optional":true,"field":"trial"}],"name":"customers"}` |
-| `schema.autogenerate.enabled`   | Automatically generate schemas (destination connector). Cannot be `true` if a schema is set. | no                                                                    | `false` | `true`                                                                                                                                                                                              |
-| `schema.autogenerate.name`      | Name of automatically generated schema.                                                      | yes, if schema auto-generation is turned on                           | none    | `customers`                                                                                                                                                                                         |
-| `schema.autogenerate.overrides` | A (partial) schema which overrides types in the auto-generated schema.                       | no                                                                    | none    | `{"type":"struct","fields":[{"type":"boolean","optional":true,"field":"joined"}],"name":"customers"}`                                                                                               |
+| Name                                    | Description                                                                                  | Required                                                              | Default | Example                                                                                                                                                                                             | 
+|-----------------------------------------|----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `wrapper.connector.class`               | The class of the requested connector.                                                        | yes                                                                   | none    | `io.aiven.connect.jdbc.JdbcSourceConnector`                                                                                                                                                         |
+| `wrapper.schema`                        | The schema of the records which will be written to a destination connector.                  | the plugin doesn't require it, but the underlying Kafka connector may | none    | `{"type":"struct","fields":[{"type":"int32","optional":true,"field":"id"},{"type":"string","optional":true,"field":"name"},{"type":"boolean","optional":true,"field":"trial"}],"name":"customers"}` |
+| `wrapper.schema.autogenerate.enabled`   | Automatically generate schemas (destination connector). Cannot be `true` if a schema is set. | no                                                                    | `false` | `true`                                                                                                                                                                                              |
+| `wrapper.schema.autogenerate.name`      | Name of automatically generated schema.                                                      | yes, if schema auto-generation is turned on                           | none    | `customers`                                                                                                                                                                                         |
+| `wrapper.schema.autogenerate.overrides` | A (partial) schema which overrides types in the auto-generated schema.                       | no                                                                    | none    | `{"type":"struct","fields":[{"type":"boolean","optional":true,"field":"joined"}],"name":"customers"}`                                                                                               |
 
 Here's a full example, for a new Conduit destination connector, backed up by a JDBC Kafka sink connector.
-```
+```json
 {
-	"task.class": "io.aiven.connect.jdbc.sink.JdbcSinkTask",
-	"schema": "{\"type\":\"struct\",\"fields\":[{\"type\":\"int32\",\"optional\":true,\"field\":\"id\"},{\"type\":\"string\",\"optional\":true,\"field\":\"name\"},{\"type\":\"boolean\",\"optional\":true,\"field\":\"trial\"}],\"name\":\"customers\"}",
-	"connection.url": "jdbc:postgresql://localhost/my-test-db",
-	"connection.user": "user",
-	"connection.password": "password123456",
-	"auto.create":    "true",
-	"auto.evolve":    "true",
-	"batch.size": "10"
+  "wrapper.connector.class": "io.aiven.connect.jdbc.JdbcSourceConnector",
+  "connection.url": "jdbc:postgresql://localhost/test-db",
+  "connection.user": "test-user",
+  "connection.password": "Passw0rd",
+  "incrementing.column.name": "id",
+  "mode": "incrementing",
+  "tables": "my_table",
+  "topic.prefix": "my_topic_prefix"
 }
 ```
 

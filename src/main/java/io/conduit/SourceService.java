@@ -63,7 +63,7 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     }
 
     private void doConfigure(Config config) {
-        this.task = taskFactory.newSourceTask(config.getTaskClass());
+        this.task = taskFactory.newSourceTask(config.getConnectorClass());
         this.config = config.getKafkaConnectorCfg();
     }
 
