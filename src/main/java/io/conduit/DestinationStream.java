@@ -49,7 +49,6 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
 
     @Override
     public void onNext(Destination.Run.Request request) {
-        Logger.get().info("Writing record...");
         try {
             // Currently, Conduit requires all writes to be asynchronous.
             // See: pkg/connector/destination.go, method Write().

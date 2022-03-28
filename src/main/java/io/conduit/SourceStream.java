@@ -77,8 +77,7 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
 
     @Override
     public void onNext(Source.Run.Request value) {
-        // todo
-        Logger.get().info("Acknowledging record not implemented yet...");
+        // todo Acknowledging record not implemented yet...
     }
 
     @SneakyThrows
