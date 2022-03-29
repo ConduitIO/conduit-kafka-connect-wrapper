@@ -22,14 +22,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.conduit.grpc.Record;
 import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 /**
  * A {@link SchemaProvider} implementation providing schemas for {@link Record}s which have raw data.
  */
-@Slf4j
 @AllArgsConstructor
 public class RawDataSchemaProvider implements SchemaProvider {
     private final String name;
@@ -130,7 +128,6 @@ public class RawDataSchemaProvider implements SchemaProvider {
         try {
             return Utils.mapper.readTree(bytes);
         } catch (IOException e) {
-            log.info("Couldn't parse as JSON.", e);
             return null;
         }
     }

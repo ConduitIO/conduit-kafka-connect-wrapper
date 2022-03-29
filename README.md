@@ -1,10 +1,12 @@
-### Conduit plugin for Kafka connectors
-The Kafka connector Conduit plugin's goal is to make it possible to use existing Kafka connectors with Conduit.  
+### Conduit's Kafka connector wrapper 
+The goal of Conduit's Kafka connector wrapper is to make it possible to use existing Kafka connectors with Conduit.
 
-#### Pre-requisites
+### Pre-requisites
 * JDK 11
-* The plugin needs to have write permissions to the directory /var/log/conduit-kafka-connect-wrapper/
 * Currently, only Unix-like OSes are supported.
+
+### Logging
+The connector exposes a gRPC streaming method, `plugin.GRPCStdio/StreamStdio`, through which logs are sent to Conduit.
 
 ### Development
 The complete server-side code for this plugin is **not** committed to the repo. Rather, it's generated from a proto file,
@@ -16,10 +18,12 @@ IDEs may not automatically add the generated sources to the class. If that's the
 to File > Project structure > Project Settings > Modules. Then, right-click on `target/generated-source` and select "Sources".
 
 #### Building and using the connector
-Run `scripts/package.sh` to build an executable. `scripts/copy.sh` will create a directory called `dist` with following contents:
+Run `scripts/dist.sh` to build an executable. `scripts/dist.sh` will create a directory called `dist` with following contents:
 1. A script (which runs the connector)
 2. The connector JAR itself
 3. Directory `libs` with Aiven's JDBC connector (but no JDBC drivers).
+
+When creating a Conduit connector, the plugin path you need to use is the path to `conduit-kafka-connect-wrapper`.
 
 ### Loading connectors
 The plugin will load connectors and all the other dependencies from a `libs` directory, which is expected to be in the 
@@ -31,13 +35,6 @@ The plugin will be able to find the dependencies as soon as they are put into `l
 By default, Aiven's JDBC connector is shipped in the `libs` directory. A JDBC connector (generally) will require a 
 database-specific driver to work (for example, PostgreSQL's driver can be found [here](https://mvnrepository.com/artifact/org.postgresql/postgresql)).
 
-#### General notes
-
-1. Logs are written to `/var/log/conduit-kafka-connect-wrapper/`, and not stdout. This is because the plugin is required to perform
-a handshake with Conduit via standard output, and that is expected to be the first line in the standard output.
-2. Currently, only sink connectors are supported. Work is under way to support source connectors too.
-3. Currently, it's possible to use this plugin only on Unix-like systems.
-
 #### Configuration
 This plugin's configuration consists of the configuration of the requested Kafka connector, plus:
 
@@ -48,15 +45,11 @@ This plugin's configuration consists of the configuration of the requested Kafka
 | `wrapper.schema.autogenerate.enabled`   | Automatically generate schemas (destination connector). Cannot be `true` if a schema is set. | no                                                                    | `false` | `true`                                                                                                                                                                                              |
 | `wrapper.schema.autogenerate.name`      | Name of automatically generated schema.                                                      | yes, if schema auto-generation is turned on                           | none    | `customers`                                                                                                                                                                                         |
 | `wrapper.schema.autogenerate.overrides` | A (partial) schema which overrides types in the auto-generated schema.                       | no                                                                    | none    | `{"type":"struct","fields":[{"type":"boolean","optional":true,"field":"joined"}],"name":"customers"}`                                                                                               |
-| `wrapper.pipeline.id`                   | The ID of the pipeline to which this connector will be added.                                | no                                                                    | none    |                                                                                                                                                                                                     |
-| `wrapper.connector.name`                | The name of the connector which is to be created. Used in logs.                              | no                                                                    | none    | `prod-mysql-destination`                                                                                                                                                                            |
 
 Here's a full example, for a new Conduit destination connector, backed up by a JDBC Kafka sink connector.
 ```json
 {
   "wrapper.connector.class": "io.aiven.connect.jdbc.JdbcSourceConnector",
-  "wrapper.connector.name": "my-pg-source",
-  "wrapper.pipeline.id": "239bb7a4-dafd-4ee3-8a01-2b0d95b3be0e",
   "connection.url": "jdbc:postgresql://localhost/test-db",
   "connection.user": "test-user",
   "connection.password": "Passw0rd",
@@ -106,4 +99,4 @@ follows:
 | NullValue                           | STRUCT                                                                            |
 | ListValue                           | ARRAY, where element types correspond to element type from the protobuf ListValue |
 
-3. Records with raw data - TBD
+2. Records with raw data - TBD

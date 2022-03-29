@@ -35,10 +35,6 @@ import static io.conduit.Utils.mapper;
 public class Config {
     public static final String PREFIX = "wrapper.";
 
-    @JsonProperty("pipeline.id")
-    private String pipelineId;
-    @JsonProperty("connector.name")
-    private String connectorName;
     @JsonProperty("connector.class")
     private String connectorClass;
     private Map<String, String> kafkaConnectorCfg = new HashMap<>();

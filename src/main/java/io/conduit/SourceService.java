@@ -22,14 +22,11 @@ import io.conduit.grpc.Source;
 import io.conduit.grpc.SourcePluginGrpc;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.source.SourceTask;
-import org.slf4j.MDC;
 
 /**
  * A gRPC service exposing source plugin methods.
  */
-@Slf4j
 public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     private final TaskFactory taskFactory;
     private SourceTask task;
@@ -44,18 +41,18 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
 
     @Override
     public void configure(Source.Configure.Request req, StreamObserver<Source.Configure.Response> respObserver) {
-        log.info("Configuring the source.");
+        Logger.get().info("Configuring the source.");
 
         try {
             // the returned config map is unmodifiable, so we make a copy
             // since we need to remove some keys
             doConfigure(Config.fromMap(req.getConfigMap()));
-            log.info("Done configuring the source.");
+            Logger.get().info("Done configuring the source.");
 
             respObserver.onNext(Source.Configure.Response.newBuilder().build());
             respObserver.onCompleted();
         } catch (Exception e) {
-            log.error("Error while configuring source.", e);
+            Logger.get().error("Error while configuring source.", e);
             respObserver.onError(
                     Status.INTERNAL
                             .withDescription("couldn't configure task: " + e.getMessage())
@@ -66,17 +63,13 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     }
 
     private void doConfigure(Config config) {
-        // logging
-        MDC.put("pipelineId", config.getPipelineId());
-        MDC.put("connectorName", config.getConnectorName());
-
         this.task = taskFactory.newSourceTask(config.getConnectorClass());
         this.config = config.getKafkaConnectorCfg();
     }
 
     @Override
     public void start(Source.Start.Request request, StreamObserver<Source.Start.Response> responseObserver) {
-        log.info("Starting the source.");
+        Logger.get().info("Starting the source.");
 
         try {
             this.position = SourcePosition.fromString(request.getPosition().toStringUtf8());
@@ -85,12 +78,12 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
             );
             task.start(config);
             started = true;
-            log.info("Source started.");
+            Logger.get().info("Source started.");
 
             responseObserver.onNext(Source.Start.Response.newBuilder().build());
             responseObserver.onCompleted();
         } catch (Exception e) {
-            log.error("Error while starting.", e);
+            Logger.get().error("Error while starting.", e);
             responseObserver.onError(
                     Status.INTERNAL.withDescription("couldn't start task: " + e.getMessage()).withCause(e).asException()
             );
@@ -119,16 +112,16 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
 
     @Override
     public void teardown(Source.Teardown.Request request, StreamObserver<Source.Teardown.Response> responseObserver) {
-        log.info("Tearing down...");
+        Logger.get().info("Tearing down...");
         try {
             if (task != null && started) {
                 task.stop();
             }
             responseObserver.onNext(Source.Teardown.Response.newBuilder().build());
             responseObserver.onCompleted();
-            log.info("Torn down.");
+            Logger.get().info("Torn down.");
         } catch (Exception e) {
-            log.error("Couldn't tear down.", e);
+            Logger.get().error("Couldn't tear down.", e);
             responseObserver.onError(
                     Status.INTERNAL.withDescription("Couldn't tear down: " + e.getMessage()).withCause(e).asException()
             );
