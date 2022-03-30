@@ -65,7 +65,7 @@ public class SourceServiceTest {
     public void testStartTask() {
         when(taskFactory.newSourceTask("io.foo.bar")).thenReturn(task);
         underTest.configure(
-                newConfigRequest(Map.of(
+                TestUtils.newConfigRequest(Map.of(
                         "wrapper.connector.class", "io.foo.bar",
                         "another.param", "another.value"
                 )),
@@ -91,7 +91,7 @@ public class SourceServiceTest {
         doThrow(exception).when(task).start(anyMap());
 
         underTest.configure(
-                newConfigRequest(Map.of(
+                TestUtils.newConfigRequest(Map.of(
                         "wrapper.connector.class", "io.foo.bar",
                         "another.param", "another.value"
                 )),
@@ -114,11 +114,5 @@ public class SourceServiceTest {
 
     private Source.Start.Request newStartRequest() {
         return Source.Start.Request.newBuilder().build();
-    }
-
-    private Source.Configure.Request newConfigRequest(Map<String, String> config) {
-        return Source.Configure.Request.newBuilder()
-                .putAllConfig(config)
-                .build();
     }
 }
