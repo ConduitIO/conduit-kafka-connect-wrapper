@@ -17,7 +17,9 @@ jobs:
           java-version: '11'
           distribution: 'adopt'
           cache: 'maven'
-      - name: Build with Maven
+      - name: Run unit tests
         run: mvn test
-     -  name: Start containers
+     -  name: Start Postgres
         run: docker compose -f src/test/resources/docker-compose.yml up -d --wait
+     -  name: Run integration tests
+        run: mvn integration-test
