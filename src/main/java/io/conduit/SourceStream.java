@@ -64,10 +64,9 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
                 // This can happen when records are deleted, for example.
                 // This is used in Kafka Connect internally, more precisely for log compaction in Kafka.
                 // For more info: https://kafka.apache.org/documentation/#compaction
-                if (record.value() == null) {
-                    continue;
+                if (record.value() != null) {
+                    responseObserver.onNext(responseWith(record));
                 }
-                responseObserver.onNext(responseWith(record));
             } catch (Exception e) {
                 Logger.get().error("Couldn't write record.", e);
                 responseObserver.onError(

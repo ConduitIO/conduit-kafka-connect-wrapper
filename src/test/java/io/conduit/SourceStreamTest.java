@@ -136,6 +136,7 @@ public class SourceStreamTest {
         SourceRecord mock = mock(SourceRecord.class);
         doReturn(partition).when(mock).sourcePartition();
         doReturn(offset).when(mock).sourceOffset();
+        doReturn("test-value").when(mock).value();
 
         return mock;
     }
