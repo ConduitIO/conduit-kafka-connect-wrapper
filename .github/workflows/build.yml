@@ -25,4 +25,4 @@ jobs:
         run: docker compose -f src/test/resources/docker-compose.yml up -d --wait
 
       - name: Run integration tests
-        run: mvn integration-test
+        run: mvn integration-test verify
