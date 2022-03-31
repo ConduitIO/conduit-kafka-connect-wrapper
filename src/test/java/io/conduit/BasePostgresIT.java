@@ -20,6 +20,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.*;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -113,16 +116,12 @@ public abstract class BasePostgresIT {
         assertNewRecordOk(1, responses.get(0).getRecord());
 
         Record updated = responses.get(1).getRecord();
-        assertNotNull(updated.getKey());
-        assertTrue(updated.getPayload().hasStructuredData());
-        Struct struct = updated.getPayload().getStructuredData();
-        assertTrue(struct.getFieldsOrThrow("source").hasStructValue());
-        assertTrue(struct.getFieldsOrThrow("before").hasNullValue());
-        assertTrue(struct.getFieldsOrThrow("after").hasStructValue());
+        assertKeyOk(1, updated);
 
-        Struct after = struct.getFieldsOrThrow("after").getStructValue();
-        assertEquals("foobar", after.getFieldsOrThrow("name").getStringValue());
+        assertNameUpdated(updated);
     }
+
+    protected abstract void assertNameUpdated(Record updated);
 
     @SneakyThrows
     @Test
@@ -134,7 +133,7 @@ public abstract class BasePostgresIT {
         Thread.sleep(500);
 
         delete(1);
-        Thread.sleep(1500);
+        Thread.sleep(2000);
 
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(runStream, never()).onError(any());
@@ -144,7 +143,8 @@ public abstract class BasePostgresIT {
         assertNewRecordOk(1, responses.get(0).getRecord());
 
         Record updated = responses.get(1).getRecord();
-        assertNotNull(updated.getKey());
+        assertKeyOk(1, updated);
+
         assertTrue(updated.getPayload().hasStructuredData());
         Struct struct = updated.getPayload().getStructuredData();
         assertTrue(struct.getFieldsOrThrow("source").hasStructValue());
@@ -190,7 +190,7 @@ public abstract class BasePostgresIT {
      */
     @SneakyThrows
     private void insertEmployees(int from, int to) {
-        String sql = "INSERT INTO employees (name,full_time,joined) VALUES ";
+        String sql = "INSERT INTO employees (name,full_time,updated_at) VALUES ";
         List<String> placeholders = new LinkedList<>();
         for (int i = from; i <= to; i++) {
             placeholders.add("(?,?,?)");
@@ -203,7 +203,7 @@ public abstract class BasePostgresIT {
             for (int i = from; i <= to; i++) {
                 ps.setString(index++, "name " + i);
                 ps.setBoolean(index++, i % 2 == 0);
-                ps.setTimestamp(index++, Timestamp.from(Instant.now()));
+                ps.setObject(index++, OffsetDateTime.now(ZoneOffset.UTC));
             }
             ps.execute();
         }
@@ -211,9 +211,10 @@ public abstract class BasePostgresIT {
 
     @SneakyThrows
     private void updateName(int id, String name) {
-        try (PreparedStatement ps = conn.prepareStatement("UPDATE employees SET name = ? WHERE id = ?;")) {
+        try (PreparedStatement ps = conn.prepareStatement("UPDATE employees SET name = ?, updated_at = ? WHERE id = ?;")) {
             ps.setString(1, name);
-            ps.setInt(2, id);
+            ps.setObject(2, OffsetDateTime.now(ZoneOffset.UTC));
+            ps.setInt(3, id);
             ps.execute();
         }
     }
@@ -225,6 +226,8 @@ public abstract class BasePostgresIT {
             ps.execute();
         }
     }
+
+    protected abstract void assertKeyOk(int index, Record rec);
 
     protected void assertPayloadOk(int index, Struct payload) {
         assertEquals(index, payload.getFieldsOrThrow("id").getNumberValue());

@@ -18,10 +18,9 @@ package io.conduit;
 
 import java.util.Map;
 
-import com.google.protobuf.Struct;
 import io.conduit.grpc.Record;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class JdbcPgSourceIT extends BasePostgresIT {
     @Override
@@ -34,8 +33,17 @@ public class JdbcPgSourceIT extends BasePostgresIT {
                 "tables", "employees",
                 "mode", "timestamp",
                 "poll.interval.ms", "500",
-                "timestamp.column.name", "joined",
+                "timestamp.column.name", "updated_at",
                 "topic.prefix", "my_topic_prefix"
+        );
+    }
+
+    @Override
+    protected void assertNameUpdated(Record updated) {
+        assertTrue(updated.getPayload().hasStructuredData());
+        assertEquals(
+                "foobar",
+                updated.getPayload().getStructuredData().getFieldsOrThrow("name").getStringValue()
         );
     }
 
@@ -43,5 +51,10 @@ public class JdbcPgSourceIT extends BasePostgresIT {
     protected void assertNewRecordOk(int index, Record rec) {
         assertTrue(rec.getPayload().hasStructuredData());
         assertPayloadOk(index, rec.getPayload().getStructuredData());
+    }
+
+    @Override
+    protected void assertKeyOk(int index, Record rec) {
+        assertEquals(index, rec.getPayload().getStructuredData().getFieldsOrThrow("id").getNumberValue());
     }
 }
