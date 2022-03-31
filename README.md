@@ -25,7 +25,7 @@ Run `scripts/dist.sh` to build an executable. `scripts/dist.sh` will create a di
 their dependencies (if any).
 
 When creating a Conduit connector, the plugin path you need to use is the path to `conduit-kafka-connect-wrapper`. Here's
-a full working example of a connector configuration:
+a full working example of a Conduit connector configuration:
 ```json
 {
   "type": "TYPE_SOURCE",
@@ -48,7 +48,7 @@ a full working example of a connector configuration:
 ```
 
 Note that the `wrapper.connector.class` should be a class which is present on the classpath, i.e. in one of the JARs in
-the `libs` directory.
+the `libs` directory. For more information, theck the [Configuration](#configuration) section.
 
 ### Loading connectors
 The plugin will load connectors and all the other dependencies from a `libs` directory, which is expected to be in the 
@@ -84,6 +84,11 @@ Here's a full example, for a new Conduit destination connector, backed up by a J
   "topic.prefix": "my_topic_prefix"
 }
 ```
+
+All the configuration parameters prefixed with `wrapper.` belong to the Kafka Connect wrapper and is used to control its
+behavior. All other configuration parameters are forwarded to the underlying Kafka connector as-is. In this example, 
+`wrapper.connector.class` is telling the wrapper to instantiate a JDBC source connector. `connection.url` and all the other
+parameters are specific to the JDBC source connector.
 
 ### Schema auto-generation
 If `schema.autogenerate.enabled` is set to `true`, the plugin will try to automatically generate Kafka connector schemas 
