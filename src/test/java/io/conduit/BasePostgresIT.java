@@ -118,7 +118,6 @@ public abstract class BasePostgresIT {
 
         Record updated = responses.get(1).getRecord();
         assertKeyOk(1, updated);
-
         assertNameUpdated(updated);
     }
 
