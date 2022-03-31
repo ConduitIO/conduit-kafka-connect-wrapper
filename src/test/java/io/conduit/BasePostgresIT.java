@@ -16,10 +16,10 @@
 
 package io.conduit;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.*;
+import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -37,11 +37,17 @@ import org.mockito.ArgumentCaptor;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-public class SourceServiceIT {
+/**
+ * A base test for PostgreSQL sources. It assumes a certain structure of the test table and test records.
+ * See {@link BasePostgresIT#prepareTable()} for more details.
+ */
+public abstract class BasePostgresIT {
 
+    public static final String USER = "meroxauser";
+    public static final String PASSWORD = "meroxapass";
     public static final String PG_URL = "jdbc:postgresql://localhost/meroxadb" +
-            "?user=meroxauser" +
-            "&password=meroxapass" +
+            "?user=" + USER +
+            "&password=" + PASSWORD +
             "&sslmode=disable" +
             "&allowMultiQueries=true";
     private Connection conn;
@@ -74,7 +80,7 @@ public class SourceServiceIT {
 
         int updated = 3;
         insertEmployees(existing + 1, existing + updated);
-        Thread.sleep(2000);
+        Thread.sleep(1500);
 
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
         int count = existing + updated;
@@ -146,32 +152,12 @@ public class SourceServiceIT {
         assertTrue(struct.getFieldsOrThrow("after").hasNullValue());
     }
 
-    private void assertNewRecordOk(int index, Record rec) {
-        // todo
-        assertNotNull(rec.getKey());
-        assertTrue(rec.getPayload().hasStructuredData());
-        Struct struct = rec.getPayload().getStructuredData();
-        assertTrue(struct.getFieldsOrThrow("source").hasStructValue());
-        assertTrue(struct.getFieldsOrThrow("before").hasNullValue());
-        assertTrue(struct.getFieldsOrThrow("after").hasStructValue());
-
-        Struct after = struct.getFieldsOrThrow("after").getStructValue();
-        assertStructOk(index, after);
-    }
+    protected abstract void assertNewRecordOk(int index, Record rec);
 
     private StreamObserver run() {
         StreamObserver cfgStream = mock(StreamObserver.class);
         underTest.configure(
-                TestUtils.newConfigRequest(Map.of(
-                        "wrapper.connector.class", "io.debezium.connector.postgresql.PostgresConnector",
-                        "database.hostname", "localhost",
-                        "database.port", "5432",
-                        "database.user", "meroxauser",
-                        "database.password", "meroxapass",
-                        "database.dbname", "meroxadb",
-                        "database.server.name", "test-server",
-                        "table.include.list", "public.employees"
-                )),
+                TestUtils.newConfigRequest(configMap()),
                 cfgStream
         );
         verify(cfgStream, never()).onError(any());
@@ -189,20 +175,12 @@ public class SourceServiceIT {
         return runStream;
     }
 
+    protected abstract Map<String, String> configMap();
+
     @SneakyThrows
     private void prepareTable() {
         PreparedStatement ps = conn.prepareStatement(
-                "DROP TABLE IF EXISTS employees;\n" +
-                        "DROP SEQUENCE IF EXISTS employees_id_seq;\n" +
-                        "CREATE TABLE employees (\n" +
-                        "    id int,\n" +
-                        "    name varchar(255),\n" +
-                        "    full_time bool,\n" +
-                        "    PRIMARY KEY (id)\n" +
-                        ");\n" +
-                        "\n" +
-                        "CREATE SEQUENCE employees_id_seq;\n" +
-                        "ALTER TABLE employees ALTER id SET DEFAULT NEXTVAL('employees_id_seq');"
+                Files.readString(Path.of("src/test/resources/pg-prepare.sql"))
         );
         ps.execute();
     }
@@ -212,10 +190,10 @@ public class SourceServiceIT {
      */
     @SneakyThrows
     private void insertEmployees(int from, int to) {
-        String sql = "INSERT INTO employees (name,full_time) VALUES ";
+        String sql = "INSERT INTO employees (name,full_time,joined) VALUES ";
         List<String> placeholders = new LinkedList<>();
         for (int i = from; i <= to; i++) {
-            placeholders.add("(?,?)");
+            placeholders.add("(?,?,?)");
         }
         sql += String.join(",", placeholders);
         sql += ";";
@@ -225,6 +203,7 @@ public class SourceServiceIT {
             for (int i = from; i <= to; i++) {
                 ps.setString(index++, "name " + i);
                 ps.setBoolean(index++, i % 2 == 0);
+                ps.setTimestamp(index++, Timestamp.from(Instant.now()));
             }
             ps.execute();
         }
@@ -247,9 +226,9 @@ public class SourceServiceIT {
         }
     }
 
-    private void assertStructOk(int index, Struct after) {
-        assertEquals(index, after.getFieldsOrThrow("id").getNumberValue());
-        assertEquals("name " + index, after.getFieldsOrThrow("name").getStringValue());
-        assertEquals(index % 2 == 0, after.getFieldsOrThrow("full_time").getBoolValue());
+    protected void assertPayloadOk(int index, Struct payload) {
+        assertEquals(index, payload.getFieldsOrThrow("id").getNumberValue());
+        assertEquals("name " + index, payload.getFieldsOrThrow("name").getStringValue());
+        assertEquals(index % 2 == 0, payload.getFieldsOrThrow("full_time").getBoolValue());
     }
 }
