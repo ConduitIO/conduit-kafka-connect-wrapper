@@ -16,17 +16,6 @@
 
 package io.conduit;
 
-import com.google.protobuf.Struct;
-import io.conduit.grpc.Record;
-import io.conduit.grpc.Source;
-import io.grpc.stub.StreamObserver;
-import lombok.SneakyThrows;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -34,6 +23,16 @@ import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import com.google.protobuf.Struct;
+import io.conduit.grpc.Record;
+import io.conduit.grpc.Source;
+import io.grpc.stub.StreamObserver;
+import lombok.SneakyThrows;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
