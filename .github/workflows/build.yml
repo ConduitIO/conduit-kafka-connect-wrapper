@@ -21,5 +21,8 @@ jobs:
       - name: Start Postgres
         run: docker compose -f src/test/resources/docker-compose.yml up -d --wait
 
+      - name: Install test library to local Maven repo
+        run:  mvn install:install-file -Dfile=libs/jdbc-connector-for-apache-kafka-6.7.0-SNAPSHOT.jar -DgroupId=io.aiven -DartifactId=jdbc-connector-for-apache-kafka -Dversion=6.7.0-SNAPSHOT -Dpackaging=jar
+
       - name: Run tests
         run: mvn integration-test verify
