@@ -23,13 +23,14 @@ import static io.conduit.Transformations.fromKafkaSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TransformationsTest {
-    private Schema schemaStruct;
+    private Schema valueSchema;
+    private Schema keySchema;
     private Struct testValue;
     private JsonNode testRecord;
 
     @BeforeEach
     public void setUp() {
-        schemaStruct = new SchemaBuilder(Schema.Type.STRUCT)
+        valueSchema = new SchemaBuilder(Schema.Type.STRUCT)
                 .name("customers")
                 .field("id", Schema.INT32_SCHEMA)
                 .field("name", Schema.STRING_SCHEMA)
@@ -37,8 +38,12 @@ public class TransformationsTest {
                 .field("trial", SchemaBuilder.BOOLEAN_SCHEMA)
                 .field("balance", Schema.FLOAT64_SCHEMA)
                 .build();
+        keySchema = new SchemaBuilder(Schema.Type.STRUCT)
+                .name("customer_id_schema")
+                .field("id", Schema.INT32_SCHEMA)
+                .build();
 
-        testValue = new Struct(schemaStruct)
+        testValue = new Struct(valueSchema)
                 .put("id", 123)
                 .put("name", "foobar")
                 .put("trial", true)
@@ -65,7 +70,7 @@ public class TransformationsTest {
                 Map.of("test-offset", 123456L),
                 "test-topic",
                 2,
-                schemaStruct,
+                valueSchema,
                 testValue
         );
         Record.Builder conduitRec = Transformations.fromKafkaSource(sourceRecord);
@@ -81,6 +86,36 @@ public class TransformationsTest {
         // verify key
         assertFalse(conduitRec.getKey().hasRawData());
         assertFalse(conduitRec.getKey().hasStructuredData());
+    }
+
+    @SneakyThrows
+    @Test
+    public void testFromKafkaSource_WithValueSchema_WithKeySchema() {
+        var sourceRecord = new SourceRecord(
+                Map.of("test-partition", "test_table"),
+                Map.of("test-offset", 123456L),
+                "test-topic",
+                2,
+                keySchema,
+                new Struct(keySchema).put("id", 123),
+                valueSchema,
+                testValue
+        );
+        Record.Builder conduitRec = Transformations.fromKafkaSource(sourceRecord);
+        assertNotNull(conduitRec);
+
+        // verify payload
+        var payload = conduitRec.getPayload().getStructuredData();
+        assertMatch(testValue, payload);
+        // assert timestamp is within last second
+        assertTrue(
+                conduitRec.getCreatedAt().getSeconds() * 1000 > System.currentTimeMillis() - 1000
+        );
+        // verify key
+        assertFalse(conduitRec.getKey().hasRawData());
+        assertTrue(conduitRec.getKey().hasStructuredData());
+        com.google.protobuf.Struct key = conduitRec.getKey().getStructuredData();
+        assertEquals(123, key.getFieldsOrThrow("id").getNumberValue());
     }
 
     private void assertMatch(Struct expected, com.google.protobuf.Struct payload) {
@@ -143,7 +178,7 @@ public class TransformationsTest {
     @Test
     public void testToSinkRecord_RawDataJson() {
         var rec = newRecordRawDataJson();
-        var sinkRecObj = Transformations.toConnectData(rec, schemaStruct);
+        var sinkRecObj = Transformations.toConnectData(rec, valueSchema);
         assertInstanceOf(Struct.class, sinkRecObj);
 
         Struct value = (Struct) sinkRecObj;
@@ -172,7 +207,7 @@ public class TransformationsTest {
     public void testToSinkRecord_StructuredData() {
         var rec = newRecordStructData();
 
-        verifySinkRecord(Transformations.toConnectData(rec, schemaStruct));
+        verifySinkRecord(Transformations.toConnectData(rec, valueSchema));
     }
 
     public void verifySinkRecord(Object actualObj) {

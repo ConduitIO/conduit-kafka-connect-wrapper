@@ -43,11 +43,11 @@ public class Transformations {
         if (sourceRecord == null) {
             return null;
         }
-        // NB: Aiven's JDBC source connector doesn't return keys, so we're skipping them here.
         // The transformer returns a builder, so that it's easier to set other fields on the same record.
         // We can return a record, but the caller would then need to transform it into a builder,
         // which might create needless copies of fields.
         return Record.newBuilder()
+                .setKey(getKey(sourceRecord))
                 .setPayload(getPayload(sourceRecord))
                 .setCreatedAt(currentTimestamp());
     }
@@ -64,7 +64,17 @@ public class Transformations {
         if (sourceRecord.valueSchema() != null) {
             return schemaValueToData(sourceRecord.valueSchema(), sourceRecord.value());
         }
-        return getRawData(sourceRecord);
+        throw new UnsupportedOperationException("payloads without schemas not supported yet");
+    }
+
+    private static Data getKey(SourceRecord sourceRecord) {
+        if (sourceRecord.key() == null) {
+            return Data.newBuilder().build();
+        }
+        if (sourceRecord.keySchema() != null) {
+            return schemaValueToData(sourceRecord.keySchema(), sourceRecord.key());
+        }
+        throw new UnsupportedOperationException("keys without schemas not supported yet");
     }
 
     @SneakyThrows
@@ -88,10 +98,6 @@ public class Transformations {
         return Data.newBuilder()
                 .setStructuredData(outStruct)
                 .build();
-    }
-
-    private static Data getRawData(Object value) {
-        throw new UnsupportedOperationException("records with raw data not supported yet");
     }
 
     /**
