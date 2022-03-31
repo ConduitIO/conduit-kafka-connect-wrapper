@@ -18,9 +18,10 @@ package io.conduit;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.*;
-import java.time.Instant;
-import java.time.LocalDateTime;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.LinkedList;
@@ -37,7 +38,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 /**
@@ -120,8 +122,6 @@ public abstract class BasePostgresIT {
         assertNameUpdated(updated);
     }
 
-    protected abstract void assertNameUpdated(Record updated);
-
     @SneakyThrows
     @Test
     public void testDeletedData() {
@@ -150,8 +150,6 @@ public abstract class BasePostgresIT {
         assertTrue(struct.getFieldsOrThrow("after").hasNullValue());
     }
 
-    protected abstract void assertNewRecordOk(int index, Record rec);
-
     private StreamObserver run() {
         StreamObserver cfgStream = mock(StreamObserver.class);
         underTest.configure(
@@ -172,8 +170,6 @@ public abstract class BasePostgresIT {
 
         return runStream;
     }
-
-    protected abstract Map<String, String> configMap();
 
     @SneakyThrows
     private void prepareTable() {
@@ -225,11 +221,17 @@ public abstract class BasePostgresIT {
         }
     }
 
-    protected abstract void assertKeyOk(int index, Record rec);
-
     protected void assertPayloadOk(int index, Struct payload) {
         assertEquals(index, payload.getFieldsOrThrow("id").getNumberValue());
         assertEquals("name " + index, payload.getFieldsOrThrow("name").getStringValue());
         assertEquals(index % 2 == 0, payload.getFieldsOrThrow("full_time").getBoolValue());
     }
+
+    protected abstract void assertNameUpdated(Record updated);
+
+    protected abstract void assertNewRecordOk(int index, Record rec);
+
+    protected abstract Map<String, String> configMap();
+
+    protected abstract void assertKeyOk(int index, Record rec);
 }
