@@ -18,6 +18,14 @@ IDEs may not automatically add the generated sources to the class. If that's the
 to File > Project structure > Project Settings > Modules. Then, right-click on `target/generated-source` and select "Sources".
 
 #### Building and using the connector
+At a high level, to use this wrapper, you need to:
+1. Build it
+2. Put any Kafka connector JARs you may need into the `libs` directory.
+3. Create a Conduit connector configuration, where the plugin path is the path to `conduit-kafka-connect-wrapper`.
+4. Add the Kafka connector configuration you'd normally use.
+
+Let's go into more details of this:
+
 Run `scripts/dist.sh` to build an executable. `scripts/dist.sh` will create a directory called `dist` with following contents:
 1. A script (which runs the connector). This script starts a connector instance.
 2. The connector JAR itself
@@ -129,4 +137,13 @@ follows:
 | NullValue                           | STRUCT                                                                            |
 | ListValue                           | ARRAY, where element types correspond to element type from the protobuf ListValue |
 
-2. Records with raw data - TBD
+2. Records with raw data, in JSON format: The mappings are as follows:
+
+| JSON    | Kafka schema                                         |
+|---------|------------------------------------------------------|
+| OBJECT  | STRUCT                                               |
+| STRING  | OPTIONAL_STRING_SCHEMA                               |
+| NUMBER  | the narrowest integer or float schema for the number |
+| BOOLEAN | boolean                                              |
+
+3. Records with raw  data, and no schema at all - not supported (yet).
