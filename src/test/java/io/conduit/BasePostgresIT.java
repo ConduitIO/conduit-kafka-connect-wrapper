@@ -99,8 +99,7 @@ public abstract class BasePostgresIT {
     @SneakyThrows
     @Test
     public void testUpdatedData() {
-        int existing = 1;
-        insertEmployees(1, existing);
+        insertEmployees(1, 1);
 
         StreamObserver runStream = run();
         Thread.sleep(500);
@@ -126,8 +125,7 @@ public abstract class BasePostgresIT {
     @SneakyThrows
     @Test
     public void testDeletedData() {
-        int existing = 1;
-        insertEmployees(1, existing);
+        insertEmployees(1, 1);
 
         StreamObserver runStream = run();
         Thread.sleep(500);
