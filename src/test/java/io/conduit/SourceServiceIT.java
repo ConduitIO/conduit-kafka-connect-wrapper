@@ -21,6 +21,7 @@ import io.conduit.grpc.Record;
 import io.conduit.grpc.Source;
 import io.grpc.stub.StreamObserver;
 import lombok.SneakyThrows;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,11 +46,13 @@ public class SourceServiceIT {
             "&sslmode=disable" +
             "&allowMultiQueries=true";
     private Connection conn;
+    private SourceService underTest;
 
     @BeforeEach
     public void setUp() throws SQLException {
         conn = DriverManager.getConnection(PG_URL);
         prepareTable();
+        underTest = new SourceService(new ClasspathTaskFactory());
     }
 
     @AfterEach
@@ -57,6 +60,8 @@ public class SourceServiceIT {
         if (conn != null) {
             conn.close();
         }
+        underTest.stop(Source.Stop.Request.newBuilder().build(), mock(StreamObserver.class));
+        underTest.teardown(Source.Teardown.Request.newBuilder().build(), mock(StreamObserver.class));
     }
 
     @SneakyThrows
@@ -156,7 +161,6 @@ public class SourceServiceIT {
     }
 
     private StreamObserver run() {
-        SourceService underTest = new SourceService(new ClasspathTaskFactory());
         StreamObserver cfgStream = mock(StreamObserver.class);
         underTest.configure(
                 TestUtils.newConfigRequest(Map.of(
