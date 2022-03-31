@@ -18,11 +18,8 @@ jobs:
           distribution: 'adopt'
           cache: 'maven'
 
-      - name: Run unit tests
-        run: mvn test
-
       - name: Start Postgres
         run: docker compose -f src/test/resources/docker-compose.yml up -d --wait
 
-      - name: Run integration tests
+      - name: Run tests
         run: mvn integration-test verify
