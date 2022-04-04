@@ -29,8 +29,7 @@ Let's go into more details of this:
 Run `scripts/dist.sh` to build an executable. `scripts/dist.sh` will create a directory called `dist` with following contents:
 1. A script (which runs the connector). This script starts a connector instance.
 2. The connector JAR itself
-3. Directory `libs` with Aiven's JDBC connector (but no JDBC drivers). This is where you put the Kafka connector JARs and
-their dependencies (if any).
+3. Directory `libs`. This is where you put the Kafka connector JARs and their dependencies (if any).
 
 When creating a Conduit connector, the plugin path you need to use is the path to `conduit-kafka-connect-wrapper`. Here's
 a full working example of a Conduit connector configuration:
@@ -63,10 +62,9 @@ The plugin will load connectors and all the other dependencies from a `libs` dir
 same directory as the plugin executable itself. For example, if the plugin executable is at `/abc/def/conduit-kafka-connect-wrapper`,
 then the dependencies are expected to be in `/abc/def/libs`.
 
-The plugin will be able to find the dependencies as soon as they are put into `libs`. 
-
-By default, Aiven's JDBC connector is shipped in the `libs` directory. A JDBC connector (generally) will require a 
-database-specific driver to work (for example, PostgreSQL's driver can be found [here](https://mvnrepository.com/artifact/org.postgresql/postgresql)).
+The plugin will be able to find the dependencies as soon as they are put into `libs`. Please note that, a JDBC connector 
+(generally) will require a database-specific driver to work (for example, PostgreSQL's driver can be found 
+[here](https://mvnrepository.com/artifact/org.postgresql/postgresql)).
 
 #### Configuration
 This plugin's configuration consists of the configuration of the requested Kafka connector, plus:
