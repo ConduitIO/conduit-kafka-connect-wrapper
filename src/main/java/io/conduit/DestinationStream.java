@@ -24,8 +24,8 @@ import io.conduit.grpc.Record;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 
@@ -84,15 +84,27 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
         var schema = schemaProvider.provide(record);
 
         Object value = Transformations.toConnectData(record, schema);
+        var schemaUsed = getSchema(value, schema);
         return new SinkRecord(
-                schema != null ? schema.name() : null,
+                schemaUsed != null ? schemaUsed.name() : null,
                 0,
                 Schema.STRING_SCHEMA,
                 record.getKey().getRawData().toStringUtf8(),
-                schema,
+                schemaUsed,
                 value,
                 0
         );
+    }
+
+    private Schema getSchema(Object value, Schema schema) {
+        // Context: Kafka structs have a reference to the schema they use.
+        // In addition to that, SinkRecords also contain a schema (see method: toSinkRecord()).
+        // Some connectors check that the struct's schema is the same as the declared schema in the SinkRecord.
+        // Some do so by checking the equality of references and not objects.
+        if (value instanceof Struct) {
+            return ((Struct) value).schema();
+        }
+        return schema;
     }
 
     @Override

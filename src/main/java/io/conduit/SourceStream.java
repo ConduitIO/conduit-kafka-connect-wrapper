@@ -26,7 +26,6 @@ import io.conduit.grpc.Source;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 
@@ -61,7 +60,13 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
                     fillBuffer();
                 }
                 SourceRecord record = buffer.poll();
-                responseObserver.onNext(responseWith(record));
+                // We may get so-called tombstone records, i.e. records with a null payload.
+                // This can happen when records are deleted, for example.
+                // This is used in Kafka Connect internally, more precisely for log compaction in Kafka.
+                // For more info: https://kafka.apache.org/documentation/#compaction
+                if (record.value() != null) {
+                    responseObserver.onNext(responseWith(record));
+                }
             } catch (Exception e) {
                 Logger.get().error("Couldn't write record.", e);
                 responseObserver.onError(
