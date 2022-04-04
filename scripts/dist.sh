@@ -1,6 +1,7 @@
 #!/bin/bash
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-"$SCRIPT_DIR"/dist-no-libs.sh
+mvn clean package
 
 TO_DIR=dist/
-cp -r libs/ $TO_DIR/
+mkdir -p $TO_DIR/libs
+cp scripts/conduit-kafka-connect-wrapper $TO_DIR
+cp target/conduit-kafka-connect-wrapper-0.1.0-SNAPSHOT.jar $TO_DIR
