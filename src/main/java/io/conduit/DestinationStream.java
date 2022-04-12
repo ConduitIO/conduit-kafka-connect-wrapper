@@ -17,6 +17,7 @@
 package io.conduit;
 
 import java.util.List;
+import java.util.Map;
 
 import com.google.protobuf.ByteString;
 import io.conduit.grpc.Destination;
@@ -24,6 +25,8 @@ import io.conduit.grpc.Record;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import lombok.SneakyThrows;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -74,8 +77,12 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
     }
 
     private void doWrite(Record record) {
-        task.put(List.of(toSinkRecord(record)));
-        task.flush(emptyMap());
+        SinkRecord sinkRecord = toSinkRecord(record);
+        task.put(List.of(sinkRecord));
+        task.preCommit(Map.of(
+                new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition()),
+                new OffsetAndMetadata(sinkRecord.kafkaOffset())
+        ));
     }
 
     @SneakyThrows
@@ -85,6 +92,10 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
 
         Object value = Transformations.toConnectData(record, schema);
         var schemaUsed = getSchema(value, schema);
+        // While there's no real topic involved, we still assign values
+        // to topic, partition and offset since the underlying connector might use them.
+        // The offset is set to System.currentTimeMillis() to mimic the increasing
+        // offset values if a Kafka topic partition.
         return new SinkRecord(
                 schemaUsed != null ? schemaUsed.name() : null,
                 0,
@@ -92,7 +103,7 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
                 record.getKey().getRawData().toStringUtf8(),
                 schemaUsed,
                 value,
-                0
+                System.currentTimeMillis()
         );
     }
 

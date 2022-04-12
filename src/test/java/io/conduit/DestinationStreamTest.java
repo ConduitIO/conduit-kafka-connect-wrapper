@@ -13,6 +13,7 @@ import io.conduit.grpc.Record;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -68,8 +69,7 @@ public class DestinationStreamTest {
                 ByteString.copyFrom((byte[]) sinkRecord.value())
         );
 
-        // task should be flushed, since Conduit doesn't (yet) support async. writes
-        verify(task).flush(argThat(Map::isEmpty));
+        verify(task).preCommit(argThat(m -> m.containsKey(new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition()))));
         // no errors
         verify(streamObserver, never()).onError(any());
         // verify position
@@ -94,8 +94,7 @@ public class DestinationStreamTest {
         assertEquals(schema, sinkRecord.valueSchema());
         assertEquals(record.getKey().getRawData().toStringUtf8(), sinkRecord.key());
 
-        // task should be flushed, since Conduit doesn't (yet) support async. writes
-        verify(task).flush(argThat(Map::isEmpty));
+        verify(task).preCommit(argThat(m -> m.containsKey(new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition()))));
 
         // verify position
         verify(streamObserver, never()).onError(any());
@@ -108,7 +107,7 @@ public class DestinationStreamTest {
     public void testWriteRecordFlushError() {
         testWriteRecordError(
                 new RuntimeException("surprised ya, huh?"),
-                exception -> doThrow(exception).when(task).flush(any())
+                exception -> doThrow(exception).when(task).preCommit(any())
         );
     }
 
