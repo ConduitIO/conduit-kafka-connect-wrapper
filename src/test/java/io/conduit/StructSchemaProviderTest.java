@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-// todo add test for unknown types
 public class StructSchemaProviderTest {
     @Test
     public void testNumbers() {

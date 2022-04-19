@@ -90,6 +90,7 @@ public class Transformations {
         // Then, we create a string from the bytes array, and let the Protobuf Java library parse the struct.
         // This lets us quickly get the correct struct, without having to handle all the possible types,
         // but is probably not as efficient as it can be.
+        // See: https://github.com/ConduitIO/conduit-kafka-connect-wrapper/issues/60
         var outStruct = Struct.newBuilder();
         JsonFormat.parser().ignoringUnknownFields().merge(
                 new String(bytes),
@@ -128,6 +129,7 @@ public class Transformations {
         // Struct -> JSON string -> bytes
         // todo this is a non-optimal way to do it
         // however, for the first version of the plugin we're looking for making it work first.
+        // See: https://github.com/ConduitIO/conduit-kafka-connect-wrapper/issues/58
         byte[] bytes = JsonFormat.printer()
                 .print(record.getPayload().getStructuredData())
                 .getBytes(StandardCharsets.UTF_8);
@@ -151,9 +153,7 @@ public class Transformations {
 
     private static Object jsonToStruct(byte[] content, Schema schema) throws IOException {
         // todo optimize memory usage here
-        // for each record, we're creating a new JSON object
-        // and copying data into it.
-        // something as simple as concatenating strings could work.
+        // See: https://github.com/ConduitIO/conduit-kafka-connect-wrapper/issues/58
         ObjectNode json = Utils.mapper.createObjectNode();
         json.set("schema", Utils.jsonConv.asJsonSchema(schema));
         json.set("payload", Utils.mapper.readTree(content));
