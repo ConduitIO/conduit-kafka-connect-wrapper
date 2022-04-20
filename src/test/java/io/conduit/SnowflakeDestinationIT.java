@@ -32,6 +32,8 @@ import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import static java.lang.System.currentTimeMillis;
 import static java.util.UUID.randomUUID;
@@ -46,11 +48,12 @@ public class SnowflakeDestinationIT {
     }
 
     // todo it's probably better to just fail the test, so it doesn't get silently ignored
-    @Test
+    @ParameterizedTest
+    @MethodSource("buildTestRecords")
     @EnabledIfEnvironmentVariable(named = "SNOWFLAKE_USER_NAME", matches = ".*")
     @EnabledIfEnvironmentVariable(named = "SNOWFLAKE_URL_NAME", matches = ".*")
     @EnabledIfEnvironmentVariable(named = "SNOWFLAKE_PRIVATE_KEY", matches = ".*")
-    public void test() {
+    void test(Record rec) {
         var cfgStream = mock(StreamObserver.class);
         underTest.configure(makeCfgReq(), cfgStream);
         verify(cfgStream, never()).onError(any());
@@ -61,12 +64,12 @@ public class SnowflakeDestinationIT {
 
         var respStream = mock(StreamObserver.class);
         StreamObserver reqStream = underTest.run(respStream);
-        buildTestRecords().forEach(reqStream::onNext);
+        reqStream.onNext(Destination.Run.Request.newBuilder().setRecord(rec).build());
 
         verify(respStream, never()).onError(any());
     }
 
-    private Stream<Destination.Run.Request> buildTestRecords() {
+    private static Stream<Record> buildTestRecords() {
         // Combinations of different types of keys, payloads etc.
         Set<List<Supplier>> combinations = Sets.cartesianProduct(
                 keyGenerators(),
@@ -81,25 +84,24 @@ public class SnowflakeDestinationIT {
                         .setPayload((Data) input.get(1).get())
                         .setPosition((ByteString) input.get(2).get())
                         .build()
-                )
-                .map(rec -> Destination.Run.Request.newBuilder().setRecord(rec).build());
+                );
     }
 
-    private Set<Supplier<Timestamp>> timestampGenerators() {
+    private static Set<Supplier<Timestamp>> timestampGenerators() {
         return Set.of(
                 () -> Timestamp.newBuilder().build(),
                 () -> Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond()).build()
         );
     }
 
-    private Set<Supplier<ByteString>> positionGenerators() {
+    private static Set<Supplier<ByteString>> positionGenerators() {
         return Set.of(
                 () -> ByteString.EMPTY,
                 () -> ByteString.copyFromUtf8(randomUUID().toString())
         );
     }
 
-    private Set<Supplier<Data>> payloadGenerators() {
+    private static Set<Supplier<Data>> payloadGenerators() {
         return Set.of(
                 () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("{\"id\":123,\"name\":\"foobar\"}")).build(),
                 () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("{}")).build()
@@ -109,7 +111,7 @@ public class SnowflakeDestinationIT {
         );
     }
 
-    private Set<Supplier<Data>> keyGenerators() {
+    private static Set<Supplier<Data>> keyGenerators() {
         return Set.of(
                 () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("key-" + currentTimeMillis())).build(),
                 () -> Data.newBuilder().build()
