@@ -21,11 +21,13 @@ import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Sets;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
@@ -35,15 +37,16 @@ import io.conduit.grpc.Record;
 import io.grpc.stub.StreamObserver;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import static java.lang.System.currentTimeMillis;
 import static java.util.UUID.randomUUID;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 public class SnowflakeDestinationIT {
+    private static final ObjectMapper mapper = new ObjectMapper();
     private DestinationService underTest;
 
     @BeforeEach
@@ -54,7 +57,8 @@ public class SnowflakeDestinationIT {
 
     @SneakyThrows
     private void cleanTable() {
-        try (var conn = getConnection(); var stmt = conn.prepareStatement("delete from CUSTOMERS_TEST")) {
+        try (var conn = getConnection();
+             var stmt = conn.prepareStatement("delete from CUSTOMERS_TEST")) {
             stmt.execute();
         }
     }
@@ -90,12 +94,11 @@ public class SnowflakeDestinationIT {
     }
 
     // todo it's probably better to just fail the test, so it doesn't get silently ignored
-    @ParameterizedTest
-    @MethodSource("buildTestRecords")
+    @Test
     @EnabledIfEnvironmentVariable(named = "SNOWFLAKE_USER_NAME", matches = ".*")
     @EnabledIfEnvironmentVariable(named = "SNOWFLAKE_URL_NAME", matches = ".*")
     @EnabledIfEnvironmentVariable(named = "SNOWFLAKE_PRIVATE_KEY", matches = ".*")
-    void test(Record rec) {
+    public void test() {
         var cfgStream = mock(StreamObserver.class);
         underTest.configure(makeCfgReq(), cfgStream);
         verify(cfgStream, never()).onError(any());
@@ -106,13 +109,68 @@ public class SnowflakeDestinationIT {
 
         var respStream = mock(StreamObserver.class);
         StreamObserver reqStream = underTest.run(respStream);
-        reqStream.onNext(Destination.Run.Request.newBuilder().setRecord(rec).build());
+        List<Record> records = buildTestRecords();
+        records.forEach(rec ->
+                reqStream.onNext(Destination.Run.Request.newBuilder().setRecord(rec).build())
+        );
+
 
         verify(respStream, never()).onError(any());
-        verify(respStream).onNext(any());
+        verify(respStream, times(records.size())).onNext(any());
+
+        assertWritten(records);
     }
 
-    private static Stream<Record> buildTestRecords() {
+    @SneakyThrows
+    private void assertWritten(List<Record> records) {
+        List<Record> missingRecords = new LinkedList<>(records);
+
+        try (var conn = getConnection();
+             var stmt = conn.prepareStatement("select * from CUSTOMERS_TEST")) {
+            long waitUntil = currentTimeMillis() + 30_000;
+            ResultSet rs = null;
+            while (currentTimeMillis() < waitUntil) {
+                assertTrue(stmt.execute());
+                rs = stmt.getResultSet();
+                if (rs.next()) {
+                    break;
+                }
+                Thread.sleep(1000);
+            }
+
+            do {
+                String content = rs.getString("RECORD_CONTENT");
+                String metadata = rs.getString("RECORD_METADATA");
+                assertTrue(
+                        remove(missingRecords, content, metadata),
+                        "got unexpected row: " + content
+                );
+            } while (rs.next());
+
+            rs.close();
+        }
+
+        assertTrue(missingRecords.isEmpty());
+    }
+
+    @SneakyThrows
+    private boolean remove(List<Record> records, String content, String metadata) {
+        Iterator<Record> it = records.iterator();
+        while (it.hasNext()) {
+            Record rec = it.next();
+            var key = rec.getKey().getRawData().toStringUtf8();
+            var payloadJson = mapper.readTree(rec.getPayload().getRawData().toStringUtf8());
+            var contentJson = mapper.readTree(content);
+            var metaJson = mapper.readTree(metadata);
+            if (payloadJson.equals(contentJson) && metaJson.path("key").asText().equals(key)) {
+                it.remove();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<Record> buildTestRecords() {
         // Combinations of different types of keys, payloads etc.
         Set<List<Supplier>> combinations = Sets.cartesianProduct(
                 keyGenerators(),
@@ -128,7 +186,7 @@ public class SnowflakeDestinationIT {
                         .setPosition((ByteString) input.get(2).get())
                         .setCreatedAt((Timestamp) input.get(3).get())
                         .build()
-                );
+                ).collect(Collectors.toList());
     }
 
     private static Set<Supplier<Timestamp>> timestampGenerators() {
@@ -149,7 +207,7 @@ public class SnowflakeDestinationIT {
         return Set.of(
                 () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("{\"id\":123,\"name\":\"foobar\"}")).build(),
                 () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("{}")).build()
-                // todo check if this can be worked around
+                // todo add struct data
                 // () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("raw payload")).build(),
                 // () -> Data.newBuilder().build()
         );
