@@ -16,12 +16,16 @@
 
 package io.conduit;
 
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
@@ -29,8 +33,8 @@ import io.conduit.grpc.Data;
 import io.conduit.grpc.Destination;
 import io.conduit.grpc.Record;
 import io.grpc.stub.StreamObserver;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -45,6 +49,44 @@ public class SnowflakeDestinationIT {
     @BeforeEach
     public void setUp() {
         underTest = new DestinationService(new ClasspathTaskFactory());
+        cleanTable();
+    }
+
+    @SneakyThrows
+    private void cleanTable() {
+        try (var conn = getConnection(); var stmt = conn.prepareStatement("delete from CUSTOMERS_TEST")) {
+            stmt.execute();
+        }
+    }
+
+    @SneakyThrows
+    private Connection getConnection() {
+        var cfgMap = cfgMap();
+
+        String url = "jdbc:snowflake://" + cfgMap.get("snowflake.url.name");
+        Properties prop = new Properties();
+        prop.put("user", cfgMap.get("snowflake.user.name"));
+        prop.put("privateKey", getPrivateKey());
+        prop.put("db", cfgMap.get("snowflake.database.name"));
+        prop.put("schema", cfgMap.get("snowflake.schema.name"));
+        prop.put("warehouse", "COMPUTE_WH");
+        prop.put("role", "SYSADMIN");
+
+        return DriverManager.getConnection(url, prop);
+    }
+
+    @SneakyThrows
+    private PrivateKey getPrivateKey() {
+        String pkcs8Pem = cfgMap().get("snowflake.private.key");
+        pkcs8Pem = pkcs8Pem.replace("-----BEGIN PRIVATE KEY-----", "");
+        pkcs8Pem = pkcs8Pem.replace("-----END PRIVATE KEY-----", "");
+        pkcs8Pem = pkcs8Pem.replaceAll("\\s+", "");
+
+        byte[] bytes = Base64.getDecoder().decode(pkcs8Pem);
+
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(bytes);
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        return kf.generatePrivate(keySpec);
     }
 
     // todo it's probably better to just fail the test, so it doesn't get silently ignored
@@ -67,6 +109,7 @@ public class SnowflakeDestinationIT {
         reqStream.onNext(Destination.Run.Request.newBuilder().setRecord(rec).build());
 
         verify(respStream, never()).onError(any());
+        verify(respStream).onNext(any());
     }
 
     private static Stream<Record> buildTestRecords() {
@@ -83,6 +126,7 @@ public class SnowflakeDestinationIT {
                         .setKey((Data) input.get(0).get())
                         .setPayload((Data) input.get(1).get())
                         .setPosition((ByteString) input.get(2).get())
+                        .setCreatedAt((Timestamp) input.get(3).get())
                         .build()
                 );
     }
