@@ -43,7 +43,7 @@ public class RawDataSchemaProvider implements SchemaProvider {
         }
         JsonNode json = parseJson(record.getPayload().getRawData().toByteArray());
         if (json == null) {
-            return Schema.OPTIONAL_BYTES_SCHEMA;
+            return SchemaBuilder.bytes().name(name).optional();
         }
         return schemaForJson(json);
     }

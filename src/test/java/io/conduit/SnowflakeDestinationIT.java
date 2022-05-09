@@ -206,9 +206,9 @@ public class SnowflakeDestinationIT {
     private static Set<Supplier<Data>> payloadGenerators() {
         return Set.of(
                 () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("{\"id\":123,\"name\":\"foobar\"}")).build(),
-                () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("{}")).build()
+                () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("{}")).build(),
                 // todo add struct data
-                // () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("raw payload")).build(),
+                () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("raw payload")).build()
                 // () -> Data.newBuilder().build()
         );
     }
