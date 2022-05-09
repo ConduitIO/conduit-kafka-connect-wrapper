@@ -73,36 +73,6 @@ public class SnowflakeDestinationIT {
         }
     }
 
-    @SneakyThrows
-    private Connection getConnection() {
-        var cfgMap = cfgMap();
-
-        String url = "jdbc:snowflake://" + cfgMap.get("snowflake.url.name");
-        Properties prop = new Properties();
-        prop.put("user", cfgMap.get("snowflake.user.name"));
-        prop.put("privateKey", getPrivateKey());
-        prop.put("db", cfgMap.get("snowflake.database.name"));
-        prop.put("schema", cfgMap.get("snowflake.schema.name"));
-        prop.put("warehouse", "COMPUTE_WH");
-        prop.put("role", "SYSADMIN");
-
-        return DriverManager.getConnection(url, prop);
-    }
-
-    @SneakyThrows
-    private PrivateKey getPrivateKey() {
-        String pkcs8Pem = cfgMap().get("snowflake.private.key");
-        pkcs8Pem = pkcs8Pem.replace("-----BEGIN PRIVATE KEY-----", "");
-        pkcs8Pem = pkcs8Pem.replace("-----END PRIVATE KEY-----", "");
-        pkcs8Pem = pkcs8Pem.replaceAll("\\s+", "");
-
-        byte[] bytes = Base64.getDecoder().decode(pkcs8Pem);
-
-        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(bytes);
-        KeyFactory kf = KeyFactory.getInstance("RSA");
-        return kf.generatePrivate(keySpec);
-    }
-
     // todo it's probably better to just fail the test, so it doesn't get silently ignored
     @Test
     @EnabledIfEnvironmentVariable(named = "SNOWFLAKE_USER_NAME", matches = ".*")
@@ -162,6 +132,59 @@ public class SnowflakeDestinationIT {
         }
 
         assertTrue(missingRecords.isEmpty());
+    }
+
+    @SneakyThrows
+    private Connection getConnection() {
+        var cfgMap = cfgMap();
+
+        String url = "jdbc:snowflake://" + cfgMap.get("snowflake.url.name");
+        Properties prop = new Properties();
+        prop.put("user", cfgMap.get("snowflake.user.name"));
+        prop.put("privateKey", getPrivateKey());
+        prop.put("db", cfgMap.get("snowflake.database.name"));
+        prop.put("schema", cfgMap.get("snowflake.schema.name"));
+        prop.put("warehouse", "COMPUTE_WH");
+        prop.put("role", "SYSADMIN");
+
+        return DriverManager.getConnection(url, prop);
+    }
+
+    @SneakyThrows
+    private PrivateKey getPrivateKey() {
+        String pkcs8Pem = cfgMap().get("snowflake.private.key");
+        pkcs8Pem = pkcs8Pem.replace("-----BEGIN PRIVATE KEY-----", "");
+        pkcs8Pem = pkcs8Pem.replace("-----END PRIVATE KEY-----", "");
+        pkcs8Pem = pkcs8Pem.replaceAll("\\s+", "");
+
+        byte[] bytes = Base64.getDecoder().decode(pkcs8Pem);
+
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(bytes);
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        return kf.generatePrivate(keySpec);
+    }
+
+    private Map<String, String> cfgMap() {
+        Map<String, String> map = new HashMap<>();
+        map.put("wrapper.connector.class", "com.snowflake.kafka.connector.SnowflakeSinkConnector");
+        map.put("wrapper.schema.autogenerate.enabled", "true");
+        map.put("wrapper.schema.autogenerate.name", "CUSTOMERS_TEST");
+        map.put("tasks.max", "1");
+        map.put("topics", "customers");
+        map.put("name", "mysnowflakesink");
+        map.put("snowflake.topic2table.map", "customers:CUSTOMERS_TEST");
+        map.put("buffer.count.records", "1");
+        map.put("buffer.flush.time", "0");
+        map.put("buffer.size.bytes", "1");
+        map.put("input.data.format", "JSON");
+        map.put("snowflake.url.name", System.getenv("SNOWFLAKE_URL_NAME"));
+        map.put("snowflake.user.name", System.getenv("SNOWFLAKE_USER_NAME"));
+        map.put("snowflake.private.key", System.getenv("SNOWFLAKE_PRIVATE_KEY"));
+        map.put("snowflake.database.name", "CONDUIT_TEST_DB");
+        map.put("snowflake.schema.name", "STREAM_DATA");
+        map.put("key.converter", "org.apache.kafka.connect.storage.StringConverter");
+        map.put("value.converter", "com.snowflake.kafka.connector.records.SnowflakeJsonConverter");
+        return map;
     }
 
     @SneakyThrows
@@ -266,28 +289,5 @@ public class SnowflakeDestinationIT {
         return Destination.Configure.Request.newBuilder()
                 .putAllConfig(cfgMap())
                 .build();
-    }
-
-    private Map<String, String> cfgMap() {
-        Map<String, String> map = new HashMap<>();
-        map.put("wrapper.connector.class", "com.snowflake.kafka.connector.SnowflakeSinkConnector");
-        map.put("wrapper.schema.autogenerate.enabled", "true");
-        map.put("wrapper.schema.autogenerate.name", "CUSTOMERS_TEST");
-        map.put("tasks.max", "1");
-        map.put("topics", "customers");
-        map.put("name", "mysnowflakesink");
-        map.put("snowflake.topic2table.map", "customers:CUSTOMERS_TEST");
-        map.put("buffer.count.records", "1");
-        map.put("buffer.flush.time", "0");
-        map.put("buffer.size.bytes", "1");
-        map.put("input.data.format", "JSON");
-        map.put("snowflake.url.name", System.getenv("SNOWFLAKE_URL_NAME"));
-        map.put("snowflake.user.name", System.getenv("SNOWFLAKE_USER_NAME"));
-        map.put("snowflake.private.key", System.getenv("SNOWFLAKE_PRIVATE_KEY"));
-        map.put("snowflake.database.name", "CONDUIT_TEST_DB");
-        map.put("snowflake.schema.name", "STREAM_DATA");
-        map.put("key.converter", "org.apache.kafka.connect.storage.StringConverter");
-        map.put("value.converter", "com.snowflake.kafka.connector.records.SnowflakeJsonConverter");
-        return map;
     }
 }
