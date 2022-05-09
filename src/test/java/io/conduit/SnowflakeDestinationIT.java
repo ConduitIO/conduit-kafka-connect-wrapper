@@ -19,9 +19,7 @@ package io.conduit;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
+import java.sql.*;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Supplier;
@@ -106,19 +104,8 @@ public class SnowflakeDestinationIT {
     private void assertWritten(List<Record> records) {
         List<Record> missingRecords = new LinkedList<>(records);
 
-        try (var conn = getConnection();
-             var stmt = conn.prepareStatement("select * from CUSTOMERS_TEST")) {
-            // Wait until data in destination table is available.
-            long waitUntil = currentTimeMillis() + 30_000;
-            ResultSet rs = null;
-            while (currentTimeMillis() < waitUntil) {
-                assertTrue(stmt.execute());
-                rs = stmt.getResultSet();
-                if (rs.next()) {
-                    break;
-                }
-                Thread.sleep(1000);
-            }
+        try (var conn = getConnection()) {
+            ResultSet rs = waitForFirstRow(conn);
 
             // Go over data in destination and remove from list of records we expect to be found.
             do {
@@ -134,6 +121,24 @@ public class SnowflakeDestinationIT {
         }
 
         assertTrue(missingRecords.isEmpty());
+    }
+
+    // Wait until data in destination table is available.
+    // If rows are detected, the result set cursor is moved to the first row.
+    private ResultSet waitForFirstRow(Connection conn) throws SQLException, InterruptedException {
+        try (var stmt = conn.prepareStatement("select * from CUSTOMERS_TEST")) {
+            long waitUntil = currentTimeMillis() + 30_000;
+            ResultSet rs = null;
+            while (currentTimeMillis() < waitUntil) {
+                assertTrue(stmt.execute());
+                rs = stmt.getResultSet();
+                if (rs.next()) {
+                    break;
+                }
+                Thread.sleep(1000);
+            }
+            return rs;
+        }
     }
 
     @SneakyThrows
