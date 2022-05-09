@@ -108,6 +108,7 @@ public class SnowflakeDestinationIT {
 
         try (var conn = getConnection();
              var stmt = conn.prepareStatement("select * from CUSTOMERS_TEST")) {
+            // Wait until data in destination table is available.
             long waitUntil = currentTimeMillis() + 30_000;
             ResultSet rs = null;
             while (currentTimeMillis() < waitUntil) {
@@ -119,6 +120,7 @@ public class SnowflakeDestinationIT {
                 Thread.sleep(1000);
             }
 
+            // Go over data in destination and remove from list of records we expect to be found.
             do {
                 String content = rs.getString("RECORD_CONTENT");
                 String metadata = rs.getString("RECORD_METADATA");
@@ -188,6 +190,8 @@ public class SnowflakeDestinationIT {
     }
 
     @SneakyThrows
+    // Removes a record from the list of records, which has the given content and key (taken from the metadata string)
+    // Returns `true` if a record was found, `false` otherwise.
     private boolean remove(List<Record> records, String content, String metadata) {
         Iterator<Record> it = records.iterator();
         while (it.hasNext()) {
@@ -232,6 +236,8 @@ public class SnowflakeDestinationIT {
         return payloadJson.equals(contentJson) && metaJson.path("key").asText().equals(key);
     }
 
+    // Builds a list of test records.
+    // Each record has a different combination of a key, payload, position and created-at timestamp.
     private List<Record> buildTestRecords() {
         // Combinations of different types of keys, payloads etc.
         Set<List<Supplier>> combinations = Sets.cartesianProduct(
