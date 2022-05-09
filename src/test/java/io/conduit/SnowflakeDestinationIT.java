@@ -27,6 +27,7 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Sets;
 import com.google.protobuf.ByteString;
@@ -158,16 +159,20 @@ public class SnowflakeDestinationIT {
         Iterator<Record> it = records.iterator();
         while (it.hasNext()) {
             Record rec = it.next();
-            var key = rec.getKey().getRawData().toStringUtf8();
-            var payloadJson = mapper.readTree(rec.getPayload().getRawData().toStringUtf8());
-            var contentJson = mapper.readTree(content);
-            var metaJson = mapper.readTree(metadata);
-            if (payloadJson.equals(contentJson) && metaJson.path("key").asText().equals(key)) {
+            if (matches(content, metadata, rec)) {
                 it.remove();
                 return true;
             }
         }
         return false;
+    }
+
+    private boolean matches(String content, String metadata, Record rec) throws JsonProcessingException {
+        var key = rec.getKey().getRawData().toStringUtf8();
+        var payloadJson = mapper.readTree(rec.getPayload().getRawData().toStringUtf8());
+        var contentJson = mapper.readTree(content);
+        var metaJson = mapper.readTree(metadata);
+        return payloadJson.equals(contentJson) && metaJson.path("key").asText().equals(key);
     }
 
     private List<Record> buildTestRecords() {
@@ -191,22 +196,22 @@ public class SnowflakeDestinationIT {
 
     private static Set<Supplier<Timestamp>> timestampGenerators() {
         return Set.of(
-                () -> Timestamp.newBuilder().build(),
+                // () -> Timestamp.newBuilder().build(),
                 () -> Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond()).build()
         );
     }
 
     private static Set<Supplier<ByteString>> positionGenerators() {
         return Set.of(
-                () -> ByteString.EMPTY,
+                // () -> ByteString.EMPTY,
                 () -> ByteString.copyFromUtf8(randomUUID().toString())
         );
     }
 
     private static Set<Supplier<Data>> payloadGenerators() {
         return Set.of(
-                () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("{\"id\":123,\"name\":\"foobar\"}")).build(),
-                () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("{}")).build(),
+                // () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("{\"id\":123,\"name\":\"foobar\"}")).build(),
+                // () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("{}")).build(),
                 // todo add struct data
                 () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("raw payload")).build()
                 // () -> Data.newBuilder().build()
@@ -215,8 +220,8 @@ public class SnowflakeDestinationIT {
 
     private static Set<Supplier<Data>> keyGenerators() {
         return Set.of(
-                () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("key-" + currentTimeMillis())).build(),
-                () -> Data.newBuilder().build()
+                () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("key-" + currentTimeMillis())).build()
+                // () -> Data.newBuilder().build()
         );
     }
 

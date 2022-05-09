@@ -35,7 +35,7 @@ public class RawDataSchemaProvider implements SchemaProvider {
 
     @Override
     public Schema provide(Record record) {
-        if (!record.hasPayload()) {
+        if (record == null || !record.hasPayload()) {
             return null;
         }
         if (!record.getPayload().hasRawData()) {
