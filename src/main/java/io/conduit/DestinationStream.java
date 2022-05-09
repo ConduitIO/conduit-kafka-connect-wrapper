@@ -88,6 +88,7 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
     @SneakyThrows
     private SinkRecord toSinkRecord(Record record) {
         // todo cache the JSON object
+        // Also related to: https://github.com/ConduitIO/conduit-kafka-connect-wrapper/issues/58
         var schema = schemaProvider.provide(record);
 
         Object value = Transformations.toConnectData(record, schema);

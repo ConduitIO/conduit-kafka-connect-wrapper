@@ -88,7 +88,7 @@ public class StructSchemaProvider implements SchemaProvider {
             return null;
         }
         // todo in theory at least, list values can be of different types
-        // handle that case here
+        // See: https://github.com/ConduitIO/conduit-kafka-connect-wrapper/issues/61
         return SchemaBuilder
                 .array(schemaForValue(list.getValues(0)))
                 .optional()

@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-// todo add test for unknown types
 public class RawDataSchemaProviderTest {
     @Test
     public void testFull() {
@@ -54,6 +53,29 @@ public class RawDataSchemaProviderTest {
         assertEquals(Schema.Type.BOOLEAN, result.field("boolField").schema().type());
         assertEquals(Schema.Type.ARRAY, result.field("stringArrayField").schema().type());
         assertEquals(Schema.Type.STRING, result.field("stringArrayField").schema().valueSchema().type());
+    }
+
+    @Test
+    public void testNestedJson() {
+        RawDataSchemaProvider underTest = new RawDataSchemaProvider("myschema", null);
+        ObjectNode json = Utils.mapper.createObjectNode()
+                .set("nested", Utils.mapper.createObjectNode().put("field", "value"));
+
+        Record record = Record.newBuilder()
+                .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8("test-key")).build())
+                .setPayload(Data.newBuilder()
+                        .setRawData(ByteString.copyFromUtf8(json.toString()))
+                        .build()
+                ).build();
+
+        Schema result = underTest.provide(record);
+
+        assertEquals("myschema", result.name());
+        assertEquals(json.size(), result.fields().size());
+        assertEquals(Schema.Type.STRUCT, result.type());
+        Schema nested = result.field("nested").schema();
+        assertEquals(Schema.Type.STRUCT, nested.type());
+        assertEquals(Schema.Type.STRING, nested.field("field").schema().type());
     }
 
     @Test

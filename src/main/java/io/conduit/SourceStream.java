@@ -83,6 +83,7 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
     @Override
     public void onNext(Source.Run.Request value) {
         // todo Acknowledging record not implemented yet...
+        // See: https://github.com/ConduitIO/conduit-kafka-connect-wrapper/issues/59
     }
 
     @SneakyThrows
