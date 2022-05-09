@@ -31,12 +31,16 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Sets;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Struct;
 import com.google.protobuf.Timestamp;
+import com.google.protobuf.Value;
+import com.google.protobuf.util.JsonFormat;
 import io.conduit.grpc.Data;
 import io.conduit.grpc.Destination;
 import io.conduit.grpc.Record;
 import io.grpc.stub.StreamObserver;
 import lombok.SneakyThrows;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -53,6 +57,11 @@ public class SnowflakeDestinationIT {
     @BeforeEach
     public void setUp() {
         underTest = new DestinationService(new ClasspathTaskFactory());
+        cleanTable();
+    }
+
+    @AfterEach
+    public void tearDown() {
         cleanTable();
     }
 
@@ -118,7 +127,8 @@ public class SnowflakeDestinationIT {
 
         verify(respStream, never()).onError(any());
         verify(respStream, times(records.size())).onNext(any());
-
+        // We need to check them all at once, so speed up the test.
+        // Checking them individually is better for test reports, but very slow.
         assertWritten(records);
     }
 
@@ -167,7 +177,31 @@ public class SnowflakeDestinationIT {
         return false;
     }
 
+    // Checks if given records has the provided content and key (taken from the metadata string)
     private boolean matches(String content, String metadata, Record rec) throws JsonProcessingException {
+        if (rec.getPayload().hasRawData()) {
+            return matchesRawJson(content, metadata, rec);
+        }
+        if (rec.getPayload().hasStructuredData()) {
+            return matchesStruct(content, metadata, rec);
+        }
+        throw new IllegalArgumentException("record without any payload");
+    }
+
+    @SneakyThrows
+    private boolean matchesStruct(String content, String metadata, Record rec) {
+        var key = rec.getKey().getRawData().toStringUtf8();
+        var payloadStruct = rec.getPayload().getStructuredData();
+
+        var contentStruct = Struct.newBuilder();
+        JsonFormat.parser().merge(content, contentStruct);
+
+        var metaJson = mapper.readTree(metadata);
+        return payloadStruct.equals(contentStruct.build()) && metaJson.path("key").asText().equals(key);
+    }
+
+    @SneakyThrows
+    private boolean matchesRawJson(String content, String metadata, Record rec) {
         var key = rec.getKey().getRawData().toStringUtf8();
         var payloadJson = mapper.readTree(rec.getPayload().getRawData().toStringUtf8());
         var contentJson = mapper.readTree(content);
@@ -196,32 +230,35 @@ public class SnowflakeDestinationIT {
 
     private static Set<Supplier<Timestamp>> timestampGenerators() {
         return Set.of(
-                // () -> Timestamp.newBuilder().build(),
+                () -> Timestamp.newBuilder().build(),
                 () -> Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond()).build()
         );
     }
 
     private static Set<Supplier<ByteString>> positionGenerators() {
         return Set.of(
-                // () -> ByteString.EMPTY,
+                () -> ByteString.EMPTY,
                 () -> ByteString.copyFromUtf8(randomUUID().toString())
         );
     }
 
     private static Set<Supplier<Data>> payloadGenerators() {
         return Set.of(
-                // () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("{\"id\":123,\"name\":\"foobar\"}")).build(),
-                // () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("{}")).build(),
-                // todo add struct data
-                () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("raw payload")).build()
-                // () -> Data.newBuilder().build()
+                () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("{\"id\":123,\"name\":\"foobar\"}")).build(),
+                () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("{}")).build(),
+                () -> Data.newBuilder()
+                        .setStructuredData(Struct.newBuilder()
+                                .putFields("id", Value.newBuilder().setNumberValue(123).build())
+                                .putFields("name", Value.newBuilder().setStringValue("foobar").build())
+                                .build()
+                        ).build()
         );
     }
 
     private static Set<Supplier<Data>> keyGenerators() {
         return Set.of(
-                () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("key-" + currentTimeMillis())).build()
-                // () -> Data.newBuilder().build()
+                () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("key-" + currentTimeMillis())).build(),
+                () -> Data.newBuilder().build()
         );
     }
 
@@ -236,7 +273,7 @@ public class SnowflakeDestinationIT {
         map.put("wrapper.connector.class", "com.snowflake.kafka.connector.SnowflakeSinkConnector");
         map.put("wrapper.schema.autogenerate.enabled", "true");
         map.put("wrapper.schema.autogenerate.name", "CUSTOMERS_TEST");
-        map.put("tasks.max", "8");
+        map.put("tasks.max", "1");
         map.put("topics", "customers");
         map.put("name", "mysnowflakesink");
         map.put("snowflake.topic2table.map", "customers:CUSTOMERS_TEST");
