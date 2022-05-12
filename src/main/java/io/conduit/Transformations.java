@@ -36,6 +36,11 @@ import static io.conduit.Utils.jsonConvSchemaless;
  * A class holding common transformations between Conduit and Kafka connect data types.
  */
 public class Transformations {
+
+    private Transformations() {
+
+    }
+
     /**
      * Transforms a Kafka Connect {@link SourceRecord} into a Conduit record. Only the payload is set.
      */
@@ -106,23 +111,23 @@ public class Transformations {
      * (if the record contains structured data or if a schema is provided).
      * Otherwise, returns the raw payload's byte data.
      */
-    public static Object toConnectData(Record record, Schema schema) {
-        if (record == null) {
+    public static Object toConnectData(Record rec, Schema schema) {
+        if (rec == null) {
             throw new IllegalArgumentException("record is null");
         }
-        if (!record.hasPayload()) {
+        if (!rec.hasPayload()) {
             throw new IllegalArgumentException("record has no payload");
         }
 
-        if (record.getPayload().hasStructuredData()) {
-            return Transformations.parseStructured(record, schema);
+        if (rec.getPayload().hasStructuredData()) {
+            return Transformations.parseStructured(rec, schema);
         } else {
-            return Transformations.parseRaw(record, schema);
+            return Transformations.parseRaw(rec, schema);
         }
     }
 
     @SneakyThrows
-    private static Object parseStructured(Record record, Schema schema) {
+    private static Object parseStructured(Record rec, Schema schema) {
         if (schema == null) {
             throw new IllegalArgumentException("cannot parse struct without schema");
         }
@@ -131,14 +136,14 @@ public class Transformations {
         // however, for the first version of the plugin we're looking for making it work first.
         // See: https://github.com/ConduitIO/conduit-kafka-connect-wrapper/issues/58
         byte[] bytes = JsonFormat.printer()
-                .print(record.getPayload().getStructuredData())
+                .print(rec.getPayload().getStructuredData())
                 .getBytes(StandardCharsets.UTF_8);
         return jsonToStruct(bytes, schema);
     }
 
     @SneakyThrows
-    private static Object parseRaw(Record record, Schema schema) {
-        byte[] content = record.getPayload().getRawData().toByteArray();
+    private static Object parseRaw(Record rec, Schema schema) {
+        byte[] content = rec.getPayload().getRawData().toByteArray();
         if (schema == null) {
             return content;
         }
