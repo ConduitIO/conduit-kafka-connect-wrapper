@@ -39,6 +39,33 @@ public class Application {
         System.out.printf("1|1|tcp|localhost:%d|grpc\n", server.getPort());
         Connection c = DriverManager.getConnection("");
         c.prepareStatement("");
+        c = DriverManager.getConnection("");
+        c.prepareStatement("");
+
+        c = DriverManager.getConnection("");
+        c.prepareStatement("");
+
+        c = DriverManager.getConnection("");
+        c.prepareStatement("");
+
+        c = DriverManager.getConnection("");
+        c.prepareStatement("");
+
+        c = DriverManager.getConnection("");
+        c.prepareStatement("");
+
+        c = DriverManager.getConnection("");
+        c.prepareStatement("");
+
+        c = DriverManager.getConnection("");
+        c.prepareStatement("");
+
+        c = DriverManager.getConnection("");
+        c.prepareStatement("");
+
+        c = DriverManager.getConnection("");
+        c.prepareStatement("");
+
         server.blockUntilShutdown();
     }
 }
