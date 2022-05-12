@@ -17,6 +17,7 @@
 package io.conduit;
 
 import java.util.Arrays;
+import java.util.NoSuchElementException;
 
 import lombok.SneakyThrows;
 import org.apache.kafka.connect.sink.SinkConnector;
@@ -46,11 +47,13 @@ public class ClasspathTaskFactory implements TaskFactory {
     @SneakyThrows
     private Object newInstance(String className) {
         Class<?> clazz = Class.forName(className);
-        Object taskObj = Arrays.stream(clazz.getConstructors())
+        return Arrays.stream(clazz.getConstructors())
                 .filter(c -> c.getParameterCount() == 0)
                 .findFirst()
-                .get()
+                // get() also throws NoSuchElementException, but here:
+                // 1. we send the caller more details
+                // 2. we also adhere to a best practice (not calling get() without checking if value is present)
+                .orElseThrow(() -> new NoSuchElementException("no parameterless constructor for " + className))
                 .newInstance();
-        return taskObj;
     }
 }

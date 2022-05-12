@@ -41,8 +41,7 @@ public class SourceStreamTest {
     @DisplayName("When SourceStream is created, the underlying SourceTask starts being polled.")
     public void testRunAfterInit() throws InterruptedException {
         new SourceStream(task, position, streamObserver, transformer).start();
-        Thread.sleep(50);
-        verify(task, atLeastOnce()).poll();
+        verify(task, timeout(50).atLeastOnce()).poll();
     }
 
     @Test
@@ -72,11 +71,11 @@ public class SourceStreamTest {
         when(transformer.apply(sourceRec)).thenReturn(conduitRec);
 
         new SourceStream(task, position, streamObserver, transformer).start();
-        Thread.sleep(300);
 
         var responseCaptor = ArgumentCaptor.forClass(Source.Run.Response.class);
+        verify(streamObserver, timeout(300)).onNext(responseCaptor.capture());
         verify(streamObserver, never()).onError(any());
-        verify(streamObserver).onNext(responseCaptor.capture());
+
         assertEquals(conduitRec.build(), responseCaptor.getValue().getRecord());
     }
 
@@ -98,12 +97,11 @@ public class SourceStreamTest {
         when(task.poll()).thenThrow(surprise);
 
         new SourceStream(task, position, streamObserver, transformer).start();
-        Thread.sleep(100);
-
-        verify(streamObserver, never()).onNext(any());
 
         var captor = ArgumentCaptor.forClass(Throwable.class);
-        verify(streamObserver, atLeastOnce()).onError(captor.capture());
+        verify(streamObserver, timeout(100).atLeastOnce()).onError(captor.capture());
+        verify(streamObserver, never()).onNext(any());
+
         Throwable t = captor.getValue();
         assertInstanceOf(StatusException.class, t);
         assertEquals(surprise, t.getCause());
@@ -124,9 +122,8 @@ public class SourceStreamTest {
         when(transformer.apply(sr2)).thenReturn(cr2);
 
         new SourceStream(task, position, streamObserver, transformer).start();
-        Thread.sleep(500);
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
-        verify(streamObserver, times(2)).onNext(captor.capture());
+        verify(streamObserver, timeout(500).times(2)).onNext(captor.capture());
 
         verify(position).add(Map.of("p1", "p1-value"), Map.of("o1", "o1-value"));
         verify(position).add(Map.of("p2", "p2-value"), Map.of("o2", "o2-value"));

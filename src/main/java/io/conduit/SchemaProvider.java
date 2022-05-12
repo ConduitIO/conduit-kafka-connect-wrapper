@@ -23,5 +23,5 @@ import org.apache.kafka.connect.data.Schema;
  * Provides schemas for {@link Record}s.
  */
 public interface SchemaProvider {
-    Schema provide(Record record);
+    Schema provide(Record rec);
 }
