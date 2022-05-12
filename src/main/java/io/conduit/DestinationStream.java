@@ -32,8 +32,6 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 
-import static java.util.Collections.emptyMap;
-
 /**
  * A {@link io.grpc.stub.StreamObserver} implementation which exposes a Kafka connector sink task through a gRPC stream.
  */
@@ -55,9 +53,9 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
         try {
             // Currently, Conduit requires all writes to be asynchronous.
             // See: pkg/connector/destination.go, method Write().
-            Record record = request.getRecord();
-            doWrite(record);
-            responseObserver.onNext(responseWith(record.getPosition()));
+            Record rec = request.getRecord();
+            doWrite(rec);
+            responseObserver.onNext(responseWith(rec.getPosition()));
         } catch (Exception e) {
             Logger.get().error("Couldn't write record.", e);
             responseObserver.onError(
@@ -76,8 +74,8 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
                 .build();
     }
 
-    private void doWrite(Record record) {
-        SinkRecord sinkRecord = toSinkRecord(record);
+    private void doWrite(Record rec) {
+        SinkRecord sinkRecord = toSinkRecord(rec);
         task.put(List.of(sinkRecord));
         task.preCommit(Map.of(
                 new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition()),
@@ -86,12 +84,12 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
     }
 
     @SneakyThrows
-    private SinkRecord toSinkRecord(Record record) {
+    private SinkRecord toSinkRecord(Record rec) {
         // todo cache the JSON object
         // Also related to: https://github.com/ConduitIO/conduit-kafka-connect-wrapper/issues/58
-        var schema = schemaProvider.provide(record);
+        var schema = schemaProvider.provide(rec);
 
-        Object value = Transformations.toConnectData(record, schema);
+        Object value = Transformations.toConnectData(rec, schema);
         var schemaUsed = getSchema(value, schema);
         // While there's no real topic involved, we still assign values
         // to topic, partition and offset since the underlying connector might use them.
@@ -101,7 +99,7 @@ public class DestinationStream implements StreamObserver<Destination.Run.Request
                 schemaUsed != null ? schemaUsed.name() : null,
                 0,
                 Schema.STRING_SCHEMA,
-                record.getKey().getRawData().toStringUtf8(),
+                rec.getKey().getRawData().toStringUtf8(),
                 schemaUsed,
                 value,
                 System.currentTimeMillis()

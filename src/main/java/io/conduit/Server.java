@@ -20,13 +20,12 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import io.grpc.ServerBuilder;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * A wrapper around {@link io.grpc.Server}, which also adds shutdown hooks.
  */
 public class Server {
-    private final io.grpc.Server server;
+    private final io.grpc.Server grpcServer;
 
     public Server(int port) {
         this(ServerBuilder.forPort(port));
@@ -34,7 +33,7 @@ public class Server {
 
     public Server(ServerBuilder<?> serverBuilder) {
         ClasspathTaskFactory taskFactory = new ClasspathTaskFactory();
-        server = serverBuilder
+        grpcServer = serverBuilder
                 .addService(new DestinationService(taskFactory))
                 .addService(new SourceService(taskFactory))
                 .addService(GrpcStdio.get())
@@ -48,14 +47,18 @@ public class Server {
      * @throws IOException if the server cannot be started
      */
     public void start() throws IOException {
-        server.start();
+        grpcServer.start();
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             // Use stderr here since the logger may have been reset by its JVM shutdown hook.
             System.err.println("*** shutting down gRPC server since JVM is shutting down");
             try {
                 Server.this.stop();
-            } catch (InterruptedException e) {
+            } catch (InterruptedException e) { //NOSONAR no need to re-throw, as this is a shutdown hook
+                // Re-throwing the InterruptedException or interrupting the thread here
+                // doesn't make much of a difference.
+                // The exception would be handled by the uncaught exception handler,
+                // which would, by default, do the same thing.
                 e.printStackTrace(System.err);
             }
             System.err.println("*** server shut down");
@@ -69,8 +72,8 @@ public class Server {
      * @throws InterruptedException if interrupted while waiting
      */
     public void stop() throws InterruptedException {
-        if (server != null) {
-            server.shutdown().awaitTermination(30, TimeUnit.SECONDS);
+        if (grpcServer != null) {
+            grpcServer.shutdown().awaitTermination(30, TimeUnit.SECONDS);
         }
     }
 
@@ -80,12 +83,12 @@ public class Server {
      * @throws InterruptedException if interrupted while blocking
      */
     public void blockUntilShutdown() throws InterruptedException {
-        if (server != null) {
-            server.awaitTermination();
+        if (grpcServer != null) {
+            grpcServer.awaitTermination();
         }
     }
 
     public int getPort() {
-        return server.getPort();
+        return grpcServer.getPort();
     }
 }

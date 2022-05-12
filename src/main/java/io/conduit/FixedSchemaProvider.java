@@ -31,7 +31,7 @@ public class FixedSchemaProvider implements SchemaProvider {
     }
 
     @Override
-    public Schema provide(Record record) {
+    public Schema provide(Record rec) {
         return schema;
     }
 }
