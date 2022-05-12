@@ -33,7 +33,7 @@ public class Application {
         }
         Server server = new Server(port);
         server.start();
-        System.out.printf("1|1|tcp|localhost:%d|grpc\n", server.getPort());
+        System.out.printf("1|1|tcp|localhost:%d|grpc%n", server.getPort());
         server.blockUntilShutdown();
     }
 }
