@@ -77,21 +77,27 @@ public abstract class BasePostgresIT {
     @SneakyThrows
     @Test
     public void testReadExistingAndNewData() {
-        int existing = 5;
-        insertEmployees(1, existing);
+        int count = 5;
+        insertEmployees(1, count);
 
         StreamObserver runStream = run();
-        Thread.sleep(1500);
+        var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
+        verify(runStream, timeout(1000).times(count)).onNext(captor.capture());
+        verify(runStream, never()).onError(any());
+        List<Source.Run.Response> responses = captor.getAllValues();
+        for (int i = 0; i < count; i++) {
+            Record rec = responses.get(i).getRecord();
+            assertNewRecordOk(i + 1, rec);
+        }
 
         int updated = 3;
-        insertEmployees(existing + 1, existing + updated);
-        Thread.sleep(1500);
+        insertEmployees(count + 1, count + updated);
+        count += updated;
 
-        var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
-        int count = existing + updated;
+        captor = ArgumentCaptor.forClass(Source.Run.Response.class);
+        verify(runStream, timeout(1500).times(count)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
-        verify(runStream, times(count)).onNext(captor.capture());
-        List<Source.Run.Response> responses = captor.getAllValues();
+        responses = captor.getAllValues();
         for (int i = 0; i < count; i++) {
             Record rec = responses.get(i).getRecord();
             assertNewRecordOk(i + 1, rec);
