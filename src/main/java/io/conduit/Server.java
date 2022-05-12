@@ -55,7 +55,11 @@ public class Server {
             System.err.println("*** shutting down gRPC server since JVM is shutting down");
             try {
                 Server.this.stop();
-            } catch (InterruptedException e) {
+            } catch (InterruptedException e) { //NOSONAR no need to re-throw, as this is a shutdown hook
+                // Re-throwing the InterruptedException or interrupting the thread here
+                // doesn't make much of a difference.
+                // The exception would be handled by the uncaught exception handler,
+                // which would, by default, do the same thing.
                 e.printStackTrace(System.err);
             }
             System.err.println("*** server shut down");
