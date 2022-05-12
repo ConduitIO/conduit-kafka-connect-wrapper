@@ -1,28 +1,72 @@
-name: Tests
-
+name: CI
 on:
   push:
     branches: [ main ]
   pull_request:
-
+    types: [ opened, synchronize, reopened ]
 jobs:
-  build:
+  tests:
+    name: Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Set up JDK 11
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v1
         with:
-          java-version: '11'
-          distribution: 'adopt'
-          cache: 'maven'
+          java-version: 11
+
+      - name: Cache Maven packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
 
       - name: Start Postgres
         run: docker compose -f src/test/resources/docker-compose.yml up -d --wait
 
       - name: Install test library to local Maven repo
-        run:  mvn install:install-file -Dfile=libs/jdbc-connector-for-apache-kafka-6.7.0-SNAPSHOT.jar -DgroupId=io.aiven -DartifactId=jdbc-connector-for-apache-kafka -Dversion=6.7.0-SNAPSHOT -Dpackaging=jar
+        run: mvn install:install-file -Dfile=libs/jdbc-connector-for-apache-kafka-6.7.0-SNAPSHOT.jar -DgroupId=io.aiven -DartifactId=jdbc-connector-for-apache-kafka -Dversion=6.7.0-SNAPSHOT -Dpackaging=jar
 
       - name: Run tests
         run: mvn integration-test verify
+
+  sonarcloud-analysis:
+    name: Trigger SonarCloud analysis
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Cache Maven packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build and analyze
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        # Skipping the tests as they have already been run above
+        run: mvn -B -DskipTests verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=conduit-kafka-connect-wrapper
