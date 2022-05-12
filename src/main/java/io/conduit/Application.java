@@ -65,6 +65,20 @@ public class Application {
 
         c = DriverManager.getConnection("");
         c.prepareStatement("");
+        c = DriverManager.getConnection("");
+        c.prepareStatement("");
+
+        c = DriverManager.getConnection("");
+        c.prepareStatement("");
+
+        c = DriverManager.getConnection("");
+        c.prepareStatement("");
+
+        c = DriverManager.getConnection("");
+        c.prepareStatement("");
+
+        c = DriverManager.getConnection("");
+        c.prepareStatement("");
 
         server.blockUntilShutdown();
     }
