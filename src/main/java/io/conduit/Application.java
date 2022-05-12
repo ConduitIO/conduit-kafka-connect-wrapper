@@ -16,6 +16,9 @@
 
 package io.conduit;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+
 import lombok.SneakyThrows;
 
 import static java.lang.Integer.parseInt;
@@ -34,6 +37,8 @@ public class Application {
         Server server = new Server(port);
         server.start();
         System.out.printf("1|1|tcp|localhost:%d|grpc\n", server.getPort());
+        Connection c = DriverManager.getConnection("");
+        c.prepareStatement("");
         server.blockUntilShutdown();
     }
 }
