@@ -59,13 +59,13 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
                 if (buffer.isEmpty()) {
                     fillBuffer();
                 }
-                SourceRecord record = buffer.poll();
+                SourceRecord rec = buffer.poll();
                 // We may get so-called tombstone records, i.e. records with a null payload.
                 // This can happen when records are deleted, for example.
                 // This is used in Kafka Connect internally, more precisely for log compaction in Kafka.
                 // For more info: https://kafka.apache.org/documentation/#compaction
-                if (record.value() != null) {
-                    responseObserver.onNext(responseWith(record));
+                if (rec.value() != null) {
+                    responseObserver.onNext(responseWith(rec));
                 }
             } catch (Exception e) {
                 Logger.get().error("Couldn't write record.", e);
@@ -96,10 +96,10 @@ public class SourceStream implements StreamObserver<Source.Run.Request>, Runnabl
     }
 
     @SneakyThrows
-    private Source.Run.Response responseWith(SourceRecord record) {
-        position.add(record.sourcePartition(), record.sourceOffset());
+    private Source.Run.Response responseWith(SourceRecord rec) {
+        position.add(rec.sourcePartition(), rec.sourceOffset());
 
-        Record.Builder conduitRec = transformer.apply(record)
+        Record.Builder conduitRec = transformer.apply(rec)
                 .setPosition(position.asByteString());
 
         return Source.Run.Response.newBuilder()

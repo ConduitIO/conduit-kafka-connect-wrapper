@@ -34,14 +34,14 @@ public class RawDataSchemaProvider implements SchemaProvider {
     private final Schema overrides;
 
     @Override
-    public Schema provide(Record record) {
-        if (!record.hasPayload()) {
+    public Schema provide(Record rec) {
+        if (!rec.hasPayload()) {
             return null;
         }
-        if (!record.getPayload().hasRawData()) {
+        if (!rec.getPayload().hasRawData()) {
             throw new IllegalArgumentException("Record has no raw data.");
         }
-        JsonNode json = parseJson(record.getPayload().getRawData().toByteArray());
+        JsonNode json = parseJson(rec.getPayload().getRawData().toByteArray());
         if (json == null) {
             return Schema.OPTIONAL_BYTES_SCHEMA;
         }
