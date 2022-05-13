@@ -4,12 +4,13 @@ import java.nio.charset.StandardCharsets;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Struct;
 import io.conduit.grpc.Data;
 import io.conduit.grpc.Record;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class RawDataSchemaProviderTest {
     @Test
@@ -75,5 +76,44 @@ public class RawDataSchemaProviderTest {
         Schema nested = result.field("nested").schema();
         assertEquals(Schema.Type.STRUCT, nested.type());
         assertEquals(Schema.Type.STRING, nested.field("field").schema().type());
+    }
+
+    @Test
+    public void testNonJson() {
+        RawDataSchemaProvider underTest = new RawDataSchemaProvider("myschema", null);
+        Record record = Record.newBuilder()
+                .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8("test-key")).build())
+                .setPayload(Data.newBuilder()
+                        .setRawData(ByteString.copyFrom(new byte[]{11, 22, 33}))
+                        .build()
+                ).build();
+        Schema schema = underTest.provide(record);
+        assertNotNull(schema);
+        assertEquals("myschema", schema.name());
+        assertEquals(Schema.Type.BYTES, schema.type());
+    }
+
+    @Test
+    public void testNullRecord() {
+        RawDataSchemaProvider underTest = new RawDataSchemaProvider("myschema", null);
+        assertNull(underTest.provide(null));
+    }
+
+    @Test
+    public void testNoPayload() {
+        RawDataSchemaProvider underTest = new RawDataSchemaProvider("myschema", null);
+        Record record = Record.newBuilder().build();
+        assertNull(underTest.provide(record));
+    }
+
+    @Test
+    public void testStructPayload() {
+        RawDataSchemaProvider underTest = new RawDataSchemaProvider("myschema", null);
+        Record record = Record.newBuilder()
+                .setPayload(
+                        Data.newBuilder().setStructuredData(Struct.newBuilder().build()).build()
+                ).build();
+        var e = assertThrows(IllegalArgumentException.class, () -> underTest.provide(record));
+        assertEquals("Record has no raw data.", e.getMessage());
     }
 }

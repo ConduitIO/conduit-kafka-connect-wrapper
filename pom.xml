@@ -17,6 +17,7 @@
         <protoc.version>3.19.2</protoc.version>
         <kafka.version>3.1.0</kafka.version>
         <mockito.version>4.4.0</mockito.version>
+        <junit.version>5.8.2</junit.version>
         <sonar.organization>conduitio</sonar.organization>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
     </properties>
@@ -50,7 +51,13 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.8.2</version>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -87,6 +94,12 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-nop</artifactId>
             <version>1.7.36</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.snowflake</groupId>
+            <artifactId>snowflake-kafka-connector</artifactId>
+            <version>1.7.1</version>
             <scope>test</scope>
         </dependency>
 
