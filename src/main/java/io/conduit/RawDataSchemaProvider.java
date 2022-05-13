@@ -35,7 +35,7 @@ public class RawDataSchemaProvider implements SchemaProvider {
 
     @Override
     public Schema provide(Record rec) {
-        if (!rec.hasPayload()) {
+        if (rec == null || !rec.hasPayload()) {
             return null;
         }
         if (!rec.getPayload().hasRawData()) {
@@ -43,7 +43,7 @@ public class RawDataSchemaProvider implements SchemaProvider {
         }
         JsonNode json = parseJson(rec.getPayload().getRawData().toByteArray());
         if (json == null) {
-            return Schema.OPTIONAL_BYTES_SCHEMA;
+            return SchemaBuilder.bytes().name(name).optional();
         }
         return schemaForJson(json);
     }
