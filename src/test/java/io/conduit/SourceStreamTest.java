@@ -73,7 +73,7 @@ public class SourceStreamTest {
         new SourceStream(task, position, streamObserver, transformer).start();
 
         var responseCaptor = ArgumentCaptor.forClass(Source.Run.Response.class);
-        verify(streamObserver, timeout(500)).onNext(responseCaptor.capture());
+        verify(streamObserver, timeout(15000)).onNext(responseCaptor.capture());
         verify(streamObserver, never()).onError(any());
 
         assertEquals(conduitRec.build(), responseCaptor.getValue().getRecord());
