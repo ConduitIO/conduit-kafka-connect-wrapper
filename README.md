@@ -12,11 +12,15 @@ The connector exposes a gRPC streaming method, `plugin.GRPCStdio/StreamStdio`, t
 
 ### Development
 The complete server-side code for this plugin is **not** committed to the repo. Rather, it's generated from the proto files,
-when the project is compiled.
+when the project is compiled. 
 
-IDEs may not automatically add the generated sources to the class. If that's the case, you need to:
-1. Run `mvn clean compile` (so that the needed code is generated)
-2. Change the project settings in your IDE to include the generated source. In IntelliJ, for example, you do that by going
+In a few integration tests we use [Aiven's JDBC connector](https://github.com/aiven/jdbc-connector-for-apache-kafka).
+Since it's not available in public Maven repositories, it needs to be compiled and installed to a local Maven repository,
+so it can be used. For convenience, we provide a prebuilt JAR (in the `libs` directory).
+
+1. Run `mvn install:install-file -Dfile=libs/jdbc-connector-for-apache-kafka-6.7.0.jar -DgroupId=io.aiven -DartifactId=jdbc-connector-for-apache-kafka -Dversion=6.7.0 -Dpackaging=jar`
+2. Run `mvn clean compile` (so that the needed code is generated)
+3. Some IDEs may not automatically use the generated sources. If that's the case, you need to change the project settings in your IDE to include the generated source. In IntelliJ, for example, you do that by going
 to File > Project structure > Project Settings > Modules. Then, right-click on `target/generated-source` and select "Sources".
 
 ### Code quality
