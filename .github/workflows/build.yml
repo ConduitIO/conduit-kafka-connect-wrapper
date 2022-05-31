@@ -35,7 +35,7 @@ jobs:
       - name: Install test library to local Maven repo
         # Not available in a public Maven repo, so we need to provide a pre-built artifact,
         # and install to the local Maven repo.
-        run: mvn install:install-file -Dfile=libs/jdbc-connector-for-apache-kafka-6.7.0-SNAPSHOT.jar -DgroupId=io.aiven -DartifactId=jdbc-connector-for-apache-kafka -Dversion=6.7.0-SNAPSHOT -Dpackaging=jar
+        run: mvn install:install-file -Dfile=libs/jdbc-connector-for-apache-kafka-6.7.0.jar -DgroupId=io.aiven -DartifactId=jdbc-connector-for-apache-kafka -Dversion=6.7.0 -Dpackaging=jar
 
       - name: Test and analyze
         env:
@@ -77,7 +77,7 @@ jobs:
       - name: Install test library to local Maven repo
         # Not available in a public Maven repo, so we need to provide a pre-built artifact,
         # and install to the local Maven repo.
-        run: mvn install:install-file -Dfile=libs/jdbc-connector-for-apache-kafka-6.7.0-SNAPSHOT.jar -DgroupId=io.aiven -DartifactId=jdbc-connector-for-apache-kafka -Dversion=6.7.0-SNAPSHOT -Dpackaging=jar
+        run: mvn install:install-file -Dfile=libs/jdbc-connector-for-apache-kafka-6.7.0.jar -DgroupId=io.aiven -DartifactId=jdbc-connector-for-apache-kafka -Dversion=6.7.0 -Dpackaging=jar
 
       - name: Run intergration tests
         run: mvn integration-test verify
