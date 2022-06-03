@@ -19,6 +19,7 @@
         <mockito.version>4.6.1</mockito.version>
         <junit.version>5.8.2</junit.version>
         <sonar.organization>conduitio</sonar.organization>
+        <sonar.projectKey>conduit-kafka-connect-wrapper</sonar.projectKey>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
     </properties>
 
@@ -81,7 +82,7 @@
         <dependency>
             <groupId>io.debezium</groupId>
             <artifactId>debezium-connector-postgres</artifactId>
-            <version>1.9.2.Final</version>
+            <version>1.9.3.Final</version>
             <scope>test</scope>
         </dependency>
         <dependency>
