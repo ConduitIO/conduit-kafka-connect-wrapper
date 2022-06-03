@@ -81,7 +81,7 @@
         <dependency>
             <groupId>io.debezium</groupId>
             <artifactId>debezium-connector-postgres</artifactId>
-            <version>1.9.2.Final</version>
+            <version>1.9.3.Final</version>
             <scope>test</scope>
         </dependency>
         <dependency>
