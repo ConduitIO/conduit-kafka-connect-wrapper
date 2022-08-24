@@ -5,47 +5,95 @@ package connector.v1;
 option java_multiple_files = true;
 option java_package = "io.conduit.grpc";
 
-import "google/protobuf/timestamp.proto";
-import "google/protobuf/struct.proto";
+import "google/protobuf/descriptor.proto";
+import "opencdc.proto";
 
-message Record {
-  bytes position = 1;
-  map<string, string> metadata = 2;
-  google.protobuf.Timestamp created_at = 3;
-  Data key = 4;
-  Data payload = 5;
+option (metadata_conduit_plugin_name) = "conduit.plugin.name";
+option (metadata_conduit_plugin_version) = "conduit.plugin.version";
+
+// We are (ab)using custom file options to define constants.
+// See https://github.com/protocolbuffers/protobuf/issues/3520#issuecomment-323613839
+extend google.protobuf.FileOptions {
+  string metadata_conduit_plugin_name = 20000;
+  string metadata_conduit_plugin_version = 20001;
 }
 
-message Data {
-  oneof data {
-    bytes raw_data = 1;
-    google.protobuf.Struct structured_data = 2;
-  }
-}
-
+// SourcePlugin is responsible for fetching records from 3rd party resources and
+// sending them to Conduit.
 service SourcePlugin {
+  // Configure is the first function to be called in a plugin. It provides the
+  // plugin with the configuration that needs to be validated and stored. In
+  // case the configuration is not valid it should return an error status.
   rpc Configure(Source.Configure.Request) returns (Source.Configure.Response);
+  // Start is called after Configure to signal the plugin it can prepare to
+  // start producing records. If needed, the plugin should open connections in
+  // this function. The position parameter will contain the position of the
+  // last record that was successfully processed. The Source should therefore
+  // start producing records after this position.
   rpc Start(Source.Start.Request) returns (Source.Start.Response);
+  // Run will open a bidirectional stream between Conduit and the plugin.
+  // The plugin is responsible for fetching records from 3rd party resources
+  // and sending them as responses to Conduit. Conduit will process the
+  // records asynchronously and send acknowledgments back to the plugin to
+  // signal that a record at a certain position was processed. Acknowledgments
+  // will be sent back to the connector in the same order as the records
+  // produced by the connector. If a record could not be processed by Conduit,
+  // the stream will be closed without an acknowledgment being sent back to the
+  // connector.
   rpc Run(stream Source.Run.Request) returns (stream Source.Run.Response);
+  // Stop signals to the plugin to stop retrieving new records and flush any
+  // records that might be cached into the stream. It should block until it can
+  // determine the last record that will be sent to the stream and return the
+  // position of the last record. Conduit will keep the stream open until it
+  // receives the last record and sends back any outstanding acknowledgments.
+  // If Conduit did not send an acknowledgment for a record after the stream is
+  // closed, it should be interpreted as a negative acknowledgment.
   rpc Stop(Source.Stop.Request) returns (Source.Stop.Response);
+  // Teardown signals to the plugin that there will be no more calls to any
+  // other function. After Teardown returns, the plugin should be ready for a
+  // graceful shutdown.
   rpc Teardown(Source.Teardown.Request) returns (Source.Teardown.Response);
 }
 
+// DestinationPlugin is responsible for writing records to 3rd party resources.
 service DestinationPlugin {
+  // Configure is the first function to be called in a plugin. It provides the
+  // plugin with the configuration that needs to be validated and stored. In
+  // case the configuration is not valid it should return an error status.
   rpc Configure(Destination.Configure.Request) returns (Destination.Configure.Response);
+  // Start is called after Configure to signal the plugin it can prepare to
+  // start writing records. If needed, the plugin should open connections in
+  // this function.
   rpc Start(Destination.Start.Request) returns (Destination.Start.Response);
+  // Run will open a bidirectional stream between Conduit and the plugin.
+  // Conduit will be streaming records to the plugin that should be written
+  // to the 3rd party resource. The plugin is responsible for sending
+  // acknowledgments back to Conduit once a record has been processed. The
+  // acknowledgment should contain an error in case a record could not be
+  // successfully processed. The stream should still stay open in case Conduit
+  // is able to recover from the error and the pipeline keeps running.
   rpc Run(stream Destination.Run.Request) returns (stream Destination.Run.Response);
+  // Stop signals to the plugin that the record with the specified position is
+  // the last one and no more records will be written to the stream after it.
+  // Once the plugin receives the last record it should flush any records that
+  // might be cached and not yet written to the 3rd party resource.
   rpc Stop(Destination.Stop.Request) returns (Destination.Stop.Response);
+  // Teardown signals to the plugin that there will be no more calls to any
+  // other function. After Teardown returns, the plugin should be ready for a
+  // graceful shutdown.
   rpc Teardown(Destination.Teardown.Request) returns (Destination.Teardown.Response);
 }
 
+// SpecifierPlugin is responsible for returning the plugin specification.
 service SpecifierPlugin {
+  // Specify should return the plugin specification.
   rpc Specify(Specifier.Specify.Request) returns (Specifier.Specify.Response);
 }
 
 message Source {
   message Configure {
     message Request {
+      // Config contains the raw plugin settings.
       map<string, string> config = 1;
     }
     message Response {}
@@ -53,6 +101,9 @@ message Source {
 
   message Start {
     message Request {
+      // This is the position of the last record that was successfully
+      // processed. The Source should start producing records after this
+      // position.
       bytes position = 1;
     }
     message Response {}
@@ -60,16 +111,27 @@ message Source {
 
   message Run {
     message Request {
+      // This is the position of the record that was successfully
+      // processed.
       bytes ack_position = 1;
     }
     message Response {
-      Record record = 1;
+      // Record contains the OpenCDC record read by the source from the 3rd
+      // party resource.
+      opencdc.v1.Record record = 1;
     }
   }
 
   message Stop {
     message Request {}
-    message Response {}
+    message Response {
+      // This is the position of the last record in the stream, Conduit
+      // won't process records after this position anymore. After the
+      // record with this position is received by Conduit and all
+      // outstanding acknowledgments were delivered to the connector, the
+      // stream will be closed.
+      bytes last_position = 1;
+    }
   }
 
   message Teardown {
@@ -81,6 +143,7 @@ message Source {
 message Destination {
   message Configure {
     message Request {
+      // Config contains the raw plugin settings.
       map<string, string> config = 1;
     }
     message Response {}
@@ -93,16 +156,27 @@ message Destination {
 
   message Run {
     message Request {
-      Record record = 1;
+      // Record contains the OpenCDC record that should be written to the 3rd
+      // party resource.
+      opencdc.v1.Record record = 1;
     }
     message Response {
+      // This is the position of the record that was processed.
       bytes ack_position = 1;
+      // Error should be empty if the record was successfully processed or
+      // should contain a descriptive message in case the record
+      // processing failed.
       string error = 2;
     }
   }
 
   message Stop {
-    message Request {}
+    message Request {
+      // This is the position of the last record that was sent into the stream.
+      // Conduit won't send any records after a record with this position is
+      // received.
+      bytes last_position = 1;
+    }
     message Response {}
   }
 
@@ -116,19 +190,38 @@ message Specifier {
   message Specify {
     message Request {}
     message Response {
+      // Name is the name of the plugin.
       string name = 1;
+      // Summary is a brief description of the plugin and what it does,
+      // ideally not longer than one sentence.
       string summary = 2;
+      // Description is a longer form field, appropriate for README-like
+      // text that the author can provide for documentation about the
+      // usage of the plugin.
       string description = 3;
+      // Version string. Should follow semantic versioning and use the "v"
+      // prefix (e.g. v1.23.4).
       string version = 4;
+      // Author declares the entity that created or maintains this plugin.
       string author = 5;
+      // A map that describes parameters available for configuring the
+      // destination plugin.
       map<string, Parameter> destination_params = 6;
+      // A map that describes parameters available for configuring the
+      // source plugin.
       map<string, Parameter> source_params = 7;
     }
   }
 
+  // Parameter describes a single config parameter.
   message Parameter {
+    // Default is the default value of the parameter. If there is no default
+    // value use an empty string.
     string default = 1;
+    // Required defines whether the parameter has to be provided when
+    // configuring the plugin.
     bool required = 2;
+    // Description explains what the parameter does and how to configure it.
     string description = 3;
   }
 }

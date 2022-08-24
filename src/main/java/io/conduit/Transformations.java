@@ -24,6 +24,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.JsonFormat;
+import io.conduit.grpc.Change;
 import io.conduit.grpc.Data;
 import io.conduit.grpc.Record;
 import lombok.SneakyThrows;
@@ -31,6 +32,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
 
 import static io.conduit.Utils.jsonConvSchemaless;
+import static io.conduit.grpc.Opencdc.metadataCreatedAt;
 
 /**
  * A class holding common transformations between Conduit and Kafka connect data types.
@@ -54,20 +56,12 @@ public class Transformations {
         return Record.newBuilder()
                 .setKey(getKey(sourceRecord))
                 .setPayload(getPayload(sourceRecord))
-                .setCreatedAt(currentTimestamp());
+                .putMetadata("opencdc.createdAt", String.valueOf(System.currentTimeMillis()));
     }
 
-    private static Timestamp currentTimestamp() {
-        long millis = System.currentTimeMillis();
-        return Timestamp.newBuilder()
-                .setSeconds(millis / 1000)
-                .setNanos((int) (millis % 1000) * 1000)
-                .build();
-    }
-
-    private static Data getPayload(SourceRecord sourceRecord) {
+    private static Change getPayload(SourceRecord sourceRecord) {
         if (sourceRecord.valueSchema() != null) {
-            return schemaValueToData(sourceRecord.valueSchema(), sourceRecord.value());
+            return schemaValueToChange(sourceRecord.valueSchema(), sourceRecord.value());
         }
         throw new UnsupportedOperationException("payloads without schemas not supported yet");
     }
@@ -80,6 +74,13 @@ public class Transformations {
             return schemaValueToData(sourceRecord.keySchema(), sourceRecord.key());
         }
         throw new UnsupportedOperationException("keys without schemas not supported yet");
+    }
+
+    @SneakyThrows
+    private static Change schemaValueToChange(Schema schema, Object value) {
+        return Change.newBuilder()
+                .setAfter(schemaValueToData(schema, value))
+                .build();
     }
 
     @SneakyThrows
@@ -115,11 +116,11 @@ public class Transformations {
         if (rec == null) {
             throw new IllegalArgumentException("record is null");
         }
-        if (!rec.hasPayload()) {
-            throw new IllegalArgumentException("record has no payload");
+        if (!rec.hasPayload() || !rec.getPayload().hasAfter()) {
+            throw new IllegalArgumentException("record has no payload or has no after data");
         }
 
-        if (rec.getPayload().hasStructuredData()) {
+        if (rec.getPayload().getAfter().hasStructuredData()) {
             return Transformations.parseStructured(rec, schema);
         } else {
             return Transformations.parseRaw(rec, schema);
@@ -136,14 +137,14 @@ public class Transformations {
         // however, for the first version of the plugin we're looking for making it work first.
         // See: https://github.com/ConduitIO/conduit-kafka-connect-wrapper/issues/58
         byte[] bytes = JsonFormat.printer()
-                .print(rec.getPayload().getStructuredData())
+                .print(rec.getPayload().getAfter().getStructuredData())
                 .getBytes(StandardCharsets.UTF_8);
         return jsonToStruct(bytes, schema);
     }
 
     @SneakyThrows
     private static Object parseRaw(Record rec, Schema schema) {
-        byte[] content = rec.getPayload().getRawData().toByteArray();
+        byte[] content = rec.getPayload().getAfter().getRawData().toByteArray();
         if (schema == null) {
             return content;
         }

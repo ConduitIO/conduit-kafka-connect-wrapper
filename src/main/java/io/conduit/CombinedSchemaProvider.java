@@ -34,13 +34,13 @@ public class CombinedSchemaProvider implements SchemaProvider {
 
     @Override
     public Schema provide(Record rec) {
-        if (!rec.hasPayload()) {
+        if (!rec.hasPayload() || !rec.getPayload().hasAfter()) {
             return null;
         }
-        if (rec.getPayload().hasStructuredData()) {
+        if (rec.getPayload().getAfter().hasStructuredData()) {
             return structSP.provide(rec);
         }
-        if (rec.getPayload().hasRawData()) {
+        if (rec.getPayload().getAfter().hasRawData()) {
             return rawDataSP.provide(rec);
         }
         return null;

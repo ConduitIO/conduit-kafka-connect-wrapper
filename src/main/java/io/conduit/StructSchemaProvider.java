@@ -34,13 +34,13 @@ public class StructSchemaProvider implements SchemaProvider {
 
     @Override
     public Schema provide(Record rec) {
-        if (!rec.hasPayload()) {
+        if (!rec.hasPayload() || !rec.getPayload().hasAfter()) {
             return null;
         }
-        if (!rec.getPayload().hasStructuredData()) {
+        if (!rec.getPayload().getAfter().hasStructuredData()) {
             throw new IllegalArgumentException("Record has no structured payload.");
         }
-        return schemaForStruct(rec.getPayload().getStructuredData());
+        return schemaForStruct(rec.getPayload().getAfter().getStructuredData());
     }
 
     private Schema schemaForStruct(Struct struct) {
