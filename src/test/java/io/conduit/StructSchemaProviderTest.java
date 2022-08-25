@@ -1,17 +1,43 @@
 package io.conduit;
 
 import com.google.protobuf.*;
+import io.conduit.grpc.Change;
 import io.conduit.grpc.Data;
 import io.conduit.grpc.Record;
 import org.apache.kafka.connect.data.Schema;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class StructSchemaProviderTest {
+    private StructSchemaProvider underTest;
+
+    @BeforeEach
+    public void setUp() {
+        underTest = new StructSchemaProvider("myschema", null);
+    }
+
+    @Test
+    public void testNoPayload() {
+        Record rec = Record.newBuilder()
+                .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8("test-key")).build())
+                .build();
+        assertNull(underTest.provide(rec));
+    }
+
+    @Test
+    public void testNoAfter() {
+        Record rec = Record.newBuilder()
+                .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8("test-key")).build())
+                .setPayload(Change.newBuilder().build())
+                .build();
+        assertNull(underTest.provide(rec));
+    }
+
     @Test
     public void testNumbers() {
-        StructSchemaProvider underTest = new StructSchemaProvider("myschema", null);
         var struct = Struct.newBuilder()
                 .putFields("byteField", Value.newBuilder().setNumberValue((byte) 5).build())
                 .putFields("shortField", Value.newBuilder().setNumberValue((short) 25).build())
@@ -38,7 +64,6 @@ public class StructSchemaProviderTest {
 
     @Test
     public void testNullField() {
-        StructSchemaProvider underTest = new StructSchemaProvider("myschema", null);
         var struct = Struct.newBuilder()
                 .putFields("nullValueField", Value.newBuilder().setNullValue(NullValue.NULL_VALUE).build())
                 .build();
@@ -54,7 +79,6 @@ public class StructSchemaProviderTest {
 
     @Test
     public void testString() {
-        StructSchemaProvider underTest = new StructSchemaProvider("myschema", null);
         var struct = Struct.newBuilder()
                 .putFields("stringField", Value.newBuilder().setStringValue("test string").build())
                 .build();
@@ -71,7 +95,6 @@ public class StructSchemaProviderTest {
 
     @Test
     public void testStringArray() {
-        StructSchemaProvider underTest = new StructSchemaProvider("myschema", null);
         var struct = Struct.newBuilder()
                 .putFields(
                         "stringArrayField",
