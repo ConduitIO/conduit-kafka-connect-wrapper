@@ -16,6 +16,9 @@
 
 package io.conduit;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Struct;
@@ -26,9 +29,6 @@ import io.conduit.grpc.Record;
 import lombok.SneakyThrows;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 import static io.conduit.Utils.jsonConvSchemaless;
 
@@ -55,7 +55,7 @@ public class Transformations {
                 .setKey(getKey(sourceRecord))
                 .setPayload(getPayload(sourceRecord))
                 // we need nanoseconds here
-                .putMetadata(OpenCdc.MetadataCreatedAt, String.valueOf(System.currentTimeMillis()*1_000_000));
+                .putMetadata(OpenCdc.MetadataCreatedAt, String.valueOf(System.currentTimeMillis() * 1_000_000));
     }
 
     private static Change getPayload(SourceRecord sourceRecord) {
