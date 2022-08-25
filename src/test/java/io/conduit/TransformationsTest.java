@@ -1,15 +1,12 @@
 package io.conduit;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.ByteString;
-import com.google.protobuf.Timestamp;
+import com.google.protobuf.Value;
 import com.google.protobuf.util.JsonFormat;
+import io.conduit.grpc.Change;
 import io.conduit.grpc.Data;
+import io.conduit.grpc.Opencdc;
 import io.conduit.grpc.Record;
 import lombok.SneakyThrows;
 import org.apache.kafka.connect.data.Schema;
@@ -18,6 +15,11 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static io.conduit.Transformations.fromKafkaSource;
 import static org.junit.jupiter.api.Assertions.*;
@@ -77,11 +79,12 @@ public class TransformationsTest {
         assertNotNull(conduitRec);
 
         // verify payload
-        var payload = conduitRec.getPayload().getStructuredData();
+        var payload = conduitRec.getPayload().getAfter().getStructuredData();
         assertMatch(testValue, payload);
         // assert timestamp is within last second
+        int createdAt = Integer.parseInt(conduitRec.getMetadataOrThrow(Opencdc.metadataCreatedAt.getDefaultValue()));
         assertTrue(
-                conduitRec.getCreatedAt().getSeconds() * 1000 > System.currentTimeMillis() - 1000
+                createdAt / 1_000_000 > System.currentTimeMillis() - 1000
         );
         // verify key
         assertFalse(conduitRec.getKey().hasRawData());
@@ -105,11 +108,12 @@ public class TransformationsTest {
         assertNotNull(conduitRec);
 
         // verify payload
-        var payload = conduitRec.getPayload().getStructuredData();
+        var payload = conduitRec.getPayload().getAfter().getStructuredData();
         assertMatch(testValue, payload);
         // assert timestamp is within last second
+        int createdAt = Integer.parseInt(conduitRec.getMetadataOrThrow(Opencdc.metadataCreatedAt.getDefaultValue()));
         assertTrue(
-                conduitRec.getCreatedAt().getSeconds() * 1000 > System.currentTimeMillis() - 1000
+                createdAt / 1_000_000 > System.currentTimeMillis() - 1000
         );
         // verify key
         assertFalse(conduitRec.getKey().hasRawData());
@@ -127,7 +131,7 @@ public class TransformationsTest {
         List<String> interestsActual = payload.getFieldsOrThrow("interests")
                 .getListValue().getValuesList()
                 .stream()
-                .map(v -> v.getStringValue())
+                .map(Value::getStringValue)
                 .collect(Collectors.toList());
         assertEquals(interestsExpected, interestsActual);
     }
@@ -160,7 +164,7 @@ public class TransformationsTest {
         var rec = newRecordRawData();
         var sinkRecObj = Transformations.toConnectData(rec, schema);
         assertInstanceOf(byte[].class, sinkRecObj);
-        assertArrayEquals(rec.getPayload().getRawData().toByteArray(), (byte[]) sinkRecObj);
+        assertArrayEquals(rec.getPayload().getAfter().getRawData().toByteArray(), (byte[]) sinkRecObj);
     }
 
     @Test
@@ -172,7 +176,7 @@ public class TransformationsTest {
         var rec = newRecordRawData();
         var sinkRecObj = Transformations.toConnectData(rec, schema);
         assertInstanceOf(String.class, sinkRecObj);
-        assertEquals(rec.getPayload().getRawData().toStringUtf8(), (String) sinkRecObj);
+        assertEquals(rec.getPayload().getAfter().getRawData().toStringUtf8(), sinkRecObj);
     }
 
     @Test
@@ -223,19 +227,22 @@ public class TransformationsTest {
                 .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
                 .setPayload(newStructPayload())
                 .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
-                .setCreatedAt(Timestamp.newBuilder().setSeconds(123456).build())
+                .putMetadata(Opencdc.metadataCreatedAt.getDefaultValue(), "123456000000000")
                 .build();
     }
 
     @SneakyThrows
-    private Data newStructPayload() {
+    private Change newStructPayload() {
         com.google.protobuf.Struct.Builder builder = com.google.protobuf.Struct.newBuilder();
         JsonFormat.parser().merge(
                 Utils.mapper.writeValueAsString(testRecord),
                 builder
         );
-        return Data.newBuilder()
+        Data data = Data.newBuilder()
                 .setStructuredData(builder.build())
+                .build();
+        return Change.newBuilder()
+                .setAfter(data)
                 .build();
     }
 
@@ -244,7 +251,7 @@ public class TransformationsTest {
                 .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
                 .setPayload(newRawPayloadJson())
                 .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
-                .setCreatedAt(Timestamp.newBuilder().setSeconds(123456).build())
+                .putMetadata(Opencdc.metadataCreatedAt.getDefaultValue(), "123456000000000")
                 .build();
     }
 
@@ -253,21 +260,27 @@ public class TransformationsTest {
                 .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
                 .setPayload(newRawPayload())
                 .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
-                .setCreatedAt(Timestamp.newBuilder().setSeconds(123456).build())
+                .putMetadata(Opencdc.metadataCreatedAt.getDefaultValue(), "123456000000000")
                 .build();
     }
 
     @SneakyThrows
-    private Data newRawPayload() {
-        return Data.newBuilder()
+    private Change newRawPayload() {
+        Data data = Data.newBuilder()
                 .setRawData(ByteString.copyFromUtf8("payload-" + UUID.randomUUID()))
                 .build();
+        return Change.newBuilder()
+                .setAfter(data)
+                .build();
     }
 
     @SneakyThrows
-    private Data newRawPayloadJson() {
-        return Data.newBuilder()
+    private Change newRawPayloadJson() {
+        Data data = Data.newBuilder()
                 .setRawData(ByteString.copyFromUtf8(Utils.mapper.writeValueAsString(testRecord)))
+                .build();
+        return Change.newBuilder()
+                .setAfter(data)
                 .build();
     }
 }
