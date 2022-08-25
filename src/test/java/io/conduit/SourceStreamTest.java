@@ -1,12 +1,6 @@
 package io.conduit;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.Function;
-
 import com.google.protobuf.ByteString;
-import io.conduit.grpc.Data;
 import io.conduit.grpc.Record;
 import io.conduit.grpc.Source;
 import io.grpc.StatusException;
@@ -20,6 +14,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -140,8 +139,6 @@ public class SourceStreamTest {
 
     private Record.Builder testConduitRec() {
         return Record.newBuilder()
-                .setPayload(
-                        Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build()
-                );
+                .setPayload(TestUtils.newRecordPayload(UUID.randomUUID().toString()));
     }
 }

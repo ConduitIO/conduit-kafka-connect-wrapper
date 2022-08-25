@@ -1,15 +1,17 @@
 package io.conduit;
 
-import java.nio.charset.StandardCharsets;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Struct;
+import io.conduit.grpc.Change;
 import io.conduit.grpc.Data;
 import io.conduit.grpc.Record;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
+
+import static io.conduit.TestUtils.newCreatedRecord;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class RawDataSchemaProviderTest {
@@ -30,10 +32,7 @@ public class RawDataSchemaProviderTest {
 
         Record record = Record.newBuilder()
                 .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8("test-key")).build())
-                .setPayload(Data.newBuilder()
-                        .setRawData(ByteString.copyFromUtf8(json.toString()))
-                        .build()
-                ).build();
+                .setPayload(newCreatedRecord(json)).build();
 
         Schema result = underTest.provide(record);
 
@@ -63,10 +62,8 @@ public class RawDataSchemaProviderTest {
 
         Record record = Record.newBuilder()
                 .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8("test-key")).build())
-                .setPayload(Data.newBuilder()
-                        .setRawData(ByteString.copyFromUtf8(json.toString()))
-                        .build()
-                ).build();
+                .setPayload(newCreatedRecord(json))
+                .build();
 
         Schema result = underTest.provide(record);
 
@@ -83,10 +80,8 @@ public class RawDataSchemaProviderTest {
         RawDataSchemaProvider underTest = new RawDataSchemaProvider("myschema", null);
         Record record = Record.newBuilder()
                 .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8("test-key")).build())
-                .setPayload(Data.newBuilder()
-                        .setRawData(ByteString.copyFrom(new byte[]{11, 22, 33}))
-                        .build()
-                ).build();
+                .setPayload(newCreatedRecord(new byte[]{11, 22, 33}))
+                .build();
         Schema schema = underTest.provide(record);
         assertNotNull(schema);
         assertEquals("myschema", schema.name());
@@ -110,10 +105,11 @@ public class RawDataSchemaProviderTest {
     public void testStructPayload() {
         RawDataSchemaProvider underTest = new RawDataSchemaProvider("myschema", null);
         Record record = Record.newBuilder()
-                .setPayload(
-                        Data.newBuilder().setStructuredData(Struct.newBuilder().build()).build()
-                ).build();
+                .setPayload(newCreatedRecord(Struct.newBuilder().build()))
+                .build();
         var e = assertThrows(IllegalArgumentException.class, () -> underTest.provide(record));
         assertEquals("Record has no raw data.", e.getMessage());
     }
 }
+
+

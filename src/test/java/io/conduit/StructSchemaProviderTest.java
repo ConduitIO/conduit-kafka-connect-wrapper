@@ -18,7 +18,8 @@ public class StructSchemaProviderTest {
                 .putFields("intField", Value.newBuilder().setNumberValue(123).build())
                 .putFields("longField", Value.newBuilder().setNumberValue(Long.MAX_VALUE).build())
                 .putFields("floatField", Value.newBuilder().setNumberValue(12.34f).build())
-                .putFields("doubleField", Value.newBuilder().setNumberValue(12.34d).build());
+                .putFields("doubleField", Value.newBuilder().setNumberValue(12.34d).build())
+                .build();
 
         Record record = toRecord(struct);
 
@@ -39,7 +40,8 @@ public class StructSchemaProviderTest {
     public void testNullField() {
         StructSchemaProvider underTest = new StructSchemaProvider("myschema", null);
         var struct = Struct.newBuilder()
-                .putFields("nullValueField", Value.newBuilder().setNullValue(NullValue.NULL_VALUE).build());
+                .putFields("nullValueField", Value.newBuilder().setNullValue(NullValue.NULL_VALUE).build())
+                .build();
 
         Record record = toRecord(struct);
 
@@ -54,7 +56,8 @@ public class StructSchemaProviderTest {
     public void testString() {
         StructSchemaProvider underTest = new StructSchemaProvider("myschema", null);
         var struct = Struct.newBuilder()
-                .putFields("stringField", Value.newBuilder().setStringValue("test string").build());
+                .putFields("stringField", Value.newBuilder().setStringValue("test string").build())
+                .build();
 
         Record record = toRecord(struct);
 
@@ -75,7 +78,7 @@ public class StructSchemaProviderTest {
                         Value.newBuilder()
                                 .setListValue(ListValue.newBuilder().addValues(Value.newBuilder().setStringValue("a").build()))
                                 .build()
-                );
+                ).build();
 
         Record record = toRecord(struct);
 
@@ -88,12 +91,10 @@ public class StructSchemaProviderTest {
         assertEquals(Schema.Type.STRING, result.field("stringArrayField").schema().valueSchema().type());
     }
 
-    private Record toRecord(Struct.Builder struct) {
+    private Record toRecord(Struct struct) {
         return Record.newBuilder()
                 .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8("test-key")).build())
-                .setPayload(Data.newBuilder()
-                        .setStructuredData(struct)
-                        .build()
-                ).build();
+                .setPayload(TestUtils.newCreatedRecord(struct))
+                .build();
     }
 }

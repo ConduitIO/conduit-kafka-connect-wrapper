@@ -152,7 +152,7 @@ public class TransformationsTest {
                 IllegalArgumentException.class,
                 () -> Transformations.toConnectData(rec, null)
         );
-        assertEquals("record has no payload", e.getMessage());
+        assertEquals("record has no payload or has no after data", e.getMessage());
     }
 
     @Test

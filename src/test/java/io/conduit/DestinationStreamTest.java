@@ -1,15 +1,8 @@
 package io.conduit;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.Consumer;
-
 import com.google.protobuf.ByteString;
-import com.google.protobuf.Timestamp;
-import io.conduit.grpc.Data;
-import io.conduit.grpc.Destination;
 import io.conduit.grpc.Record;
+import io.conduit.grpc.*;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
@@ -25,6 +18,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collection;
+import java.util.UUID;
+import java.util.function.Consumer;
+
+import static io.conduit.TestUtils.newRecordPayload;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
@@ -146,15 +144,9 @@ public class DestinationStreamTest {
     private Record newRecord() {
         return Record.newBuilder()
                 .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
-                .setPayload(Data.newBuilder().setRawData(newRecordPayload()).build())
+                .setPayload(newRecordPayload())
                 .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
-                .setCreatedAt(Timestamp.newBuilder().setSeconds(123456).build())
+                .putMetadata(Opencdc.metadataCreatedAt.getDefaultValue(), "123456000000000")
                 .build();
-    }
-
-    private ByteString newRecordPayload() {
-        return ByteString.copyFromUtf8(
-                "{\"id\":123,\"name\":\"foobar\"}"
-        );
     }
 }

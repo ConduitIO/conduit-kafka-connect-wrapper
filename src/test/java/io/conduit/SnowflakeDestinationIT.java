@@ -16,15 +16,6 @@
 
 package io.conduit;
 
-import java.security.KeyFactory;
-import java.security.PrivateKey;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.sql.*;
-import java.time.Instant;
-import java.util.*;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Sets;
@@ -33,15 +24,27 @@ import com.google.protobuf.Struct;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.Value;
 import com.google.protobuf.util.JsonFormat;
-import io.conduit.grpc.Data;
-import io.conduit.grpc.Destination;
 import io.conduit.grpc.Record;
+import io.conduit.grpc.*;
 import io.grpc.stub.StreamObserver;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.Instant;
+import java.util.*;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.lang.System.currentTimeMillis;
 import static java.util.UUID.randomUUID;
@@ -255,9 +258,9 @@ public class SnowflakeDestinationIT {
         return combinations.stream()
                 .map(input -> Record.newBuilder()
                         .setKey((Data) input.get(0).get())
-                        .setPayload((Data) input.get(1).get())
+                        .setPayload((Change) input.get(1).get())
                         .setPosition((ByteString) input.get(2).get())
-                        .setCreatedAt((Timestamp) input.get(3).get())
+                        .putMetadata(Opencdc.metadataCreatedAt.getDefaultValue(), (String) input.get(3).get())
                         .build()
                 ).collect(Collectors.toList());
     }
@@ -276,17 +279,20 @@ public class SnowflakeDestinationIT {
         );
     }
 
-    private static Set<Supplier<Data>> payloadGenerators() {
-        return Set.of(
-                () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("{\"id\":123,\"name\":\"foobar\"}")).build(),
-                () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("{}")).build(),
-                () -> Data.newBuilder()
+    private static Set<Supplier<Change>> payloadGenerators() {
+        return Stream.of(
+                Data.newBuilder().setRawData(ByteString.copyFromUtf8("{\"id\":123,\"name\":\"foobar\"}")).build(),
+                Data.newBuilder().setRawData(ByteString.copyFromUtf8("{}")).build(),
+                Data.newBuilder()
                         .setStructuredData(Struct.newBuilder()
                                 .putFields("id", Value.newBuilder().setNumberValue(123).build())
                                 .putFields("name", Value.newBuilder().setStringValue("foobar").build())
                                 .build()
                         ).build()
-        );
+        ).map(d -> {
+            Supplier<Change> s = () -> Change.newBuilder().setAfter(d).build();
+            return s;
+        }).collect(Collectors.toSet());
     }
 
     private static Set<Supplier<Data>> keyGenerators() {
