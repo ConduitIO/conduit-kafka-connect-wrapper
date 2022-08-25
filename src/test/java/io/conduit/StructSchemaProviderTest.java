@@ -8,8 +8,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class StructSchemaProviderTest {
     private StructSchemaProvider underTest;
@@ -34,6 +33,25 @@ public class StructSchemaProviderTest {
                 .setPayload(Change.newBuilder().build())
                 .build();
         assertNull(underTest.provide(rec));
+    }
+
+    @Test
+    public void testRawPayload() {
+        Data data = Data.newBuilder()
+                .setRawData(ByteString.copyFromUtf8("hi there"))
+                .build();
+        Change change = Change.newBuilder()
+                .setAfter(data)
+                .build();
+        Record rec = Record.newBuilder()
+                .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8("test-key")).build())
+                .setPayload(change)
+                .build();
+        IllegalArgumentException e = assertThrows(
+                IllegalArgumentException.class,
+                () -> underTest.provide(rec)
+        );
+        assertEquals("Record has no structured payload.", e.getMessage());
     }
 
     @Test
@@ -91,6 +109,22 @@ public class StructSchemaProviderTest {
         assertEquals(struct.getFieldsCount(), result.fields().size());
         assertEquals(Schema.Type.STRUCT, result.type());
         assertEquals(Schema.Type.STRING, result.field("stringField").schema().type());
+    }
+
+    @Test
+    public void testBoolean() {
+        var struct = Struct.newBuilder()
+                .putFields("boolField", Value.newBuilder().setBoolValue(true).build())
+                .build();
+
+        Record record = toRecord(struct);
+
+        Schema result = underTest.provide(record);
+        assertEquals("myschema", result.name());
+        // not counting the null field
+        assertEquals(struct.getFieldsCount(), result.fields().size());
+        assertEquals(Schema.Type.STRUCT, result.type());
+        assertEquals(Schema.Type.BOOLEAN, result.field("boolField").schema().type());
     }
 
     @Test
