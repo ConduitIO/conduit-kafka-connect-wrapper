@@ -65,7 +65,7 @@ public class DestinationStreamTest {
         assertNull(sinkRecord.valueSchema());
         assertEquals(record.getKey().getRawData().toStringUtf8(), sinkRecord.key());
         assertEquals(
-                record.getPayload().getRawData(),
+                record.getPayload().getAfter().getRawData(),
                 ByteString.copyFrom((byte[]) sinkRecord.value())
         );
 

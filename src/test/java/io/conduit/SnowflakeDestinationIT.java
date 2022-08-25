@@ -211,10 +211,10 @@ public class SnowflakeDestinationIT {
 
     // Checks if given records has the provided content and key (taken from the metadata string)
     private boolean matches(String content, String metadata, Record rec) throws JsonProcessingException {
-        if (rec.getPayload().hasRawData()) {
+        if (rec.getPayload().getAfter().hasRawData()) {
             return matchesRawJson(content, metadata, rec);
         }
-        if (rec.getPayload().hasStructuredData()) {
+        if (rec.getPayload().getAfter().hasStructuredData()) {
             return matchesStruct(content, metadata, rec);
         }
         throw new IllegalArgumentException("record without any payload");
@@ -223,7 +223,7 @@ public class SnowflakeDestinationIT {
     @SneakyThrows
     private boolean matchesStruct(String content, String metadata, Record rec) {
         var key = rec.getKey().getRawData().toStringUtf8();
-        var payloadStruct = rec.getPayload().getStructuredData();
+        var payloadStruct = rec.getPayload().getAfter().getStructuredData();
 
         var contentStruct = Struct.newBuilder();
         JsonFormat.parser().merge(content, contentStruct);
@@ -235,7 +235,7 @@ public class SnowflakeDestinationIT {
     @SneakyThrows
     private boolean matchesRawJson(String content, String metadata, Record rec) {
         var key = rec.getKey().getRawData().toStringUtf8();
-        var payloadJson = mapper.readTree(rec.getPayload().getRawData().toStringUtf8());
+        var payloadJson = mapper.readTree(rec.getPayload().getAfter().getRawData().toStringUtf8());
         var contentJson = mapper.readTree(content);
         var metaJson = mapper.readTree(metadata);
         return payloadJson.equals(contentJson) && metaJson.path("key").asText().equals(key);

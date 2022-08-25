@@ -48,8 +48,8 @@ public class DebeziumPgSourceIT extends BasePostgresIT {
 
     @Override
     protected void assertNameUpdated(Record updated) {
-        assertTrue(updated.getPayload().hasStructuredData());
-        Struct struct = updated.getPayload().getStructuredData();
+        assertTrue(updated.getPayload().getAfter().hasStructuredData());
+        Struct struct = updated.getPayload().getAfter().getStructuredData();
         assertTrue(struct.getFieldsOrThrow("source").hasStructValue());
         assertTrue(struct.getFieldsOrThrow("before").hasNullValue());
         assertTrue(struct.getFieldsOrThrow("after").hasStructValue());
@@ -62,8 +62,8 @@ public class DebeziumPgSourceIT extends BasePostgresIT {
     protected void assertNewRecordOk(int index, Record rec) {
         assertKeyOk(index, rec);
 
-        assertTrue(rec.getPayload().hasStructuredData());
-        Struct struct = rec.getPayload().getStructuredData();
+        assertTrue(rec.getPayload().getAfter().hasStructuredData());
+        Struct struct = rec.getPayload().getAfter().getStructuredData();
         assertTrue(struct.getFieldsOrThrow("source").hasStructValue());
         assertTrue(struct.getFieldsOrThrow("before").hasNullValue());
         assertTrue(struct.getFieldsOrThrow("after").hasStructValue());
