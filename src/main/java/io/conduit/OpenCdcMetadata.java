@@ -16,10 +16,13 @@
 
 package io.conduit;
 
-public class OpenCdc {
+/**
+ * Contains OpenCDC metadata constants.
+ */
+public class OpenCdcMetadata {
     /**
      * CreatedAt can contain the time when the record was created in the 3rd party system.
      * The expected format is a unix timestamp in nanoseconds.
      */
-    public static String MetadataCreatedAt = "opencdc.createdAt";
+    public static String CREATED_AT = "opencdc.createdAt";
 }

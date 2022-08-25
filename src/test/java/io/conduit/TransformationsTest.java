@@ -6,7 +6,6 @@ import com.google.protobuf.Value;
 import com.google.protobuf.util.JsonFormat;
 import io.conduit.grpc.Change;
 import io.conduit.grpc.Data;
-import io.conduit.grpc.Opencdc;
 import io.conduit.grpc.Record;
 import lombok.SneakyThrows;
 import org.apache.kafka.connect.data.Schema;
@@ -82,7 +81,7 @@ public class TransformationsTest {
         var payload = conduitRec.getPayload().getAfter().getStructuredData();
         assertMatch(testValue, payload);
         // assert timestamp is within last second
-        long createdAt = Long.parseLong(conduitRec.getMetadataOrThrow(OpenCdc.MetadataCreatedAt));
+        long createdAt = Long.parseLong(conduitRec.getMetadataOrThrow(OpenCdcMetadata.CREATED_AT));
         assertTrue(
                 createdAt / 1_000_000 > System.currentTimeMillis() - 1000
         );
@@ -111,7 +110,7 @@ public class TransformationsTest {
         var payload = conduitRec.getPayload().getAfter().getStructuredData();
         assertMatch(testValue, payload);
         // assert timestamp is within last second
-        long createdAt = Long.parseLong(conduitRec.getMetadataOrThrow(OpenCdc.MetadataCreatedAt));
+        long createdAt = Long.parseLong(conduitRec.getMetadataOrThrow(OpenCdcMetadata.CREATED_AT));
         assertTrue(
                 createdAt / 1_000_000 > System.currentTimeMillis() - 1000
         );
@@ -227,7 +226,7 @@ public class TransformationsTest {
                 .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
                 .setPayload(newStructPayload())
                 .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
-                .putMetadata(OpenCdc.MetadataCreatedAt, "123456000000000")
+                .putMetadata(OpenCdcMetadata.CREATED_AT, "123456000000000")
                 .build();
     }
 
@@ -251,7 +250,7 @@ public class TransformationsTest {
                 .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
                 .setPayload(newRawPayloadJson())
                 .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
-                .putMetadata(OpenCdc.MetadataCreatedAt, "123456000000000")
+                .putMetadata(OpenCdcMetadata.CREATED_AT, "123456000000000")
                 .build();
     }
 
@@ -260,7 +259,7 @@ public class TransformationsTest {
                 .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
                 .setPayload(newRawPayload())
                 .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
-                .putMetadata(OpenCdc.MetadataCreatedAt, "123456000000000")
+                .putMetadata(OpenCdcMetadata.CREATED_AT, "123456000000000")
                 .build();
     }
 

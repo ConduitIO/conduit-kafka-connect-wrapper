@@ -55,7 +55,7 @@ public class Transformations {
                 .setKey(getKey(sourceRecord))
                 .setPayload(getPayload(sourceRecord))
                 // we need nanoseconds here
-                .putMetadata(OpenCdc.MetadataCreatedAt, String.valueOf(System.currentTimeMillis() * 1_000_000));
+                .putMetadata(OpenCdcMetadata.CREATED_AT, String.valueOf(System.currentTimeMillis() * 1_000_000));
     }
 
     private static Change getPayload(SourceRecord sourceRecord) {
