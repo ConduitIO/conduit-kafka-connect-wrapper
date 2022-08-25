@@ -40,7 +40,6 @@ jobs:
       - name: Test and analyze
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         # Skipping the tests as they have already been run above
         # -B (batch mode) to suppress progress (pollutes logs)
         # -DskipITs to skip integration tests (they are run in a separate job)
