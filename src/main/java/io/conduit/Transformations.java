@@ -16,13 +16,9 @@
 
 package io.conduit;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Struct;
-import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.JsonFormat;
 import io.conduit.grpc.Change;
 import io.conduit.grpc.Data;
@@ -31,8 +27,10 @@ import lombok.SneakyThrows;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
 import static io.conduit.Utils.jsonConvSchemaless;
-import static io.conduit.grpc.Opencdc.metadataCreatedAt;
 
 /**
  * A class holding common transformations between Conduit and Kafka connect data types.
@@ -56,7 +54,8 @@ public class Transformations {
         return Record.newBuilder()
                 .setKey(getKey(sourceRecord))
                 .setPayload(getPayload(sourceRecord))
-                .putMetadata("opencdc.createdAt", String.valueOf(System.currentTimeMillis()));
+                // we need nanoseconds here
+                .putMetadata(OpenCdc.MetadataCreatedAt, String.valueOf(System.currentTimeMillis()*1_000_000));
     }
 
     private static Change getPayload(SourceRecord sourceRecord) {
