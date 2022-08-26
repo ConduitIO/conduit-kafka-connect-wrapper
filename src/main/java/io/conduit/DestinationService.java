@@ -87,7 +87,10 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
                 throw new IllegalArgumentException("Schema name not provided");
             }
 
-            return new CombinedSchemaProvider(name, config.getOverrides());
+            return new CombinedSchemaProvider(
+                    new RawDataSchemaProvider(name, config.getOverrides()),
+                    new StructSchemaProvider(name, config.getOverrides())
+            );
         }
         // No schema information provided, so no schema is to be used.
         return new FixedSchemaProvider(null);
