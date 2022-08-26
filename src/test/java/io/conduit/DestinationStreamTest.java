@@ -29,7 +29,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class DestinationStreamTest {
-    private DestinationStream underTest;
+    private DefaultDestinationStream underTest;
     @Mock
     private SinkTask task;
     @Mock
@@ -43,12 +43,12 @@ public class DestinationStreamTest {
                 .field("id", Schema.INT32_SCHEMA)
                 .field("name", Schema.STRING_SCHEMA)
                 .build();
-        this.underTest = new DestinationStream(task, new FixedSchemaProvider(schema), streamObserver);
+        this.underTest = new DefaultDestinationStream(task, new FixedSchemaProvider(schema), streamObserver);
     }
 
     @Test
     public void testWriteRecordNoSchema() {
-        DestinationStream underTest = new DestinationStream(task, new FixedSchemaProvider(null), streamObserver);
+        DefaultDestinationStream underTest = new DefaultDestinationStream(task, new FixedSchemaProvider(null), streamObserver);
         Destination.Run.Request request = newRequest();
         Record record = request.getRecord();
 

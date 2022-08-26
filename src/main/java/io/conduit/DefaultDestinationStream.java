@@ -35,14 +35,14 @@ import org.apache.kafka.connect.sink.SinkTask;
 /**
  * A {@link io.grpc.stub.StreamObserver} implementation which exposes a Kafka connector sink task through a gRPC stream.
  */
-public class DestinationStream implements StreamObserver<Destination.Run.Request> {
+public class DefaultDestinationStream implements StreamObserver<Destination.Run.Request> {
     private final SinkTask task;
     private final SchemaProvider schemaProvider;
     private final StreamObserver<Destination.Run.Response> responseObserver;
 
-    public DestinationStream(SinkTask task,
-                             SchemaProvider schemaProvider,
-                             StreamObserver<Destination.Run.Response> responseObserver) {
+    public DefaultDestinationStream(SinkTask task,
+                                    SchemaProvider schemaProvider,
+                                    StreamObserver<Destination.Run.Response> responseObserver) {
         this.task = task;
         this.schemaProvider = schemaProvider;
         this.responseObserver = responseObserver;
