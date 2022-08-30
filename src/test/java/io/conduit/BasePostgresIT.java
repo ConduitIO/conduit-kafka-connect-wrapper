@@ -38,8 +38,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static io.conduit.grpc.Operation.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -82,12 +82,12 @@ public abstract class BasePostgresIT {
 
         StreamObserver runStream = run();
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
-        verify(runStream, timeout(1000).times(count)).onNext(captor.capture());
+        verify(runStream, timeout(10000000).times(count)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
         List<Source.Run.Response> responses = captor.getAllValues();
         for (int i = 0; i < count; i++) {
             Record rec = responses.get(i).getRecord();
-            assertNewRecordOk(i + 1, rec);
+            assertSnapshotRecord(i + 1, rec);
         }
 
         int updated = 3;
@@ -95,12 +95,13 @@ public abstract class BasePostgresIT {
         count += updated;
 
         captor = ArgumentCaptor.forClass(Source.Run.Response.class);
-        verify(runStream, timeout(1500).times(count)).onNext(captor.capture());
+        verify(runStream, timeout(1500000).times(count)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
         responses = captor.getAllValues();
-        for (int i = 0; i < count; i++) {
+        // check only the three updated records
+        for (int i = count - updated; i < count; i++) {
             Record rec = responses.get(i).getRecord();
-            assertNewRecordOk(i + 1, rec);
+            assertCreatedRecord(i + 1, rec);
         }
     }
 
@@ -111,9 +112,9 @@ public abstract class BasePostgresIT {
 
         StreamObserver runStream = run();
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
-        verify(runStream, timeout(1000)).onNext(captor.capture());
+        verify(runStream, timeout(10000000)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
-        assertNewRecordOk(1, captor.getAllValues().get(0).getRecord());
+        assertSnapshotRecord(1, captor.getAllValues().get(0).getRecord());
 
         updateName(1, "foobar");
         captor = ArgumentCaptor.forClass(Source.Run.Response.class);
@@ -123,6 +124,7 @@ public abstract class BasePostgresIT {
 
         Record updated = captor.getAllValues().get(1).getRecord();
         assertKeyOk(1, updated);
+        assertEquals(OPERATION_UPDATE, updated.getOperation());
         assertNameUpdated(updated);
     }
 
@@ -135,7 +137,7 @@ public abstract class BasePostgresIT {
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(runStream, timeout(1000)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
-        assertNewRecordOk(1, captor.getAllValues().get(0).getRecord());
+        assertSnapshotRecord(1, captor.getAllValues().get(0).getRecord());
 
         delete(1);
         captor = ArgumentCaptor.forClass(Source.Run.Response.class);
@@ -143,14 +145,13 @@ public abstract class BasePostgresIT {
         verify(runStream, timeout(2000).times(2)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
 
-        Record updated = captor.getAllValues().get(1).getRecord();
-        assertKeyOk(1, updated);
+        Record deleted = captor.getAllValues().get(1).getRecord();
+        assertKeyOk(1, deleted);
+        assertEquals(OPERATION_DELETE, deleted.getOperation());
 
-        assertTrue(updated.getPayload().getAfter().hasStructuredData());
-        Struct struct = updated.getPayload().getAfter().getStructuredData();
-        assertTrue(struct.getFieldsOrThrow("source").hasStructValue());
-        assertTrue(struct.getFieldsOrThrow("before").hasStructValue());
-        assertTrue(struct.getFieldsOrThrow("after").hasNullValue());
+        assertFalse(deleted.getPayload().getAfter().hasStructuredData());
+        assertFalse(deleted.getPayload().getAfter().hasRawData());
+        assertTrue(deleted.getPayload().getBefore().hasStructuredData());
     }
 
     private StreamObserver run() {
@@ -232,7 +233,9 @@ public abstract class BasePostgresIT {
 
     protected abstract void assertNameUpdated(Record updated);
 
-    protected abstract void assertNewRecordOk(int index, Record rec);
+    protected abstract void assertSnapshotRecord(int index, Record rec);
+
+    protected abstract void assertCreatedRecord(int index, Record rec);
 
     protected abstract Map<String, String> configMap();
 

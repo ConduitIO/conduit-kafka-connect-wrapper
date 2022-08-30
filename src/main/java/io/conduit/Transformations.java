@@ -18,6 +18,7 @@ package io.conduit;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.ByteString;
@@ -25,17 +26,29 @@ import com.google.protobuf.Struct;
 import com.google.protobuf.util.JsonFormat;
 import io.conduit.grpc.Change;
 import io.conduit.grpc.Data;
+import io.conduit.grpc.Operation;
 import io.conduit.grpc.Record;
 import lombok.SneakyThrows;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
 
 import static io.conduit.Utils.jsonConvSchemaless;
+import static io.conduit.grpc.Operation.OPERATION_CREATE;
+import static io.conduit.grpc.Operation.OPERATION_DELETE;
+import static io.conduit.grpc.Operation.OPERATION_SNAPSHOT;
+import static io.conduit.grpc.Operation.OPERATION_UNSPECIFIED;
+import static io.conduit.grpc.Operation.OPERATION_UPDATE;
 
 /**
  * A class holding common transformations between Conduit and Kafka connect data types.
  */
 public class Transformations {
+    private static final Map<String, Operation> DEBEZIUM_OPERATIONS = Map.of(
+            "c", OPERATION_CREATE,
+            "r", OPERATION_SNAPSHOT,
+            "u", OPERATION_UPDATE,
+            "d", OPERATION_DELETE
+    );
 
     private Transformations() {
 
@@ -58,7 +71,47 @@ public class Transformations {
                 .putMetadata(OpenCdcMetadata.CREATED_AT, String.valueOf(System.currentTimeMillis() * 1_000_000));
     }
 
+    /**
+     * Transforms a Kafka Connect {@link SourceRecord} into a Conduit record. Only the payload is set.
+     */
+    public static final Record.Builder fromDebeziumRecord(SourceRecord sourceRecord) {
+        if (sourceRecord == null) {
+            return null;
+        }
+        // The transformer returns a builder, so that it's easier to set other fields on the same record.
+        // We can return a record, but the caller would then need to transform it into a builder,
+        // which might create needless copies of fields.
+        return Record.newBuilder()
+                .setKey(getKey(sourceRecord))
+                .setOperation(getOperation(sourceRecord))
+                .setPayload(getChangePayload(sourceRecord))
+                // we need nanoseconds here
+                .putMetadata(OpenCdcMetadata.CREATED_AT, String.valueOf(System.currentTimeMillis() * 1_000_000));
+    }
+
+    private static Operation getOperation(SourceRecord record) {
+        if (record.valueSchema() == null || record.valueSchema().type() != Schema.Type.STRUCT) {
+            throw new IllegalArgumentException(
+                    "expected a record with a struct payload, but got " + record.valueSchema()
+            );
+        }
+
+        org.apache.kafka.connect.data.Struct struct = (org.apache.kafka.connect.data.Struct) record.value();
+        String op = struct.getString("op");
+        if (!DEBEZIUM_OPERATIONS.containsKey(op)) {
+            throw new IllegalArgumentException("invalid Debezium operation: " + op);
+        }
+        return DEBEZIUM_OPERATIONS.get(op);
+    }
+
     private static Change getPayload(SourceRecord sourceRecord) {
+        if (sourceRecord.valueSchema() != null) {
+            return schemaValueToAfter(sourceRecord.valueSchema(), sourceRecord.value());
+        }
+        throw new UnsupportedOperationException("payloads without schemas not supported yet");
+    }
+
+    private static Change getChangePayload(SourceRecord sourceRecord) {
         if (sourceRecord.valueSchema() != null) {
             return schemaValueToChange(sourceRecord.valueSchema(), sourceRecord.value());
         }
@@ -76,10 +129,30 @@ public class Transformations {
     }
 
     @SneakyThrows
-    private static Change schemaValueToChange(Schema schema, Object value) {
+    private static Change schemaValueToAfter(Schema schema, Object value) {
         return Change.newBuilder()
                 .setAfter(schemaValueToData(schema, value))
                 .build();
+    }
+
+    @SneakyThrows
+    private static Change schemaValueToChange(Schema schema, Object value) {
+        if (!(value instanceof org.apache.kafka.connect.data.Struct)) {
+            throw new IllegalArgumentException("expected a Struct");
+        }
+        org.apache.kafka.connect.data.Struct struct = (org.apache.kafka.connect.data.Struct) value;
+
+        Change.Builder builder = Change.newBuilder();
+        org.apache.kafka.connect.data.Struct after = struct.getStruct("after");
+        if (after != null) {
+            builder.setAfter(schemaValueToData(after.schema(), after));
+        }
+
+        org.apache.kafka.connect.data.Struct before = struct.getStruct("before");
+        if (before != null) {
+            builder.setBefore(schemaValueToData(before.schema(), before));
+        }
+        return builder.build();
     }
 
     @SneakyThrows

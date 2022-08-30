@@ -16,12 +16,16 @@
 
 package io.conduit;
 
+import java.awt.image.AffineTransformOp;
 import java.util.Map;
+import java.util.function.Function;
 
+import io.conduit.grpc.Record;
 import io.conduit.grpc.Source;
 import io.conduit.grpc.SourcePluginGrpc;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
+import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 
 /**
@@ -98,10 +102,21 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
                 task,
                 position,
                 responseObserver,
-                Transformations::fromKafkaSource
+                getTransformation()
         );
         runStream.startAsync();
         return runStream;
+    }
+
+    private Function<SourceRecord, Record.Builder> getTransformation() {
+        if (cdcSupported()) {
+            return Transformations::fromDebeziumRecord;
+        }
+        return Transformations::fromKafkaSource;
+    }
+
+    private boolean cdcSupported() {
+        return task.getClass().getCanonicalName().startsWith("io.debezium.connector");
     }
 
     @Override

@@ -54,7 +54,13 @@ public class JdbcPgSourceIT extends BasePostgresIT {
     }
 
     @Override
-    protected void assertNewRecordOk(int index, Record rec) {
+    protected void assertSnapshotRecord(int index, Record rec) {
+        assertTrue(rec.getPayload().getAfter().hasStructuredData());
+        assertPayloadOk(index, rec.getPayload().getAfter().getStructuredData());
+    }
+
+    @Override
+    protected void assertCreatedRecord(int index, Record rec) {
         assertTrue(rec.getPayload().getAfter().hasStructuredData());
         assertPayloadOk(index, rec.getPayload().getAfter().getStructuredData());
     }

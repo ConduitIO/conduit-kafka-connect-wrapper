@@ -19,9 +19,12 @@ package io.conduit;
 import java.util.Map;
 
 import com.google.protobuf.Struct;
+import io.conduit.grpc.Operation;
 import io.conduit.grpc.Record;
 import lombok.Builder;
 
+import static io.conduit.grpc.Operation.OPERATION_CREATE;
+import static io.conduit.grpc.Operation.OPERATION_SNAPSHOT;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class DebeziumPgSourceIT extends BasePostgresIT {
@@ -49,26 +52,39 @@ public class DebeziumPgSourceIT extends BasePostgresIT {
     @Override
     protected void assertNameUpdated(Record updated) {
         assertTrue(updated.getPayload().getAfter().hasStructuredData());
-        Struct struct = updated.getPayload().getAfter().getStructuredData();
-        assertTrue(struct.getFieldsOrThrow("source").hasStructValue());
-        assertTrue(struct.getFieldsOrThrow("before").hasNullValue());
-        assertTrue(struct.getFieldsOrThrow("after").hasStructValue());
+        assertTrue(updated.getPayload().getBefore().hasStructuredData());
 
-        Struct after = struct.getFieldsOrThrow("after").getStructValue();
+        Struct after = updated.getPayload().getAfter().getStructuredData();
         assertEquals("foobar", after.getFieldsOrThrow("name").getStringValue());
     }
 
     @Override
-    protected void assertNewRecordOk(int index, Record rec) {
+    protected void assertSnapshotRecord(int index, Record rec) {
         assertKeyOk(index, rec);
 
-        assertTrue(rec.getPayload().getAfter().hasStructuredData());
-        Struct struct = rec.getPayload().getAfter().getStructuredData();
-        assertTrue(struct.getFieldsOrThrow("source").hasStructValue());
-        assertTrue(struct.getFieldsOrThrow("before").hasNullValue());
-        assertTrue(struct.getFieldsOrThrow("after").hasStructValue());
+        assertEquals(OPERATION_SNAPSHOT, rec.getOperation());
 
-        Struct after = struct.getFieldsOrThrow("after").getStructValue();
+        assertTrue(rec.getPayload().getAfter().hasStructuredData());
+        assertTrue(rec.getPayload().getAfter().hasStructuredData());
+        assertFalse(rec.getPayload().getBefore().hasStructuredData());
+        assertFalse(rec.getPayload().getBefore().hasRawData());
+
+        Struct after = rec.getPayload().getAfter().getStructuredData();
+        assertPayloadOk(index, after);
+    }
+
+    @Override
+    protected void assertCreatedRecord(int index, Record rec) {
+        assertKeyOk(index, rec);
+
+        assertEquals(OPERATION_CREATE, rec.getOperation());
+
+        assertTrue(rec.getPayload().getAfter().hasStructuredData());
+        assertTrue(rec.getPayload().getAfter().hasStructuredData());
+        assertFalse(rec.getPayload().getBefore().hasStructuredData());
+        assertFalse(rec.getPayload().getBefore().hasRawData());
+
+        Struct after = rec.getPayload().getAfter().getStructuredData();
         assertPayloadOk(index, after);
     }
 }
