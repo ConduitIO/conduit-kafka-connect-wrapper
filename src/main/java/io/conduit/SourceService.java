@@ -109,9 +109,9 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
 
     private Function<SourceRecord, Record.Builder> getTransformation() {
         if (cdcSupported()) {
-            return Transformations::fromDebeziumRecord;
+            return new DebeziumToOpenCDC();
         }
-        return Transformations::fromKafkaSource;
+        return new KafkaToOpenCDC();
     }
 
     private boolean cdcSupported() {
