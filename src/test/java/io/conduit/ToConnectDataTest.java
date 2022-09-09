@@ -1,3 +1,19 @@
+/*
+ * Copyright 2022 Meroxa, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.conduit;
 
 import java.util.List;
@@ -21,12 +37,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class TransformationsTest {
+public class ToConnectDataTest {
+    private ToConnectData underTest;
     private Schema valueSchema;
     private JsonNode testRecord;
 
     @BeforeEach
     public void setUp() {
+        underTest = new ToConnectData();
+
         valueSchema = new SchemaBuilder(Schema.Type.STRUCT)
                 .name("customers")
                 .field("id", Schema.INT32_SCHEMA)
@@ -48,7 +67,7 @@ public class TransformationsTest {
     public void testToSinkRecord_NoRecord() {
         var e = assertThrows(
                 IllegalArgumentException.class,
-                () -> Transformations.toConnectData(null, null)
+                () -> underTest.apply(null, null)
         );
         assertEquals("record is null", e.getMessage());
     }
@@ -58,7 +77,7 @@ public class TransformationsTest {
         var rec = Record.newBuilder().build();
         var e = assertThrows(
                 IllegalArgumentException.class,
-                () -> Transformations.toConnectData(rec, null)
+                () -> underTest.apply(rec, null)
         );
         assertEquals("record has no payload or has no after data", e.getMessage());
     }
@@ -70,7 +89,7 @@ public class TransformationsTest {
                 .optional()
                 .build();
         var rec = newRecordRawData();
-        var sinkRecObj = Transformations.toConnectData(rec, schema);
+        var sinkRecObj = underTest.apply(rec, schema);
         assertInstanceOf(byte[].class, sinkRecObj);
         assertArrayEquals(rec.getPayload().getAfter().getRawData().toByteArray(), (byte[]) sinkRecObj);
     }
@@ -82,7 +101,7 @@ public class TransformationsTest {
                 .optional()
                 .build();
         var rec = newRecordRawData();
-        var sinkRecObj = Transformations.toConnectData(rec, schema);
+        var sinkRecObj = underTest.apply(rec, schema);
         assertInstanceOf(String.class, sinkRecObj);
         assertEquals(rec.getPayload().getAfter().getRawData().toStringUtf8(), sinkRecObj);
     }
@@ -90,7 +109,7 @@ public class TransformationsTest {
     @Test
     public void testToSinkRecord_RawDataJson() {
         var rec = newRecordRawDataJson();
-        var sinkRecObj = Transformations.toConnectData(rec, valueSchema);
+        var sinkRecObj = underTest.apply(rec, valueSchema);
         assertInstanceOf(Struct.class, sinkRecObj);
 
         Struct value = (Struct) sinkRecObj;
@@ -107,7 +126,7 @@ public class TransformationsTest {
 
         var e = assertThrows(
                 IllegalArgumentException.class,
-                () -> Transformations.toConnectData(rec, null)
+                () -> underTest.apply(rec, null)
         );
         assertEquals(
                 "cannot parse struct without schema",
@@ -119,7 +138,7 @@ public class TransformationsTest {
     public void testToSinkRecord_StructuredData() {
         var rec = newRecordStructData();
 
-        verifySinkRecord(Transformations.toConnectData(rec, valueSchema));
+        verifySinkRecord(underTest.apply(rec, valueSchema));
     }
 
     public void verifySinkRecord(Object actualObj) {

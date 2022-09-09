@@ -18,6 +18,7 @@ package io.conduit;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.function.BiFunction;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.util.JsonFormat;
@@ -26,19 +27,13 @@ import lombok.SneakyThrows;
 import org.apache.kafka.connect.data.Schema;
 
 /**
- * A class holding common transformations between Conduit and Kafka connect data types.
+ * Transforms the input Conduit record into a Kafka connect data type
+ * (if the record contains structured data or if a schema is provided).
+ * Otherwise, returns the raw payload's byte data.
  */
-public class Transformations {
-    private Transformations() {
-
-    }
-
-    /**
-     * Transforms the input Conduit record into a Kafka connect data type
-     * (if the record contains structured data or if a schema is provided).
-     * Otherwise, returns the raw payload's byte data.
-     */
-    public static Object toConnectData(Record rec, Schema schema) {
+public class ToConnectData implements BiFunction<Record, Schema, Object> {
+    @Override
+    public Object apply(Record rec, Schema schema) {
         if (rec == null) {
             throw new IllegalArgumentException("record is null");
         }
@@ -47,14 +42,14 @@ public class Transformations {
         }
 
         if (rec.getPayload().getAfter().hasStructuredData()) {
-            return Transformations.parseStructured(rec, schema);
+            return parseStructured(rec, schema);
         } else {
-            return Transformations.parseRaw(rec, schema);
+            return parseRaw(rec, schema);
         }
     }
 
     @SneakyThrows
-    private static Object parseStructured(Record rec, Schema schema) {
+    private Object parseStructured(Record rec, Schema schema) {
         if (schema == null) {
             throw new IllegalArgumentException("cannot parse struct without schema");
         }
@@ -69,7 +64,7 @@ public class Transformations {
     }
 
     @SneakyThrows
-    private static Object parseRaw(Record rec, Schema schema) {
+    private Object parseRaw(Record rec, Schema schema) {
         byte[] content = rec.getPayload().getAfter().getRawData().toByteArray();
         if (schema == null) {
             return content;
@@ -83,7 +78,7 @@ public class Transformations {
         return jsonToStruct(content, schema);
     }
 
-    private static Object jsonToStruct(byte[] content, Schema schema) throws IOException {
+    private Object jsonToStruct(byte[] content, Schema schema) throws IOException {
         // todo optimize memory usage here
         // See: https://github.com/ConduitIO/conduit-kafka-connect-wrapper/issues/58
         ObjectNode json = Utils.mapper.createObjectNode();

@@ -19,6 +19,7 @@ package io.conduit;
 import java.util.function.Function;
 
 import io.conduit.grpc.Change;
+import io.conduit.grpc.Operation;
 import io.conduit.grpc.Record;
 import lombok.SneakyThrows;
 import org.apache.kafka.connect.data.Schema;
@@ -39,6 +40,7 @@ public class KafkaToOpenCDC extends SourceRecordConverter implements Function<So
         return Record.newBuilder()
                 .setKey(getKey(sourceRecord))
                 .setPayload(getPayload(sourceRecord))
+                .setOperation(Operation.OPERATION_CREATE)
                 // we need nanoseconds here
                 .putMetadata(OpenCdcMetadata.CREATED_AT, String.valueOf(System.currentTimeMillis() * 1_000_000));
     }
