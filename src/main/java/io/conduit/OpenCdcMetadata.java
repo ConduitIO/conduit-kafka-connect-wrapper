@@ -28,5 +28,5 @@ public final class OpenCdcMetadata {
      * CreatedAt can contain the time when the record was created in the 3rd party system.
      * The expected format is a unix timestamp in nanoseconds.
      */
-    public static String CREATED_AT = "opencdc.createdAt";
+    public static String READ_AT = "opencdc.readAt";
 }
