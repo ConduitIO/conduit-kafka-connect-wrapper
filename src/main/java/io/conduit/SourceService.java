@@ -16,7 +16,6 @@
 
 package io.conduit;
 
-import java.awt.image.AffineTransformOp;
 import java.util.Map;
 import java.util.function.Function;
 
