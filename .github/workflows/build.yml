@@ -39,7 +39,7 @@ jobs:
 
       - name: Test and analyze
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
         # Skipping the tests as they have already been run above
         # -B (batch mode) to suppress progress (pollutes logs)
