@@ -55,7 +55,7 @@ public class DebeziumToOpenCDC extends SourceRecordConverter implements Function
                 .setOperation(getOperation(sourceRecord))
                 .setPayload(getChangePayload(sourceRecord))
                 // we need nanoseconds here
-                .putMetadata(OpenCdcMetadata.CREATED_AT, String.valueOf(System.currentTimeMillis() * 1_000_000));
+                .putMetadata(OpenCdcMetadata.READ_AT, String.valueOf(System.currentTimeMillis() * 1_000_000));
     }
 
     private Operation getOperation(SourceRecord record) {

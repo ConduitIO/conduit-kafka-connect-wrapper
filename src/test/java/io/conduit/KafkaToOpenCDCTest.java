@@ -90,7 +90,7 @@ public class KafkaToOpenCDCTest {
         var payload = conduitRec.getPayload().getAfter().getStructuredData();
         assertMatch(testValue, payload);
         // assert timestamp is within last second
-        long createdAt = Long.parseLong(conduitRec.getMetadataOrThrow(OpenCdcMetadata.CREATED_AT));
+        long createdAt = Long.parseLong(conduitRec.getMetadataOrThrow(OpenCdcMetadata.READ_AT));
         assertTrue(
                 createdAt / 1_000_000 > System.currentTimeMillis() - 1000
         );
@@ -119,7 +119,7 @@ public class KafkaToOpenCDCTest {
         var payload = conduitRec.getPayload().getAfter().getStructuredData();
         assertMatch(testValue, payload);
         // assert timestamp is within last second
-        long createdAt = Long.parseLong(conduitRec.getMetadataOrThrow(OpenCdcMetadata.CREATED_AT));
+        long createdAt = Long.parseLong(conduitRec.getMetadataOrThrow(OpenCdcMetadata.READ_AT));
         assertTrue(
                 createdAt / 1_000_000 > System.currentTimeMillis() - 1000
         );

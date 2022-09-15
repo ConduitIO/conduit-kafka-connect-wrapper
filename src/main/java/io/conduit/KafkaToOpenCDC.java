@@ -42,7 +42,7 @@ public class KafkaToOpenCDC extends SourceRecordConverter implements Function<So
                 .setPayload(getPayload(sourceRecord))
                 .setOperation(Operation.OPERATION_CREATE)
                 // we need nanoseconds here
-                .putMetadata(OpenCdcMetadata.CREATED_AT, String.valueOf(System.currentTimeMillis() * 1_000_000));
+                .putMetadata(OpenCdcMetadata.READ_AT, String.valueOf(System.currentTimeMillis() * 1_000_000));
     }
 
     private Change getPayload(SourceRecord sourceRecord) {

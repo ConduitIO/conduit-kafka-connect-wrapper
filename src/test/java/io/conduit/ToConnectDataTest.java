@@ -154,7 +154,7 @@ public class ToConnectDataTest {
                 .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
                 .setPayload(newStructPayload())
                 .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
-                .putMetadata(OpenCdcMetadata.CREATED_AT, "123456000000000")
+                .putMetadata(OpenCdcMetadata.READ_AT, "123456000000000")
                 .build();
     }
 
@@ -178,7 +178,7 @@ public class ToConnectDataTest {
                 .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
                 .setPayload(newRawPayloadJson())
                 .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
-                .putMetadata(OpenCdcMetadata.CREATED_AT, "123456000000000")
+                .putMetadata(OpenCdcMetadata.READ_AT, "123456000000000")
                 .build();
     }
 
@@ -187,7 +187,7 @@ public class ToConnectDataTest {
                 .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
                 .setPayload(newRawPayload())
                 .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
-                .putMetadata(OpenCdcMetadata.CREATED_AT, "123456000000000")
+                .putMetadata(OpenCdcMetadata.READ_AT, "123456000000000")
                 .build();
     }
 

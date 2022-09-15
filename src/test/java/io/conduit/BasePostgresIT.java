@@ -141,7 +141,7 @@ public abstract class BasePostgresIT {
 
         StreamObserver runStream = run();
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
-        verify(runStream, timeout(1000)).onNext(captor.capture());
+        verify(runStream, timeout(1500)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
         assertSnapshotRecord(1, captor.getAllValues().get(0).getRecord());
 
