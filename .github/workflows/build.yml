@@ -39,12 +39,13 @@ jobs:
 
       - name: Test and analyze
         env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
         # Skipping the tests as they have already been run above
         # -B (batch mode) to suppress progress (pollutes logs)
         # -DskipITs to skip integration tests (they are run in a separate job)
         # -Pcoverage to use a Maven profile, which generates a test coverage report
-        run: mvn -B -DskipITs -Pcoverage verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.host.url=https://sonarcloud.io -Dsonar.organization=conduitio -Dsonar.projectKey=conduit-kafka-connect-wrapper -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+        run: mvn -B -DskipITs -Pcoverage verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.host.url=https://sonarcloud.io -Dsonar.organization=conduitio -Dsonar.projectKey=conduit-kafka-connect-wrapper -Dsonar.login="$SONAR_TOKEN"
 
   integration-tests:
     # Run separately, because they do not affect the code analysis,
