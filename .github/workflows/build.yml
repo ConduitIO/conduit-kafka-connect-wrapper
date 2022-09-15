@@ -39,6 +39,7 @@ jobs:
 
       - name: Test and analyze
         env:
+          # Managed through https://sonarcloud.io/account/security/
           SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
         # Skipping the tests as they have already been run above
