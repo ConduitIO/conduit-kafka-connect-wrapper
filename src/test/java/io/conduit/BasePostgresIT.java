@@ -38,9 +38,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import static io.conduit.grpc.Operation.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static io.conduit.grpc.Operation.OPERATION_DELETE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
 
 /**
  * A base test for PostgreSQL sources. It assumes a certain structure of the test table and test records.
@@ -82,7 +88,7 @@ public abstract class BasePostgresIT {
 
         StreamObserver runStream = run();
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
-        verify(runStream, timeout(10000000).times(count)).onNext(captor.capture());
+        verify(runStream, timeout(1000).times(count)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
         List<Source.Run.Response> responses = captor.getAllValues();
         for (int i = 0; i < count; i++) {
@@ -95,7 +101,7 @@ public abstract class BasePostgresIT {
         count += updated;
 
         captor = ArgumentCaptor.forClass(Source.Run.Response.class);
-        verify(runStream, timeout(1500000).times(count)).onNext(captor.capture());
+        verify(runStream, timeout(1500).times(count)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
         responses = captor.getAllValues();
         // check only the three updated records
@@ -112,7 +118,7 @@ public abstract class BasePostgresIT {
 
         StreamObserver runStream = run();
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
-        verify(runStream, timeout(10000000)).onNext(captor.capture());
+        verify(runStream, timeout(1000)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
         assertSnapshotRecord(1, captor.getAllValues().get(0).getRecord());
 
@@ -124,7 +130,7 @@ public abstract class BasePostgresIT {
 
         Record updated = captor.getAllValues().get(1).getRecord();
         assertKeyOk(1, updated);
-        assertEquals(OPERATION_UPDATE, updated.getOperation());
+        assertUpdateOperation(updated);
         assertNameUpdated(updated);
     }
 
@@ -135,7 +141,7 @@ public abstract class BasePostgresIT {
 
         StreamObserver runStream = run();
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
-        verify(runStream, timeout(1000)).onNext(captor.capture());
+        verify(runStream, timeout(1500)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
         assertSnapshotRecord(1, captor.getAllValues().get(0).getRecord());
 
@@ -240,4 +246,6 @@ public abstract class BasePostgresIT {
     protected abstract Map<String, String> configMap();
 
     protected abstract void assertKeyOk(int index, Record rec);
+
+    protected abstract void assertUpdateOperation(Record updated);
 }

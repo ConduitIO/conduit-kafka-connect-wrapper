@@ -20,6 +20,8 @@ import java.util.Map;
 
 import io.conduit.grpc.Record;
 
+import static io.conduit.grpc.Operation.OPERATION_CREATE;
+import static io.conduit.grpc.Operation.OPERATION_UPDATE;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class JdbcPgSourceIT extends BasePostgresIT {
@@ -68,5 +70,10 @@ public class JdbcPgSourceIT extends BasePostgresIT {
     @Override
     protected void assertKeyOk(int index, Record rec) {
         assertEquals(index, rec.getPayload().getAfter().getStructuredData().getFieldsOrThrow("id").getNumberValue());
+    }
+
+    @Override
+    protected void assertUpdateOperation(Record updated) {
+        assertEquals(OPERATION_CREATE, updated.getOperation());
     }
 }

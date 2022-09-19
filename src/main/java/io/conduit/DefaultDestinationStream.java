@@ -39,6 +39,7 @@ public class DefaultDestinationStream implements StreamObserver<Destination.Run.
     private final SinkTask task;
     private final SchemaProvider schemaProvider;
     private final StreamObserver<Destination.Run.Response> responseObserver;
+    private final ToConnectData toConnectData;
 
     public DefaultDestinationStream(SinkTask task,
                                     SchemaProvider schemaProvider,
@@ -46,6 +47,7 @@ public class DefaultDestinationStream implements StreamObserver<Destination.Run.
         this.task = task;
         this.schemaProvider = schemaProvider;
         this.responseObserver = responseObserver;
+        this.toConnectData = new ToConnectData();
     }
 
     @Override
@@ -89,7 +91,7 @@ public class DefaultDestinationStream implements StreamObserver<Destination.Run.
         // Also related to: https://github.com/ConduitIO/conduit-kafka-connect-wrapper/issues/58
         var schema = schemaProvider.provide(rec);
 
-        Object value = Transformations.toConnectData(rec, schema);
+        Object value = toConnectData.apply(rec, schema);
         var schemaUsed = getSchema(value, schema);
         // While there's no real topic involved, we still assign values
         // to topic, partition and offset since the underlying connector might use them.

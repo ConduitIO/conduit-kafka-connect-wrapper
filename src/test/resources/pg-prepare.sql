@@ -9,3 +9,4 @@ CREATE TABLE employees (
 );
 CREATE SEQUENCE employees_id_seq;
 ALTER TABLE employees ALTER id SET DEFAULT NEXTVAL('employees_id_seq');
+ALTER TABLE employees REPLICA IDENTITY FULL;

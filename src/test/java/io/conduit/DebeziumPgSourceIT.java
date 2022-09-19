@@ -25,6 +25,7 @@ import lombok.Builder;
 
 import static io.conduit.grpc.Operation.OPERATION_CREATE;
 import static io.conduit.grpc.Operation.OPERATION_SNAPSHOT;
+import static io.conduit.grpc.Operation.OPERATION_UPDATE;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class DebeziumPgSourceIT extends BasePostgresIT {
@@ -86,5 +87,10 @@ public class DebeziumPgSourceIT extends BasePostgresIT {
 
         Struct after = rec.getPayload().getAfter().getStructuredData();
         assertPayloadOk(index, after);
+    }
+
+    @Override
+    protected void assertUpdateOperation(Record updated) {
+        assertEquals(OPERATION_UPDATE, updated.getOperation());
     }
 }

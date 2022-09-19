@@ -58,6 +58,10 @@ public class SourceServiceTest {
         verify(streamObserver).onError(captor.capture());
         assertInstanceOf(StatusException.class, captor.getValue());
         assertEquals(exception, captor.getValue().getCause());
+        assertEquals(
+            "INTERNAL: couldn't configure task: java.lang.RuntimeException: surprised ya, huh?",
+            captor.getValue().getMessage()
+        );
     }
 
     @Test

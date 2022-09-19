@@ -1,8 +1,26 @@
+/*
+ * Copyright 2022 Meroxa, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.conduit;
+
+import java.util.List;
+import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.ByteString;
-import com.google.protobuf.Value;
 import com.google.protobuf.util.JsonFormat;
 import io.conduit.grpc.Change;
 import io.conduit.grpc.Data;
@@ -11,26 +29,23 @@ import lombok.SneakyThrows;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import static io.conduit.Transformations.fromKafkaSource;
-import static org.junit.jupiter.api.Assertions.*;
-
-public class TransformationsTest {
+public class ToConnectDataTest {
+    private ToConnectData underTest;
     private Schema valueSchema;
-    private Schema keySchema;
-    private Struct testValue;
     private JsonNode testRecord;
 
     @BeforeEach
     public void setUp() {
+        underTest = new ToConnectData();
+
         valueSchema = new SchemaBuilder(Schema.Type.STRUCT)
                 .name("customers")
                 .field("id", Schema.INT32_SCHEMA)
@@ -39,17 +54,7 @@ public class TransformationsTest {
                 .field("trial", SchemaBuilder.BOOLEAN_SCHEMA)
                 .field("balance", Schema.FLOAT64_SCHEMA)
                 .build();
-        keySchema = new SchemaBuilder(Schema.Type.STRUCT)
-                .name("customer_id_schema")
-                .field("id", Schema.INT32_SCHEMA)
-                .build();
 
-        testValue = new Struct(valueSchema)
-                .put("id", 123)
-                .put("name", "foobar")
-                .put("trial", true)
-                .put("balance", 33.44)
-                .put("interests", List.of("aaa", "bbb"));
         testRecord = Utils.mapper.createObjectNode()
                 .put("id", 123)
                 .put("name", "foobar")
@@ -59,87 +64,10 @@ public class TransformationsTest {
     }
 
     @Test
-    public void testFromKafkaSource_Null() {
-        assertNull(fromKafkaSource(null));
-    }
-
-    @SneakyThrows
-    @Test
-    public void testFromKafkaSource_WithValueSchema_NoKeySchema() {
-        var sourceRecord = new SourceRecord(
-                Map.of("test-partition", "test_table"),
-                Map.of("test-offset", 123456L),
-                "test-topic",
-                2,
-                valueSchema,
-                testValue
-        );
-        Record.Builder conduitRec = Transformations.fromKafkaSource(sourceRecord);
-        assertNotNull(conduitRec);
-
-        // verify payload
-        var payload = conduitRec.getPayload().getAfter().getStructuredData();
-        assertMatch(testValue, payload);
-        // assert timestamp is within last second
-        long createdAt = Long.parseLong(conduitRec.getMetadataOrThrow(OpenCdcMetadata.CREATED_AT));
-        assertTrue(
-                createdAt / 1_000_000 > System.currentTimeMillis() - 1000
-        );
-        // verify key
-        assertFalse(conduitRec.getKey().hasRawData());
-        assertFalse(conduitRec.getKey().hasStructuredData());
-    }
-
-    @SneakyThrows
-    @Test
-    public void testFromKafkaSource_WithValueSchema_WithKeySchema() {
-        var sourceRecord = new SourceRecord(
-                Map.of("test-partition", "test_table"),
-                Map.of("test-offset", 123456L),
-                "test-topic",
-                2,
-                keySchema,
-                new Struct(keySchema).put("id", 123),
-                valueSchema,
-                testValue
-        );
-        Record.Builder conduitRec = Transformations.fromKafkaSource(sourceRecord);
-        assertNotNull(conduitRec);
-
-        // verify payload
-        var payload = conduitRec.getPayload().getAfter().getStructuredData();
-        assertMatch(testValue, payload);
-        // assert timestamp is within last second
-        long createdAt = Long.parseLong(conduitRec.getMetadataOrThrow(OpenCdcMetadata.CREATED_AT));
-        assertTrue(
-                createdAt / 1_000_000 > System.currentTimeMillis() - 1000
-        );
-        // verify key
-        assertFalse(conduitRec.getKey().hasRawData());
-        assertTrue(conduitRec.getKey().hasStructuredData());
-        com.google.protobuf.Struct key = conduitRec.getKey().getStructuredData();
-        assertEquals(123, key.getFieldsOrThrow("id").getNumberValue());
-    }
-
-    private void assertMatch(Struct expected, com.google.protobuf.Struct payload) {
-        assertEquals(expected.get("id"), (int) payload.getFieldsOrThrow("id").getNumberValue());
-        assertEquals(expected.get("name"), payload.getFieldsOrThrow("name").getStringValue());
-        assertEquals(expected.get("trial"), payload.getFieldsOrThrow("trial").getBoolValue());
-        assertEquals(expected.get("balance"), payload.getFieldsOrThrow("balance").getNumberValue());
-        List<String> interestsExpected = expected.getArray("interests");
-        List<String> interestsActual = payload.getFieldsOrThrow("interests")
-                .getListValue().getValuesList()
-                .stream()
-                .map(Value::getStringValue)
-                .collect(Collectors.toList());
-        assertEquals(interestsExpected, interestsActual);
-    }
-
-    @Test
     public void testToSinkRecord_NoRecord() {
         var e = assertThrows(
                 IllegalArgumentException.class,
-                () -> Transformations.toConnectData(null, null)
+                () -> underTest.apply(null, null)
         );
         assertEquals("record is null", e.getMessage());
     }
@@ -149,7 +77,7 @@ public class TransformationsTest {
         var rec = Record.newBuilder().build();
         var e = assertThrows(
                 IllegalArgumentException.class,
-                () -> Transformations.toConnectData(rec, null)
+                () -> underTest.apply(rec, null)
         );
         assertEquals("record has no payload or has no after data", e.getMessage());
     }
@@ -161,7 +89,7 @@ public class TransformationsTest {
                 .optional()
                 .build();
         var rec = newRecordRawData();
-        var sinkRecObj = Transformations.toConnectData(rec, schema);
+        var sinkRecObj = underTest.apply(rec, schema);
         assertInstanceOf(byte[].class, sinkRecObj);
         assertArrayEquals(rec.getPayload().getAfter().getRawData().toByteArray(), (byte[]) sinkRecObj);
     }
@@ -173,7 +101,7 @@ public class TransformationsTest {
                 .optional()
                 .build();
         var rec = newRecordRawData();
-        var sinkRecObj = Transformations.toConnectData(rec, schema);
+        var sinkRecObj = underTest.apply(rec, schema);
         assertInstanceOf(String.class, sinkRecObj);
         assertEquals(rec.getPayload().getAfter().getRawData().toStringUtf8(), sinkRecObj);
     }
@@ -181,7 +109,7 @@ public class TransformationsTest {
     @Test
     public void testToSinkRecord_RawDataJson() {
         var rec = newRecordRawDataJson();
-        var sinkRecObj = Transformations.toConnectData(rec, valueSchema);
+        var sinkRecObj = underTest.apply(rec, valueSchema);
         assertInstanceOf(Struct.class, sinkRecObj);
 
         Struct value = (Struct) sinkRecObj;
@@ -198,7 +126,7 @@ public class TransformationsTest {
 
         var e = assertThrows(
                 IllegalArgumentException.class,
-                () -> Transformations.toConnectData(rec, null)
+                () -> underTest.apply(rec, null)
         );
         assertEquals(
                 "cannot parse struct without schema",
@@ -210,7 +138,7 @@ public class TransformationsTest {
     public void testToSinkRecord_StructuredData() {
         var rec = newRecordStructData();
 
-        verifySinkRecord(Transformations.toConnectData(rec, valueSchema));
+        verifySinkRecord(underTest.apply(rec, valueSchema));
     }
 
     public void verifySinkRecord(Object actualObj) {
@@ -226,7 +154,7 @@ public class TransformationsTest {
                 .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
                 .setPayload(newStructPayload())
                 .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
-                .putMetadata(OpenCdcMetadata.CREATED_AT, "123456000000000")
+                .putMetadata(OpenCdcMetadata.READ_AT, "123456000000000")
                 .build();
     }
 
@@ -250,7 +178,7 @@ public class TransformationsTest {
                 .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
                 .setPayload(newRawPayloadJson())
                 .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
-                .putMetadata(OpenCdcMetadata.CREATED_AT, "123456000000000")
+                .putMetadata(OpenCdcMetadata.READ_AT, "123456000000000")
                 .build();
     }
 
@@ -259,7 +187,7 @@ public class TransformationsTest {
                 .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
                 .setPayload(newRawPayload())
                 .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
-                .putMetadata(OpenCdcMetadata.CREATED_AT, "123456000000000")
+                .putMetadata(OpenCdcMetadata.READ_AT, "123456000000000")
                 .build();
     }
 
