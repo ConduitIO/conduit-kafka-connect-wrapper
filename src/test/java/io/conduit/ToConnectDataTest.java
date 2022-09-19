@@ -17,10 +17,13 @@
 package io.conduit;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Value;
 import com.google.protobuf.util.JsonFormat;
 import io.conduit.grpc.Change;
 import io.conduit.grpc.Data;
@@ -29,13 +32,12 @@ import lombok.SneakyThrows;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static io.conduit.Transformations.fromKafkaSource;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class ToConnectDataTest {
     private ToConnectData underTest;
@@ -61,6 +63,83 @@ public class ToConnectDataTest {
                 .put("trial", true)
                 .put("balance", 33.44)
                 .set("interests", Utils.mapper.createArrayNode().add("aaa").add("bbb"));
+    }
+
+    @Test
+    public void testFromKafkaSource_Null() {
+        assertNull(fromKafkaSource(null));
+    }
+
+    @SneakyThrows
+    @Test
+    public void testFromKafkaSource_WithValueSchema_NoKeySchema() {
+        var sourceRecord = new SourceRecord(
+                Map.of("test-partition", "test_table"),
+                Map.of("test-offset", 123456L),
+                "test-topic",
+                2,
+                valueSchema,
+            testRecord
+        );
+        Record.Builder conduitRec = Transformations.fromKafkaSource(sourceRecord);
+        assertNotNull(conduitRec);
+
+        // verify payload
+        var payload = conduitRec.getPayload().getAfter().getStructuredData();
+        assertMatch(testRecord, payload);
+        // assert timestamp is within last second
+        long readAt = Long.parseLong(conduitRec.getMetadataOrThrow(OpenCdcMetadata.READ_AT));
+        assertTrue(
+                readAt / 1_000_000 > System.currentTimeMillis() - 1000
+        );
+        // verify key
+        assertFalse(conduitRec.getKey().hasRawData());
+        assertFalse(conduitRec.getKey().hasStructuredData());
+    }
+
+    @SneakyThrows
+    @Test
+    public void testFromKafkaSource_WithValueSchema_WithKeySchema() {
+        var sourceRecord = new SourceRecord(
+                Map.of("test-partition", "test_table"),
+                Map.of("test-offset", 123456L),
+                "test-topic",
+                2,
+                keySchema,
+                new Struct(keySchema).put("id", 123),
+                valueSchema,
+            testRecord
+        );
+        Record.Builder conduitRec = Transformations.fromKafkaSource(sourceRecord);
+        assertNotNull(conduitRec);
+
+        // verify payload
+        var payload = conduitRec.getPayload().getAfter().getStructuredData();
+        assertMatch(testRecord, payload);
+        // assert timestamp is within last second
+        long readAt = Long.parseLong(conduitRec.getMetadataOrThrow(OpenCdcMetadata.READ_AT));
+        assertTrue(
+                readAt / 1_000_000 > System.currentTimeMillis() - 1000
+        );
+        // verify key
+        assertFalse(conduitRec.getKey().hasRawData());
+        assertTrue(conduitRec.getKey().hasStructuredData());
+        com.google.protobuf.Struct key = conduitRec.getKey().getStructuredData();
+        assertEquals(123, key.getFieldsOrThrow("id").getNumberValue());
+    }
+
+    private void assertMatch(Struct expected, com.google.protobuf.Struct payload) {
+        assertEquals(expected.get("id"), (int) payload.getFieldsOrThrow("id").getNumberValue());
+        assertEquals(expected.get("name"), payload.getFieldsOrThrow("name").getStringValue());
+        assertEquals(expected.get("trial"), payload.getFieldsOrThrow("trial").getBoolValue());
+        assertEquals(expected.get("balance"), payload.getFieldsOrThrow("balance").getNumberValue());
+        List<String> interestsExpected = expected.getArray("interests");
+        List<String> interestsActual = payload.getFieldsOrThrow("interests")
+                .getListValue().getValuesList()
+                .stream()
+                .map(Value::getStringValue)
+                .collect(Collectors.toList());
+        assertEquals(interestsExpected, interestsActual);
     }
 
     @Test

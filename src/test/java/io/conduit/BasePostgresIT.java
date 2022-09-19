@@ -132,6 +132,12 @@ public abstract class BasePostgresIT {
         assertKeyOk(1, updated);
         assertUpdateOperation(updated);
         assertNameUpdated(updated);
+
+        assertTrue(updated.getPayload().getAfter().hasStructuredData());
+        Struct struct = updated.getPayload().getAfter().getStructuredData();
+        assertTrue(struct.getFieldsOrThrow("source").hasStructValue());
+        assertTrue(struct.getFieldsOrThrow("before").hasStructValue());
+        assertTrue(struct.getFieldsOrThrow("after").hasNullValue());
     }
 
     @SneakyThrows

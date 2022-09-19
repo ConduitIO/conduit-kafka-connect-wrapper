@@ -19,27 +19,28 @@ package io.conduit;
 import java.util.Map;
 
 import com.google.protobuf.Struct;
-import io.conduit.grpc.Operation;
 import io.conduit.grpc.Record;
-import lombok.Builder;
 
 import static io.conduit.grpc.Operation.OPERATION_CREATE;
 import static io.conduit.grpc.Operation.OPERATION_SNAPSHOT;
 import static io.conduit.grpc.Operation.OPERATION_UPDATE;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DebeziumPgSourceIT extends BasePostgresIT {
     @Override
     protected Map<String, String> configMap() {
         return Map.of(
-                "wrapper.connector.class", "io.debezium.connector.postgresql.PostgresConnector",
-                "database.hostname", "localhost",
-                "database.port", "5432",
-                "database.user", USER,
-                "database.password", PASSWORD,
-                "database.dbname", "meroxadb",
-                "database.server.name", "test-server",
-                "table.include.list", "public.employees"
+            "wrapper.connector.class", "io.debezium.connector.postgresql.PostgresConnector",
+            "database.hostname", "localhost",
+            "database.port", "5432",
+            "database.user", USER,
+            "database.password", PASSWORD,
+            "database.dbname", "meroxadb",
+            "database.server.name", "test-server",
+            "table.include.list", "public.employees"
         );
     }
 
