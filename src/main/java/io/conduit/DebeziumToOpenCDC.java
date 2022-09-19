@@ -16,6 +16,7 @@
 
 package io.conduit;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -23,7 +24,9 @@ import io.conduit.grpc.Change;
 import io.conduit.grpc.Operation;
 import io.conduit.grpc.Record;
 import lombok.SneakyThrows;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
 
 import static io.conduit.grpc.Operation.OPERATION_CREATE;
@@ -43,19 +46,39 @@ public class DebeziumToOpenCDC extends SourceRecordConverter implements Function
     );
 
     @Override
-    public Record.Builder apply(SourceRecord sourceRecord) {
-        if (sourceRecord == null) {
+    public Record.Builder apply(SourceRecord record) {
+        if (record == null) {
             return null;
         }
+        if (record.valueSchema() == null || record.valueSchema().type() != Schema.Type.STRUCT) {
+            throw new IllegalArgumentException("expected value schema to be STRUCT");
+        }
+        if (record.value() == null) {
+            throw new IllegalArgumentException("record has no value");
+        }
+
         // The transformer returns a builder, so that it's easier to set other fields on the same record.
         // We can return a record, but the caller would then need to transform it into a builder,
         // which might create needless copies of fields.
         return Record.newBuilder()
-                .setKey(getKey(sourceRecord))
-                .setOperation(getOperation(sourceRecord))
-                .setPayload(getChangePayload(sourceRecord))
+                .setKey(getKey(record))
+                .setOperation(getOperation(record))
+                .setPayload(getChangePayload(record))
                 // we need nanoseconds here
-                .putMetadata(OpenCdcMetadata.READ_AT, String.valueOf(System.currentTimeMillis() * 1_000_000));
+                .putMetadata(OpenCdcMetadata.READ_AT, String.valueOf(System.currentTimeMillis() * 1_000_000))
+                .putAllMetadata(getMetadata(record));
+    }
+
+    private Map<String, String> getMetadata(SourceRecord record) {
+        Map<String, String> meta = new HashMap<>();
+        Struct source = ((Struct) record.value()).getStruct("source");
+        for (Field f : source.schema().fields()) {
+            meta.put(
+                "kafkaconnect.debezium.source." + f.name(),
+                String.valueOf(source.get(f))
+            );
+        }
+        return meta;
     }
 
     private Operation getOperation(SourceRecord record) {

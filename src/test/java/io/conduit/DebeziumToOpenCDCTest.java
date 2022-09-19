@@ -20,11 +20,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-import io.conduit.grpc.Data;
 import io.conduit.grpc.Operation;
 import io.conduit.grpc.Record;
 import lombok.SneakyThrows;
 import org.apache.commons.compress.utils.IOUtils;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DebeziumToOpenCDCTest {
@@ -72,16 +73,34 @@ class DebeziumToOpenCDCTest {
 
     @Test
     public void noValue() {
-        Record rec = underTest.apply(new SourceRecord(
-            null,
-            null,
-            "test-topic",
-            keySchema,
-            new Struct(keySchema).put("id", 123),
-            valueSchema,
-            null)).build();
+        var e = assertThrows(
+            IllegalArgumentException.class,
+            () -> underTest.apply(new SourceRecord(
+                null,
+                null,
+                "test-topic",
+                keySchema,
+                new Struct(keySchema).put("id", 123),
+                valueSchema,
+                null))
+        );
+        assertEquals("record has no value", e.getMessage());
+    }
 
-        assertEquals("abc", rec.getKey().getRawData().toStringUtf8());
+    @Test
+    public void valueNotStruct() {
+        var e = assertThrows(
+            IllegalArgumentException.class,
+            () -> underTest.apply(new SourceRecord(
+                null,
+                null,
+                "test-topic",
+                keySchema,
+                new Struct(keySchema).put("id", 123),
+                Schema.STRING_SCHEMA,
+                "string value"))
+        );
+        assertEquals("expected value schema to be STRUCT", e.getMessage());
     }
 
     @SneakyThrows
@@ -110,26 +129,92 @@ class DebeziumToOpenCDCTest {
         return schemaAndValue;
     }
 
+    private SchemaAndValue getUpdatedRecord() throws IOException {
+        InputStream stream = getClass().getClassLoader().getResourceAsStream("./debezium-record-updated.json");
+        SchemaAndValue schemaAndValue = Utils.jsonConv.toConnectData("test-topic", IOUtils.toByteArray(stream));
+        return schemaAndValue;
+    }
+
     @SneakyThrows
     @Test
     public void createdRecord() {
         SchemaAndValue schemaAndValue = getCreatedRecord();
 
-        Record rec = underTest.apply(new SourceRecord(
+        Struct original = (Struct) schemaAndValue.value();
+        Record transformed = underTest.apply(new SourceRecord(
             null,
             null,
             "test-topic",
             keySchema,
             new Struct(keySchema).put("id", 123),
             schemaAndValue.schema(),
-            schemaAndValue.value())).build();
+            original)
+        ).build();
 
-        assertEquals(Operation.OPERATION_CREATE, rec.getOperation());
+        // Operation
+        assertEquals(Operation.OPERATION_CREATE, transformed.getOperation());
 
-        assertFalse(rec.getPayload().getBefore().hasStructuredData());
-        assertFalse(rec.getPayload().getBefore().hasRawData());
+        // Before
+        assertFalse(transformed.getPayload().getBefore().hasStructuredData());
+        assertFalse(transformed.getPayload().getBefore().hasRawData());
 
-        assertTrue(rec.getPayload().getAfter().hasStructuredData());
-        com.google.protobuf.Struct after = rec.getPayload().getAfter().getStructuredData();
+        // After
+        assertTrue(transformed.getPayload().getAfter().hasStructuredData());
+        com.google.protobuf.Struct after = transformed.getPayload().getAfter().getStructuredData();
+        assertContentsMatch(original.getStruct("after"), after);
+
+        // Metadata
+        assertMetadataOk(original, transformed);
+    }
+
+    @SneakyThrows
+    @Test
+    public void updatedRecord() {
+        SchemaAndValue schemaAndValue = getUpdatedRecord();
+
+        Struct original = (Struct) schemaAndValue.value();
+        Record transformed = underTest.apply(new SourceRecord(
+            null,
+            null,
+            "test-topic",
+            keySchema,
+            new Struct(keySchema).put("id", 123),
+            schemaAndValue.schema(),
+            original)
+        ).build();
+
+        // Operation
+        assertEquals(Operation.OPERATION_UPDATE, transformed.getOperation());
+
+        // Before
+        assertTrue(transformed.getPayload().getBefore().hasStructuredData());
+        com.google.protobuf.Struct before = transformed.getPayload().getBefore().getStructuredData();
+        assertContentsMatch(original.getStruct("before"), before);
+
+        // After
+        assertTrue(transformed.getPayload().getAfter().hasStructuredData());
+        com.google.protobuf.Struct after = transformed.getPayload().getAfter().getStructuredData();
+        assertContentsMatch(original.getStruct("after"), after);
+
+        // Metadata
+        assertMetadataOk(original, transformed);
+    }
+
+    private void assertContentsMatch(Struct afterOrig, com.google.protobuf.Struct after) {
+        assertEquals((int) afterOrig.getInt32("id"), after.getFieldsOrThrow("id").getNumberValue());
+        assertEquals(afterOrig.getString("name"), after.getFieldsOrThrow("name").getStringValue());
+        assertEquals(afterOrig.getBoolean("full_time"), after.getFieldsOrThrow("full_time").getBoolValue());
+        assertEquals(afterOrig.getString("updated_at"), after.getFieldsOrThrow("updated_at").getStringValue());
+    }
+
+    private void assertMetadataOk(Struct original, Record transformed) {
+        Struct source = original.getStruct("source");
+        for (Field field : source.schema().fields()) {
+            Object fieldVal = source.get(field);
+            assertEquals(
+                String.valueOf(fieldVal),
+                transformed.getMetadataMap().get("kafkaconnect.debezium.source." + field.name())
+            );
+        }
     }
 }
