@@ -17,30 +17,27 @@
 package io.conduit;
 
 import io.conduit.grpc.Record;
+import lombok.AllArgsConstructor;
 import org.apache.kafka.connect.data.Schema;
 
 /**
  * A {@link SchemaProvider} implementation which combines the functionality of
  * a {@link RawDataSchemaProvider} and a {@link StructSchemaProvider}.
  */
+@AllArgsConstructor
 public class CombinedSchemaProvider implements SchemaProvider {
     private final RawDataSchemaProvider rawDataSP;
     private final StructSchemaProvider structSP;
 
-    public CombinedSchemaProvider(String name, Schema overrides) {
-        this.rawDataSP = new RawDataSchemaProvider(name, overrides);
-        this.structSP = new StructSchemaProvider(name, overrides);
-    }
-
     @Override
     public Schema provide(Record rec) {
-        if (!rec.hasPayload()) {
+        if (rec == null || !rec.hasPayload() || !rec.getPayload().hasAfter()) {
             return null;
         }
-        if (rec.getPayload().hasStructuredData()) {
+        if (rec.getPayload().getAfter().hasStructuredData()) {
             return structSP.provide(rec);
         }
-        if (rec.getPayload().hasRawData()) {
+        if (rec.getPayload().getAfter().hasRawData()) {
             return rawDataSP.provide(rec);
         }
         return null;

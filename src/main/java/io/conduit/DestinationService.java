@@ -33,7 +33,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
     private final TaskFactory taskFactory;
     private SinkTask task;
     private Map<String, String> config;
-    private DestinationStream runStream;
+    private DefaultDestinationStream runStream;
     private boolean started;
     private SchemaProvider schemaProvider;
 
@@ -87,7 +87,10 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
                 throw new IllegalArgumentException("Schema name not provided");
             }
 
-            return new CombinedSchemaProvider(name, config.getOverrides());
+            return new CombinedSchemaProvider(
+                    new RawDataSchemaProvider(name, config.getOverrides()),
+                    new StructSchemaProvider(name, config.getOverrides())
+            );
         }
         // No schema information provided, so no schema is to be used.
         return new FixedSchemaProvider(null);
@@ -114,7 +117,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
     @Override
     public StreamObserver<Destination.Run.Request> run(StreamObserver<Destination.Run.Response> responseObserver) {
-        this.runStream = new DestinationStream(task, schemaProvider, responseObserver);
+        this.runStream = new DefaultDestinationStream(task, schemaProvider, responseObserver);
         return runStream;
     }
 

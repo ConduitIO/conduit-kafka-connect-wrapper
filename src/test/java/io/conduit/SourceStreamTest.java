@@ -1,12 +1,6 @@
 package io.conduit;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.Function;
-
 import com.google.protobuf.ByteString;
-import io.conduit.grpc.Data;
 import io.conduit.grpc.Record;
 import io.conduit.grpc.Source;
 import io.grpc.StatusException;
@@ -20,6 +14,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,14 +39,14 @@ public class SourceStreamTest {
     @Test
     @DisplayName("When SourceStream is created, the underlying SourceTask starts being polled.")
     public void testRunAfterInit() throws InterruptedException {
-        new SourceStream(task, position, streamObserver, transformer).start();
+        new DefaultSourceStream(task, position, streamObserver, transformer).startAsync();
         verify(task, timeout(50).atLeastOnce()).poll();
     }
 
     @Test
     @DisplayName("When onCompleted is called, the underlying streams's onCompleted is called.")
     public void testOnCompleted() {
-        var underTest = new SourceStream(task, position, streamObserver, transformer);
+        var underTest = new DefaultSourceStream(task, position, streamObserver, transformer);
         underTest.onCompleted();
 
         verify(streamObserver).onCompleted();
@@ -70,7 +69,7 @@ public class SourceStreamTest {
         when(position.asByteString()).thenReturn(ByteString.copyFromUtf8("irrelevant"));
         when(transformer.apply(sourceRec)).thenReturn(conduitRec);
 
-        new SourceStream(task, position, streamObserver, transformer).start();
+        new DefaultSourceStream(task, position, streamObserver, transformer).startAsync();
 
         var responseCaptor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(streamObserver, timeout(1000)).onNext(responseCaptor.capture());
@@ -96,7 +95,7 @@ public class SourceStreamTest {
     private void testConnectorTaskThrows(Throwable surprise) throws InterruptedException {
         when(task.poll()).thenThrow(surprise);
 
-        new SourceStream(task, position, streamObserver, transformer).start();
+        new DefaultSourceStream(task, position, streamObserver, transformer).startAsync();
 
         var captor = ArgumentCaptor.forClass(Throwable.class);
         verify(streamObserver, timeout(100).atLeastOnce()).onError(captor.capture());
@@ -121,7 +120,7 @@ public class SourceStreamTest {
         when(transformer.apply(sr1)).thenReturn(cr1);
         when(transformer.apply(sr2)).thenReturn(cr2);
 
-        new SourceStream(task, position, streamObserver, transformer).start();
+        new DefaultSourceStream(task, position, streamObserver, transformer).startAsync();
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(streamObserver, timeout(500).times(2)).onNext(captor.capture());
 
@@ -140,8 +139,6 @@ public class SourceStreamTest {
 
     private Record.Builder testConduitRec() {
         return Record.newBuilder()
-                .setPayload(
-                        Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build()
-                );
+                .setPayload(TestUtils.newRecordPayload(UUID.randomUUID().toString()));
     }
 }

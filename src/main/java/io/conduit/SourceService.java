@@ -18,6 +18,7 @@ package io.conduit;
 
 import java.util.Map;
 
+import com.google.protobuf.ByteString;
 import io.conduit.grpc.Source;
 import io.conduit.grpc.SourcePluginGrpc;
 import io.grpc.Status;
@@ -92,13 +93,13 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
 
     @Override
     public StreamObserver<Source.Run.Request> run(StreamObserver<Source.Run.Response> responseObserver) {
-        this.runStream = new SourceStream(
+        this.runStream = new DefaultSourceStream(
                 task,
                 position,
                 responseObserver,
                 Transformations::fromKafkaSource
         );
-        runStream.start();
+        runStream.startAsync();
         return runStream;
     }
 
@@ -106,7 +107,11 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     public void stop(Source.Stop.Request request, StreamObserver<Source.Stop.Response> responseObserver) {
         // todo check if a record is being flushed
         runStream.onCompleted();
-        responseObserver.onNext(Source.Stop.Response.newBuilder().build());
+        responseObserver.onNext(
+                Source.Stop.Response.newBuilder()
+                        .setLastPosition(runStream.lastRead())
+                        .build()
+        );
         responseObserver.onCompleted();
     }
 

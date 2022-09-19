@@ -16,21 +16,17 @@
 
 package io.conduit;
 
-import com.google.protobuf.ByteString;
-import io.conduit.grpc.Source;
-import io.grpc.stub.StreamObserver;
-
 /**
- * A <code>SourceStream</code> represents a stream of records from a Conduit source.
+ * Contains OpenCDC metadata constants.
  */
-public interface SourceStream extends StreamObserver<Source.Run.Request>, Runnable {
-    /**
-     * Start this stream asynchronously.
-     */
-    void startAsync();
+public final class OpenCdcMetadata {
+    private OpenCdcMetadata() {
+
+    }
 
     /**
-     * Returns the position of the last read by this source.
+     * CreatedAt can contain the time when the record was created in the 3rd party system.
+     * The expected format is a unix timestamp in nanoseconds.
      */
-    ByteString lastRead();
+    public static String READ_AT = "opencdc.readAt";
 }
