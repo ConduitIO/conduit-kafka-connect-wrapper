@@ -17,13 +17,10 @@
 package io.conduit;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.ByteString;
-import com.google.protobuf.Value;
 import com.google.protobuf.util.JsonFormat;
 import io.conduit.grpc.Change;
 import io.conduit.grpc.Data;
@@ -32,12 +29,13 @@ import lombok.SneakyThrows;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static io.conduit.Transformations.fromKafkaSource;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class ToConnectDataTest {
     private ToConnectData underTest;
@@ -49,104 +47,27 @@ public class ToConnectDataTest {
         underTest = new ToConnectData();
 
         valueSchema = new SchemaBuilder(Schema.Type.STRUCT)
-                .name("customers")
-                .field("id", Schema.INT32_SCHEMA)
-                .field("name", Schema.STRING_SCHEMA)
-                .field("interests", SchemaBuilder.array(Schema.STRING_SCHEMA))
-                .field("trial", SchemaBuilder.BOOLEAN_SCHEMA)
-                .field("balance", Schema.FLOAT64_SCHEMA)
-                .build();
+            .name("customers")
+            .field("id", Schema.INT32_SCHEMA)
+            .field("name", Schema.STRING_SCHEMA)
+            .field("interests", SchemaBuilder.array(Schema.STRING_SCHEMA))
+            .field("trial", SchemaBuilder.BOOLEAN_SCHEMA)
+            .field("balance", Schema.FLOAT64_SCHEMA)
+            .build();
 
         testRecord = Utils.mapper.createObjectNode()
-                .put("id", 123)
-                .put("name", "foobar")
-                .put("trial", true)
-                .put("balance", 33.44)
-                .set("interests", Utils.mapper.createArrayNode().add("aaa").add("bbb"));
-    }
-
-    @Test
-    public void testFromKafkaSource_Null() {
-        assertNull(fromKafkaSource(null));
-    }
-
-    @SneakyThrows
-    @Test
-    public void testFromKafkaSource_WithValueSchema_NoKeySchema() {
-        var sourceRecord = new SourceRecord(
-                Map.of("test-partition", "test_table"),
-                Map.of("test-offset", 123456L),
-                "test-topic",
-                2,
-                valueSchema,
-            testRecord
-        );
-        Record.Builder conduitRec = Transformations.fromKafkaSource(sourceRecord);
-        assertNotNull(conduitRec);
-
-        // verify payload
-        var payload = conduitRec.getPayload().getAfter().getStructuredData();
-        assertMatch(testRecord, payload);
-        // assert timestamp is within last second
-        long readAt = Long.parseLong(conduitRec.getMetadataOrThrow(OpenCdcMetadata.READ_AT));
-        assertTrue(
-                readAt / 1_000_000 > System.currentTimeMillis() - 1000
-        );
-        // verify key
-        assertFalse(conduitRec.getKey().hasRawData());
-        assertFalse(conduitRec.getKey().hasStructuredData());
-    }
-
-    @SneakyThrows
-    @Test
-    public void testFromKafkaSource_WithValueSchema_WithKeySchema() {
-        var sourceRecord = new SourceRecord(
-                Map.of("test-partition", "test_table"),
-                Map.of("test-offset", 123456L),
-                "test-topic",
-                2,
-                keySchema,
-                new Struct(keySchema).put("id", 123),
-                valueSchema,
-            testRecord
-        );
-        Record.Builder conduitRec = Transformations.fromKafkaSource(sourceRecord);
-        assertNotNull(conduitRec);
-
-        // verify payload
-        var payload = conduitRec.getPayload().getAfter().getStructuredData();
-        assertMatch(testRecord, payload);
-        // assert timestamp is within last second
-        long readAt = Long.parseLong(conduitRec.getMetadataOrThrow(OpenCdcMetadata.READ_AT));
-        assertTrue(
-                readAt / 1_000_000 > System.currentTimeMillis() - 1000
-        );
-        // verify key
-        assertFalse(conduitRec.getKey().hasRawData());
-        assertTrue(conduitRec.getKey().hasStructuredData());
-        com.google.protobuf.Struct key = conduitRec.getKey().getStructuredData();
-        assertEquals(123, key.getFieldsOrThrow("id").getNumberValue());
-    }
-
-    private void assertMatch(Struct expected, com.google.protobuf.Struct payload) {
-        assertEquals(expected.get("id"), (int) payload.getFieldsOrThrow("id").getNumberValue());
-        assertEquals(expected.get("name"), payload.getFieldsOrThrow("name").getStringValue());
-        assertEquals(expected.get("trial"), payload.getFieldsOrThrow("trial").getBoolValue());
-        assertEquals(expected.get("balance"), payload.getFieldsOrThrow("balance").getNumberValue());
-        List<String> interestsExpected = expected.getArray("interests");
-        List<String> interestsActual = payload.getFieldsOrThrow("interests")
-                .getListValue().getValuesList()
-                .stream()
-                .map(Value::getStringValue)
-                .collect(Collectors.toList());
-        assertEquals(interestsExpected, interestsActual);
+            .put("id", 123)
+            .put("name", "foobar")
+            .put("trial", true)
+            .put("balance", 33.44)
+            .set("interests", Utils.mapper.createArrayNode().add("aaa").add("bbb"));
     }
 
     @Test
     public void testToSinkRecord_NoRecord() {
         var e = assertThrows(
-                IllegalArgumentException.class,
-                () -> underTest.apply(null, null)
+            IllegalArgumentException.class,
+            () -> underTest.apply(null, null)
         );
         assertEquals("record is null", e.getMessage());
     }
@@ -155,8 +76,8 @@ public class ToConnectDataTest {
     public void testToSinkRecord_NoPayload() {
         var rec = Record.newBuilder().build();
         var e = assertThrows(
-                IllegalArgumentException.class,
-                () -> underTest.apply(rec, null)
+            IllegalArgumentException.class,
+            () -> underTest.apply(rec, null)
         );
         assertEquals("record has no payload or has no after data", e.getMessage());
     }
@@ -164,9 +85,9 @@ public class ToConnectDataTest {
     @Test
     public void testToSinkRecord_RawDataBytes() {
         var schema = new SchemaBuilder(Schema.Type.BYTES)
-                .name("my-bytes-schema")
-                .optional()
-                .build();
+            .name("my-bytes-schema")
+            .optional()
+            .build();
         var rec = newRecordRawData();
         var sinkRecObj = underTest.apply(rec, schema);
         assertInstanceOf(byte[].class, sinkRecObj);
@@ -176,9 +97,9 @@ public class ToConnectDataTest {
     @Test
     public void testToSinkRecord_RawDataString() {
         var schema = new SchemaBuilder(Schema.Type.STRING)
-                .name("my-string-schema")
-                .optional()
-                .build();
+            .name("my-string-schema")
+            .optional()
+            .build();
         var rec = newRecordRawData();
         var sinkRecObj = underTest.apply(rec, schema);
         assertInstanceOf(String.class, sinkRecObj);
@@ -204,12 +125,12 @@ public class ToConnectDataTest {
         var rec = newRecordStructData();
 
         var e = assertThrows(
-                IllegalArgumentException.class,
-                () -> underTest.apply(rec, null)
+            IllegalArgumentException.class,
+            () -> underTest.apply(rec, null)
         );
         assertEquals(
-                "cannot parse struct without schema",
-                e.getMessage()
+            "cannot parse struct without schema",
+            e.getMessage()
         );
     }
 
@@ -230,63 +151,63 @@ public class ToConnectDataTest {
 
     private Record newRecordStructData() {
         return Record.newBuilder()
-                .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
-                .setPayload(newStructPayload())
-                .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
-                .putMetadata(OpenCdcMetadata.READ_AT, "123456000000000")
-                .build();
+            .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
+            .setPayload(newStructPayload())
+            .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
+            .putMetadata(OpenCdcMetadata.READ_AT, "123456000000000")
+            .build();
     }
 
     @SneakyThrows
     private Change newStructPayload() {
         com.google.protobuf.Struct.Builder builder = com.google.protobuf.Struct.newBuilder();
         JsonFormat.parser().merge(
-                Utils.mapper.writeValueAsString(testRecord),
-                builder
+            Utils.mapper.writeValueAsString(testRecord),
+            builder
         );
         Data data = Data.newBuilder()
-                .setStructuredData(builder.build())
-                .build();
+            .setStructuredData(builder.build())
+            .build();
         return Change.newBuilder()
-                .setAfter(data)
-                .build();
+            .setAfter(data)
+            .build();
     }
 
     private Record newRecordRawDataJson() {
         return Record.newBuilder()
-                .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
-                .setPayload(newRawPayloadJson())
-                .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
-                .putMetadata(OpenCdcMetadata.READ_AT, "123456000000000")
-                .build();
+            .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
+            .setPayload(newRawPayloadJson())
+            .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
+            .putMetadata(OpenCdcMetadata.READ_AT, "123456000000000")
+            .build();
     }
 
     private Record newRecordRawData() {
         return Record.newBuilder()
-                .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
-                .setPayload(newRawPayload())
-                .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
-                .putMetadata(OpenCdcMetadata.READ_AT, "123456000000000")
-                .build();
+            .setKey(Data.newBuilder().setRawData(ByteString.copyFromUtf8(UUID.randomUUID().toString())).build())
+            .setPayload(newRawPayload())
+            .setPosition(ByteString.copyFromUtf8(UUID.randomUUID().toString()))
+            .putMetadata(OpenCdcMetadata.READ_AT, "123456000000000")
+            .build();
     }
 
     @SneakyThrows
     private Change newRawPayload() {
         Data data = Data.newBuilder()
-                .setRawData(ByteString.copyFromUtf8("payload-" + UUID.randomUUID()))
-                .build();
+            .setRawData(ByteString.copyFromUtf8("payload-" + UUID.randomUUID()))
+            .build();
         return Change.newBuilder()
-                .setAfter(data)
-                .build();
+            .setAfter(data)
+            .build();
     }
 
     @SneakyThrows
     private Change newRawPayloadJson() {
         Data data = Data.newBuilder()
-                .setRawData(ByteString.copyFromUtf8(Utils.mapper.writeValueAsString(testRecord)))
-                .build();
+            .setRawData(ByteString.copyFromUtf8(Utils.mapper.writeValueAsString(testRecord)))
+            .build();
         return Change.newBuilder()
-                .setAfter(data)
-                .build();
+            .setAfter(data)
+            .build();
     }
 }
