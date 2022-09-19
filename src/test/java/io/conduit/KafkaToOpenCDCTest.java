@@ -30,11 +30,7 @@ import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class KafkaToOpenCDCTest {
     private KafkaToOpenCDC underTest;
@@ -74,7 +70,7 @@ public class KafkaToOpenCDCTest {
 
     @SneakyThrows
     @Test
-    public void testFromKafkaSource_WithValueSchema_NoKeySchema() {
+    public void testFromKafkaSource_WithValueSchema_NoKey() {
         var sourceRecord = new SourceRecord(
                 Map.of("test-partition", "test_table"),
                 Map.of("test-offset", 123456L),
@@ -97,6 +93,26 @@ public class KafkaToOpenCDCTest {
         // verify key
         assertFalse(conduitRec.getKey().hasRawData());
         assertFalse(conduitRec.getKey().hasStructuredData());
+    }
+
+    @SneakyThrows
+    @Test
+    public void testFromKafkaSource_WithValueSchema_NoKeySchema() {
+        var sourceRecord = new SourceRecord(
+                Map.of("test-partition", "test_table"),
+                Map.of("test-offset", 123456L),
+                "test-topic",
+                2,
+                null,
+                "test-key",
+                valueSchema,
+                testValue
+        );
+        var e = assertThrows(
+            UnsupportedOperationException.class,
+            () -> underTest.apply(sourceRecord)
+        );
+        assertEquals("keys without schemas not supported yet", e.getMessage());
     }
 
     @SneakyThrows
