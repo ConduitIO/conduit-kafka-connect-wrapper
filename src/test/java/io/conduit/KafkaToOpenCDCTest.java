@@ -146,6 +146,37 @@ public class KafkaToOpenCDCTest {
         assertEquals(123, key.getFieldsOrThrow("id").getNumberValue());
     }
 
+    @SneakyThrows
+    @Test
+    public void stringPayload() {
+        var sourceRecord = new SourceRecord(
+                Map.of("test-partition", "test_table"),
+                Map.of("test-offset", 123456L),
+                "test-topic",
+                2,
+                keySchema,
+                new Struct(keySchema).put("id", 123),
+                Schema.STRING_SCHEMA,
+                "test payload"
+        );
+        Record.Builder conduitRec = underTest.apply(sourceRecord);
+        assertNotNull(conduitRec);
+
+        // verify payload
+        var payload = conduitRec.getPayload().getAfter().getRawData();
+        assertEquals("test payload", payload.toStringUtf8());
+        // assert timestamp is within last second
+        long createdAt = Long.parseLong(conduitRec.getMetadataOrThrow(OpenCdcMetadata.READ_AT));
+        assertTrue(
+                createdAt / 1_000_000 > System.currentTimeMillis() - 1000
+        );
+        // verify key
+        assertFalse(conduitRec.getKey().hasRawData());
+        assertTrue(conduitRec.getKey().hasStructuredData());
+        com.google.protobuf.Struct key = conduitRec.getKey().getStructuredData();
+        assertEquals(123, key.getFieldsOrThrow("id").getNumberValue());
+    }
+
     private void assertMatch(Struct expected, com.google.protobuf.Struct payload) {
         assertEquals(expected.get("id"), (int) payload.getFieldsOrThrow("id").getNumberValue());
         assertEquals(expected.get("name"), payload.getFieldsOrThrow("name").getStringValue());
