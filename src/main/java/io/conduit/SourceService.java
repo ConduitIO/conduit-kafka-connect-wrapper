@@ -101,7 +101,7 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
             task,
             position,
             responseObserver,
-            getRecordConverted()
+            getRecordConverter()
         );
         runStream.startAsync();
         return runStream;
