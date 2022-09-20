@@ -116,6 +116,23 @@ public class SourceServiceTest {
         assertEquals(exception, tCaptor.getValue().getCause());
     }
 
+    @Test
+    public void testTeardownNoStart() {
+        underTest.configure(
+            TestUtils.newConfigRequest(Map.of(
+                "wrapper.connector.class", "io.foo.bar",
+                "another.param", "another.value"
+            )),
+            mock(StreamObserver.class)
+        );
+        StreamObserver observer = mock(StreamObserver.class);
+        underTest.teardown(
+            Source.Teardown.Request.newBuilder().build(),
+            observer
+        );
+        verify(observer, never()).onError(any());
+    }
+
     private Source.Start.Request newStartRequest() {
         return Source.Start.Request.newBuilder().build();
     }
