@@ -90,7 +90,7 @@ public class SpecifierService extends SpecifierPluginGrpc.SpecifierPluginImplBas
                         .setDescription(
                                 "Conduit's Kafka Connect wrapper makes it possible "
                                 + "to use existing Kafka Connect connectors with Conduit.")
-                        .setVersion("0.2.0")
+                        .setVersion("v0.2.0")
                         .setAuthor("Meroxa, Inc.")
                         .putAllSourceParams(SOURCE_PARAMS)
                         .putAllDestinationParams(DESTINATION_PARAMS)
