@@ -101,13 +101,13 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
             task,
             position,
             responseObserver,
-            getRecordConverted()
+            getRecordConverter()
         );
         runStream.startAsync();
         return runStream;
     }
 
-    private Function<SourceRecord, Record.Builder> getRecordConverted() {
+    private Function<SourceRecord, Record.Builder> getRecordConverter() {
         if (task.getClass().getCanonicalName().startsWith("io.debezium.connector")) {
             return new DebeziumToOpenCDC();
         }
