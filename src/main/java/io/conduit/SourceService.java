@@ -57,10 +57,10 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
         } catch (Exception e) {
             Logger.get().error("Error while configuring source.", e);
             respObserver.onError(
-                    Status.INTERNAL
-                            .withDescription("couldn't configure task: " + e)
-                            .withCause(e)
-                            .asException()
+                Status.INTERNAL
+                    .withDescription("couldn't configure task: " + e)
+                    .withCause(e)
+                    .asException()
             );
         }
     }
@@ -77,7 +77,7 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
         try {
             this.position = SourcePosition.fromString(request.getPosition().toStringUtf8());
             task.initialize(
-                    new SimpleSourceTaskCtx(config, position)
+                new SimpleSourceTaskCtx(config, position)
             );
             task.start(config);
             started = true;
@@ -88,9 +88,9 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
         } catch (Exception e) {
             Logger.get().error("Error while starting.", e);
             responseObserver.onError(
-                    Status.INTERNAL.withDescription("couldn't start task: " + e.getMessage())
-                            .withCause(e)
-                            .asException()
+                Status.INTERNAL.withDescription("couldn't start task: " + e.getMessage())
+                    .withCause(e)
+                    .asException()
             );
         }
     }
@@ -98,24 +98,20 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     @Override
     public StreamObserver<Source.Run.Request> run(StreamObserver<Source.Run.Response> responseObserver) {
         this.runStream = new DefaultSourceStream(
-                task,
-                position,
-                responseObserver,
-                getTransformation()
+            task,
+            position,
+            responseObserver,
+            getRecordConverted()
         );
         runStream.startAsync();
         return runStream;
     }
 
-    private Function<SourceRecord, Record.Builder> getTransformation() {
-        if (cdcSupported()) {
+    private Function<SourceRecord, Record.Builder> getRecordConverted() {
+        if (task.getClass().getCanonicalName().startsWith("io.debezium.connector")) {
             return new DebeziumToOpenCDC();
         }
         return new KafkaToOpenCDC();
-    }
-
-    private boolean cdcSupported() {
-        return task.getClass().getCanonicalName().startsWith("io.debezium.connector");
     }
 
     @Override
@@ -123,9 +119,9 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
         // todo check if a record is being flushed
         runStream.onCompleted();
         responseObserver.onNext(
-                Source.Stop.Response.newBuilder()
-                        .setLastPosition(runStream.lastRead())
-                        .build()
+            Source.Stop.Response.newBuilder()
+                .setLastPosition(runStream.lastRead())
+                .build()
         );
         responseObserver.onCompleted();
     }
@@ -143,9 +139,9 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
         } catch (Exception e) {
             Logger.get().error("Couldn't tear down.", e);
             responseObserver.onError(
-                    Status.INTERNAL.withDescription("Couldn't tear down: " + e.getMessage())
-                            .withCause(e)
-                            .asException()
+                Status.INTERNAL.withDescription("Couldn't tear down: " + e.getMessage())
+                    .withCause(e)
+                    .asException()
             );
         }
     }
