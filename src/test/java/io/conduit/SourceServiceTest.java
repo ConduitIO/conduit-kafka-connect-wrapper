@@ -133,6 +133,31 @@ public class SourceServiceTest {
         verify(observer, never()).onError(any());
     }
 
+    @Test
+    public void testTeardownWhenStartFailed() {
+        var task = mock(SourceTask.class);
+        doThrow(new RuntimeException("gotcha!")).when(task).start(anyMap());
+        when(taskFactory.newSourceTask("io.foo.bar"))
+            .thenReturn(task);
+
+        underTest.configure(
+            TestUtils.newConfigRequest(Map.of(
+                "wrapper.connector.class", "io.foo.bar",
+                "another.param", "another.value"
+            )),
+            mock(StreamObserver.class)
+        );
+
+        underTest.start(Source.Start.Request.newBuilder().build(), mock(StreamObserver.class));
+
+        StreamObserver observer = mock(StreamObserver.class);
+        underTest.teardown(
+            Source.Teardown.Request.newBuilder().build(),
+            observer
+        );
+        verify(observer, never()).onError(any());
+    }
+
     private Source.Start.Request newStartRequest() {
         return Source.Start.Request.newBuilder().build();
     }
