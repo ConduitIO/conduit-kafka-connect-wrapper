@@ -53,9 +53,11 @@ public class DebeziumPgSourceIT extends BasePostgresIT {
 
     @Override
     protected void assertNameUpdated(Record updated) {
-        assertTrue(updated.getPayload().getAfter().hasStructuredData());
         assertTrue(updated.getPayload().getBefore().hasStructuredData());
+        Struct before = updated.getPayload().getBefore().getStructuredData();
+        assertEquals("name 1", before.getFieldsOrThrow("name").getStringValue());
 
+        assertTrue(updated.getPayload().getAfter().hasStructuredData());
         Struct after = updated.getPayload().getAfter().getStructuredData();
         assertEquals("foobar", after.getFieldsOrThrow("name").getStringValue());
     }
