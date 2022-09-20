@@ -101,21 +101,17 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
             task,
             position,
             responseObserver,
-            getTransformation()
+            getRecordConverted()
         );
         runStream.startAsync();
         return runStream;
     }
 
-    private Function<SourceRecord, Record.Builder> getTransformation() {
-        if (cdcSupported()) {
+    private Function<SourceRecord, Record.Builder> getRecordConverted() {
+        if (task.getClass().getCanonicalName().startsWith("io.debezium.connector")) {
             return new DebeziumToOpenCDC();
         }
         return new KafkaToOpenCDC();
-    }
-
-    private boolean cdcSupported() {
-        return task.getClass().getCanonicalName().startsWith("io.debezium.connector");
     }
 
     @Override

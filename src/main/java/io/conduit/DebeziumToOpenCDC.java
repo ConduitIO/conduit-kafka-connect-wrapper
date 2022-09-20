@@ -46,14 +46,14 @@ public class DebeziumToOpenCDC extends SourceRecordConverter implements Function
     );
 
     @Override
-    public Record.Builder apply(SourceRecord record) {
-        if (record == null) {
+    public Record.Builder apply(SourceRecord rec) {
+        if (rec == null) {
             return null;
         }
-        if (record.valueSchema() == null || record.valueSchema().type() != Schema.Type.STRUCT) {
+        if (rec.valueSchema() == null || rec.valueSchema().type() != Schema.Type.STRUCT) {
             throw new IllegalArgumentException("expected value schema to be STRUCT");
         }
-        if (record.value() == null) {
+        if (rec.value() == null) {
             throw new IllegalArgumentException("record has no value");
         }
 
@@ -61,17 +61,17 @@ public class DebeziumToOpenCDC extends SourceRecordConverter implements Function
         // We can return a record, but the caller would then need to transform it into a builder,
         // which might create needless copies of fields.
         return Record.newBuilder()
-                .setKey(getKey(record))
-                .setOperation(getOperation(record))
-                .setPayload(getChangePayload(record))
+                .setKey(getKey(rec))
+                .setOperation(getOperation(rec))
+                .setPayload(getChangePayload(rec))
                 // we need nanoseconds here
                 .putMetadata(OpenCdcMetadata.READ_AT, String.valueOf(System.currentTimeMillis() * 1_000_000))
-                .putAllMetadata(getMetadata(record));
+                .putAllMetadata(getMetadata(rec));
     }
 
-    private Map<String, String> getMetadata(SourceRecord record) {
+    private Map<String, String> getMetadata(SourceRecord rec) {
         Map<String, String> meta = new HashMap<>();
-        Struct source = ((Struct) record.value()).getStruct("source");
+        Struct source = ((Struct) rec.value()).getStruct("source");
         for (Field f : source.schema().fields()) {
             meta.put(
                 "kafkaconnect.debezium.source." + f.name(),
@@ -81,14 +81,14 @@ public class DebeziumToOpenCDC extends SourceRecordConverter implements Function
         return meta;
     }
 
-    private Operation getOperation(SourceRecord record) {
-        if (record.valueSchema() == null || record.valueSchema().type() != Schema.Type.STRUCT) {
+    private Operation getOperation(SourceRecord rec) {
+        if (rec.valueSchema() == null || rec.valueSchema().type() != Schema.Type.STRUCT) {
             throw new IllegalArgumentException(
-                    "expected a record with a struct payload, but got " + record.valueSchema()
+                    "expected a record with a struct payload, but got " + rec.valueSchema()
             );
         }
 
-        org.apache.kafka.connect.data.Struct struct = (org.apache.kafka.connect.data.Struct) record.value();
+        org.apache.kafka.connect.data.Struct struct = (org.apache.kafka.connect.data.Struct) rec.value();
         String op = struct.getString("op");
         if (!DEBEZIUM_OPERATIONS.containsKey(op)) {
             throw new IllegalArgumentException("invalid Debezium operation: " + op);
