@@ -34,6 +34,7 @@ public class Server {
     public Server(ServerBuilder<?> serverBuilder) {
         ClasspathTaskFactory taskFactory = new ClasspathTaskFactory();
         grpcServer = serverBuilder
+                .addService(new SpecifierService())
                 .addService(new DestinationService(taskFactory))
                 .addService(new SourceService(taskFactory))
                 .addService(GrpcStdio.get())
