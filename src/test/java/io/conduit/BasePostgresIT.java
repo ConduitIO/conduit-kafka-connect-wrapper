@@ -86,7 +86,7 @@ public abstract class BasePostgresIT {
         int count = 5;
         insertEmployees(1, count);
 
-        StreamObserver runStream = run();
+        StreamObserver runStream = TestUtils.run(underTest, configMap());
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(runStream, timeout(1000).times(count)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
@@ -116,7 +116,7 @@ public abstract class BasePostgresIT {
     public void testUpdatedData() {
         insertEmployees(1, 1);
 
-        StreamObserver runStream = run();
+        StreamObserver runStream = TestUtils.run(underTest, configMap());
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(runStream, timeout(1000)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
@@ -145,7 +145,7 @@ public abstract class BasePostgresIT {
     public void testDeletedData() {
         insertEmployees(1, 1);
 
-        StreamObserver runStream = run();
+        StreamObserver runStream = TestUtils.run(underTest, configMap());
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(runStream, timeout(1500)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
@@ -164,27 +164,6 @@ public abstract class BasePostgresIT {
         assertFalse(deleted.getPayload().getAfter().hasStructuredData());
         assertFalse(deleted.getPayload().getAfter().hasRawData());
         assertTrue(deleted.getPayload().getBefore().hasStructuredData());
-    }
-
-    private StreamObserver run() {
-        StreamObserver cfgStream = mock(StreamObserver.class);
-        underTest.configure(
-                TestUtils.newConfigRequest(configMap()),
-                cfgStream
-        );
-        verify(cfgStream, never()).onError(any());
-
-        StreamObserver startStream = mock(StreamObserver.class);
-        underTest.start(
-                Source.Start.Request.newBuilder().build(),
-                startStream
-        );
-        verify(startStream, never()).onError(any());
-
-        StreamObserver runStream = mock(StreamObserver.class);
-        underTest.run(runStream);
-
-        return runStream;
     }
 
     @SneakyThrows
