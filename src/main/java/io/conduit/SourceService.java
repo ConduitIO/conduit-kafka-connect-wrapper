@@ -107,7 +107,7 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
         return runStream;
     }
 
-    private Function<SourceRecord, Record.Builder> getRecordConverted() {
+    private Function<SourceRecord, Record.Builder> getRecordConverter() {
         if (task.getClass().getCanonicalName().startsWith("io.debezium.connector")) {
             return new DebeziumToOpenCDC();
         }
