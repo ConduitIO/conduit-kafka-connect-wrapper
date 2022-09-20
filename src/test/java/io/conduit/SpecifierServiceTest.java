@@ -57,7 +57,7 @@ class SpecifierServiceTest {
         assertFalse(response.getSummary().isBlank());
 
         assertNotNull(response.getVersion());
-        assertFalse(response.getVersion().startsWith("v"));
+        assertTrue(response.getVersion().startsWith("v"));
 
         assertNotNull(response.getSourceParamsMap());
         assertFalse(response.getSourceParamsMap().isEmpty());
