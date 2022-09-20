@@ -20,7 +20,9 @@ import java.util.Map;
 
 import io.conduit.grpc.Record;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static io.conduit.grpc.Operation.OPERATION_CREATE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class JdbcPgSourceIT extends BasePostgresIT {
     @Override
@@ -32,15 +34,15 @@ public class JdbcPgSourceIT extends BasePostgresIT {
     @Override
     protected Map<String, String> configMap() {
         return Map.of(
-                "wrapper.connector.class", "io.aiven.connect.jdbc.JdbcSourceConnector",
-                "connection.url", PG_URL,
-                "connection.user", USER,
-                "connection.password", PASSWORD,
-                "tables", "employees",
-                "mode", "timestamp",
-                "poll.interval.ms", "500",
-                "timestamp.column.name", "updated_at",
-                "topic.prefix", "my_topic_prefix"
+            "wrapper.connector.class", "io.aiven.connect.jdbc.JdbcSourceConnector",
+            "connection.url", PG_URL,
+            "connection.user", USER,
+            "connection.password", PASSWORD,
+            "tables", "employees",
+            "mode", "timestamp",
+            "poll.interval.ms", "500",
+            "timestamp.column.name", "updated_at",
+            "topic.prefix", "my_topic_prefix"
         );
     }
 
@@ -48,13 +50,19 @@ public class JdbcPgSourceIT extends BasePostgresIT {
     protected void assertNameUpdated(Record updated) {
         assertTrue(updated.getPayload().getAfter().hasStructuredData());
         assertEquals(
-                "foobar",
-                updated.getPayload().getAfter().getStructuredData().getFieldsOrThrow("name").getStringValue()
+            "foobar",
+            updated.getPayload().getAfter().getStructuredData().getFieldsOrThrow("name").getStringValue()
         );
     }
 
     @Override
-    protected void assertNewRecordOk(int index, Record rec) {
+    protected void assertSnapshotRecord(int index, Record rec) {
+        assertTrue(rec.getPayload().getAfter().hasStructuredData());
+        assertPayloadOk(index, rec.getPayload().getAfter().getStructuredData());
+    }
+
+    @Override
+    protected void assertCreatedRecord(int index, Record rec) {
         assertTrue(rec.getPayload().getAfter().hasStructuredData());
         assertPayloadOk(index, rec.getPayload().getAfter().getStructuredData());
     }
@@ -62,5 +70,10 @@ public class JdbcPgSourceIT extends BasePostgresIT {
     @Override
     protected void assertKeyOk(int index, Record rec) {
         assertEquals(index, rec.getPayload().getAfter().getStructuredData().getFieldsOrThrow("id").getNumberValue());
+    }
+
+    @Override
+    protected void assertUpdateOperation(Record updated) {
+        assertEquals(OPERATION_CREATE, updated.getOperation());
     }
 }

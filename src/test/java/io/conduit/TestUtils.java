@@ -22,8 +22,14 @@ import com.google.protobuf.Struct;
 import io.conduit.grpc.Change;
 import io.conduit.grpc.Data;
 import io.conduit.grpc.Source;
+import io.grpc.stub.StreamObserver;
 
 import java.util.Map;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 public class TestUtils {
     static Source.Configure.Request newConfigRequest(Map<String, String> config) {
@@ -67,5 +73,26 @@ public class TestUtils {
         return Change.newBuilder()
                 .setAfter(data)
                 .build();
+    }
+
+    static StreamObserver run(SourceService service, Map<String, String> config) {
+        StreamObserver cfgStream = mock(StreamObserver.class);
+        service.configure(
+            TestUtils.newConfigRequest(config),
+            cfgStream
+        );
+        verify(cfgStream, never()).onError(any());
+
+        StreamObserver startStream = mock(StreamObserver.class);
+        service.start(
+            Source.Start.Request.newBuilder().build(),
+            startStream
+        );
+        verify(startStream, never()).onError(any());
+
+        StreamObserver runStream = mock(StreamObserver.class);
+        service.run(runStream);
+
+        return runStream;
     }
 }

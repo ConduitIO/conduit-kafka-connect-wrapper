@@ -38,9 +38,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import static io.conduit.grpc.Operation.OPERATION_DELETE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
 
 /**
  * A base test for PostgreSQL sources. It assumes a certain structure of the test table and test records.
@@ -80,14 +86,14 @@ public abstract class BasePostgresIT {
         int count = 5;
         insertEmployees(1, count);
 
-        StreamObserver runStream = run();
+        StreamObserver runStream = TestUtils.run(underTest, configMap());
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(runStream, timeout(1000).times(count)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
         List<Source.Run.Response> responses = captor.getAllValues();
         for (int i = 0; i < count; i++) {
             Record rec = responses.get(i).getRecord();
-            assertNewRecordOk(i + 1, rec);
+            assertSnapshotRecord(i + 1, rec);
         }
 
         int updated = 3;
@@ -98,9 +104,10 @@ public abstract class BasePostgresIT {
         verify(runStream, timeout(1500).times(count)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
         responses = captor.getAllValues();
-        for (int i = 0; i < count; i++) {
+        // check only the three updated records
+        for (int i = count - updated; i < count; i++) {
             Record rec = responses.get(i).getRecord();
-            assertNewRecordOk(i + 1, rec);
+            assertCreatedRecord(i + 1, rec);
         }
     }
 
@@ -109,11 +116,11 @@ public abstract class BasePostgresIT {
     public void testUpdatedData() {
         insertEmployees(1, 1);
 
-        StreamObserver runStream = run();
+        StreamObserver runStream = TestUtils.run(underTest, configMap());
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(runStream, timeout(1000)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
-        assertNewRecordOk(1, captor.getAllValues().get(0).getRecord());
+        assertSnapshotRecord(1, captor.getAllValues().get(0).getRecord());
 
         updateName(1, "foobar");
         captor = ArgumentCaptor.forClass(Source.Run.Response.class);
@@ -123,6 +130,7 @@ public abstract class BasePostgresIT {
 
         Record updated = captor.getAllValues().get(1).getRecord();
         assertKeyOk(1, updated);
+        assertUpdateOperation(updated);
         assertNameUpdated(updated);
     }
 
@@ -131,11 +139,11 @@ public abstract class BasePostgresIT {
     public void testDeletedData() {
         insertEmployees(1, 1);
 
-        StreamObserver runStream = run();
+        StreamObserver runStream = TestUtils.run(underTest, configMap());
         var captor = ArgumentCaptor.forClass(Source.Run.Response.class);
         verify(runStream, timeout(1500)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
-        assertNewRecordOk(1, captor.getAllValues().get(0).getRecord());
+        assertSnapshotRecord(1, captor.getAllValues().get(0).getRecord());
 
         delete(1);
         captor = ArgumentCaptor.forClass(Source.Run.Response.class);
@@ -143,35 +151,13 @@ public abstract class BasePostgresIT {
         verify(runStream, timeout(2000).times(2)).onNext(captor.capture());
         verify(runStream, never()).onError(any());
 
-        Record updated = captor.getAllValues().get(1).getRecord();
-        assertKeyOk(1, updated);
+        Record deleted = captor.getAllValues().get(1).getRecord();
+        assertKeyOk(1, deleted);
+        assertEquals(OPERATION_DELETE, deleted.getOperation());
 
-        assertTrue(updated.getPayload().getAfter().hasStructuredData());
-        Struct struct = updated.getPayload().getAfter().getStructuredData();
-        assertTrue(struct.getFieldsOrThrow("source").hasStructValue());
-        assertTrue(struct.getFieldsOrThrow("before").hasStructValue());
-        assertTrue(struct.getFieldsOrThrow("after").hasNullValue());
-    }
-
-    private StreamObserver run() {
-        StreamObserver cfgStream = mock(StreamObserver.class);
-        underTest.configure(
-                TestUtils.newConfigRequest(configMap()),
-                cfgStream
-        );
-        verify(cfgStream, never()).onError(any());
-
-        StreamObserver startStream = mock(StreamObserver.class);
-        underTest.start(
-                Source.Start.Request.newBuilder().build(),
-                startStream
-        );
-        verify(startStream, never()).onError(any());
-
-        StreamObserver runStream = mock(StreamObserver.class);
-        underTest.run(runStream);
-
-        return runStream;
+        assertFalse(deleted.getPayload().getAfter().hasStructuredData());
+        assertFalse(deleted.getPayload().getAfter().hasRawData());
+        assertTrue(deleted.getPayload().getBefore().hasStructuredData());
     }
 
     @SneakyThrows
@@ -232,9 +218,13 @@ public abstract class BasePostgresIT {
 
     protected abstract void assertNameUpdated(Record updated);
 
-    protected abstract void assertNewRecordOk(int index, Record rec);
+    protected abstract void assertSnapshotRecord(int index, Record rec);
+
+    protected abstract void assertCreatedRecord(int index, Record rec);
 
     protected abstract Map<String, String> configMap();
 
     protected abstract void assertKeyOk(int index, Record rec);
+
+    protected abstract void assertUpdateOperation(Record updated);
 }

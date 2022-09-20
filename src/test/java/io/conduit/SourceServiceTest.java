@@ -1,10 +1,16 @@
 package io.conduit;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 import io.conduit.grpc.Source;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
+import lombok.SneakyThrows;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,6 +20,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
@@ -58,6 +65,10 @@ public class SourceServiceTest {
         verify(streamObserver).onError(captor.capture());
         assertInstanceOf(StatusException.class, captor.getValue());
         assertEquals(exception, captor.getValue().getCause());
+        assertEquals(
+            "INTERNAL: couldn't configure task: java.lang.RuntimeException: surprised ya, huh?",
+            captor.getValue().getMessage()
+        );
     }
 
     @Test
@@ -65,11 +76,11 @@ public class SourceServiceTest {
     public void testStartTask() {
         when(taskFactory.newSourceTask("io.foo.bar")).thenReturn(task);
         underTest.configure(
-                TestUtils.newConfigRequest(Map.of(
-                        "wrapper.connector.class", "io.foo.bar",
-                        "another.param", "another.value"
-                )),
-                mock(StreamObserver.class)
+            TestUtils.newConfigRequest(Map.of(
+                "wrapper.connector.class", "io.foo.bar",
+                "another.param", "another.value"
+            )),
+            mock(StreamObserver.class)
         );
 
         StreamObserver<Source.Start.Response> startStream = mock(StreamObserver.class);
@@ -91,11 +102,11 @@ public class SourceServiceTest {
         doThrow(exception).when(task).start(anyMap());
 
         underTest.configure(
-                TestUtils.newConfigRequest(Map.of(
-                        "wrapper.connector.class", "io.foo.bar",
-                        "another.param", "another.value"
-                )),
-                mock(StreamObserver.class)
+            TestUtils.newConfigRequest(Map.of(
+                "wrapper.connector.class", "io.foo.bar",
+                "another.param", "another.value"
+            )),
+            mock(StreamObserver.class)
         );
 
         StreamObserver<Source.Start.Response> startStream = mock(StreamObserver.class);
@@ -110,6 +121,97 @@ public class SourceServiceTest {
         verify(startStream).onError(tCaptor.capture());
         assertInstanceOf(StatusException.class, tCaptor.getValue());
         assertEquals(exception, tCaptor.getValue().getCause());
+    }
+
+    @SneakyThrows
+    @Test
+    public void testStopSendsLastPosition() {
+        when(taskFactory.newSourceTask("io.foo.bar")).thenReturn(task);
+
+        var records = testKafkaRecords();
+        when(task.poll()).thenReturn(records, emptyList());
+
+        var runStream = TestUtils.run(
+            underTest,
+            Map.of(
+                "wrapper.connector.class", "io.foo.bar",
+                "another.param", "another.value"
+            )
+        );
+        verify(runStream, timeout(1500).times(records.size())).onNext(any());
+        verify(runStream, never()).onError(any());
+
+        var stopStream = mock(StreamObserver.class);
+        underTest.stop(Source.Stop.Request.newBuilder().build(), stopStream);
+        verify(stopStream, never()).onError(any());
+        var stopCaptor = ArgumentCaptor.forClass(Source.Stop.Response.class);
+        verify(stopStream).onNext(stopCaptor.capture());
+
+        SourcePosition expected = new SourcePosition();
+        expected.add(records.getLast().sourcePartition(), records.getLast().sourceOffset());
+        assertEquals(
+            expected.asByteString(),
+            stopCaptor.getValue().getLastPosition()
+        );
+    }
+
+    private LinkedList<SourceRecord> testKafkaRecords() {
+        var records = new LinkedList<SourceRecord>();
+        for (int i = 0; i < 5; i++) {
+            records.add(
+                new SourceRecord(
+                    Map.of("p", 0),
+                    Map.of("offset", i),
+                    "test-topic",
+                    i,
+                    Schema.STRING_SCHEMA,
+                    "test-payload-" + i
+                )
+            );
+        }
+        return records;
+    }
+
+    @Test
+    public void testTeardownNoStart() {
+        underTest.configure(
+            TestUtils.newConfigRequest(Map.of(
+                "wrapper.connector.class", "io.foo.bar",
+                "another.param", "another.value"
+            )),
+            mock(StreamObserver.class)
+        );
+        StreamObserver observer = mock(StreamObserver.class);
+        underTest.teardown(
+            Source.Teardown.Request.newBuilder().build(),
+            observer
+        );
+        verify(observer, never()).onError(any());
+    }
+
+    @Test
+    public void testTeardownWhenStartFailed() {
+        var task = mock(SourceTask.class);
+        doThrow(new RuntimeException("gotcha!")).when(task).start(anyMap());
+        when(taskFactory.newSourceTask("io.foo.bar"))
+            .thenReturn(task);
+
+        underTest.configure(
+            TestUtils.newConfigRequest(Map.of(
+                "wrapper.connector.class", "io.foo.bar",
+                "another.param", "another.value"
+            )),
+            mock(StreamObserver.class)
+        );
+
+        underTest.start(Source.Start.Request.newBuilder().build(), mock(StreamObserver.class));
+
+        StreamObserver observer = mock(StreamObserver.class);
+        underTest.teardown(
+            Source.Teardown.Request.newBuilder().build(),
+            observer
+        );
+        verify(observer, never()).onError(any());
     }
 
     private Source.Start.Request newStartRequest() {
