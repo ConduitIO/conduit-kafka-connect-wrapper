@@ -6,7 +6,7 @@
 
     <groupId>io.conduit</groupId>
     <artifactId>conduit-kafka-connect-wrapper</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
 
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
