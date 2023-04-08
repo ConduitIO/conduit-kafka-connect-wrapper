@@ -40,7 +40,8 @@ public class DebeziumPgSourceIT extends BasePostgresIT {
             "database.password", PASSWORD,
             "database.dbname", "meroxadb",
             "database.server.name", "test-server",
-            "table.include.list", "public.employees"
+            "table.include.list", "public.employees",
+            "topic.prefix", "test-topic"
         );
     }
 
