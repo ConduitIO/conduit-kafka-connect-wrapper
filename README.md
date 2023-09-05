@@ -4,7 +4,7 @@
 The goal of Conduit's Kafka connector wrapper is to make it possible to use existing Kafka connectors with Conduit.
 
 ### Pre-requisites
-* JDK 11
+* JDK 17
 * Currently, only Unix-like OSes are supported.
 
 ### Logging
