@@ -6,9 +6,7 @@
         </encoder>
     </appender>
 
-    <logger name="io.conduit" level="DEBUG"/>
-
-    <root level="DEBUG">
+    <root level="WARN">
         <appender-ref ref="STDERR"/>
     </root>
 </configuration>
