@@ -37,7 +37,6 @@ public class Server {
                 .addService(new SpecifierService())
                 .addService(new DestinationService(taskFactory))
                 .addService(new SourceService(taskFactory))
-                .addService(GrpcStdio.get())
                 .build();
     }
 

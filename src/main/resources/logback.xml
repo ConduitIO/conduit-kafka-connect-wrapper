@@ -1,21 +1,14 @@
 <configuration>
-    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>/var/log/conduit-kafka-connect-wrapper/main.log</file>
-        <append>true</append>
+    <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+        <target>System.err</target>
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] [%X{pipelineId}] [%X{connectorName}] %-5level %logger{36} - %msg%n</pattern>
-        </encoder>
-    </appender>
-
-    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] [%X{pipelineId}] [%X{connectorName}] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>[%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
     <logger name="io.conduit" level="DEBUG"/>
 
-    <root level="WARN">
-        <appender-ref ref="FILE"/>
+    <root level="DEBUG">
+        <appender-ref ref="STDERR"/>
     </root>
 </configuration>
