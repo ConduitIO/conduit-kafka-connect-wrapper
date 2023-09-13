@@ -17,8 +17,10 @@
 package io.conduit;
 
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
+import ch.qos.logback.classic.Level;
 import io.conduit.grpc.Record;
 import io.conduit.grpc.Source;
 import io.conduit.grpc.SourcePluginGrpc;
@@ -70,6 +72,7 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     private void doConfigure(Config config) {
         this.task = taskFactory.newSourceTask(config.getConnectorClass());
         this.config = config.getKafkaConnectorCfg();
+        LoggingUtils.configureLogging(config.getLogsConfig());
     }
 
     @Override

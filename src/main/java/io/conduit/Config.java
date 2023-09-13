@@ -20,8 +20,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 import static io.conduit.Utils.mapper;
 
@@ -32,11 +36,19 @@ import static io.conduit.Utils.mapper;
  */
 @Getter
 @Setter
+@EqualsAndHashCode
+@AllArgsConstructor
+@NoArgsConstructor
+@ToString
 public class Config {
-    public static final String PREFIX = "wrapper.";
+    public static final String WRAPPER_PREFIX = "wrapper.";
+    public static final String WRAPPER_LOGS_PREFIX = "wrapper.logs.";
 
     @JsonProperty("connector.class")
     private String connectorClass;
+    @JsonProperty("logs")
+    // Maps logger name to level, e.g. "io.conduit" -> "DEBUG"
+    private Map<String, String> logsConfig;
     private Map<String, String> kafkaConnectorCfg = new HashMap<>();
 
     /**
@@ -51,16 +63,39 @@ public class Config {
 
     protected static <T extends Config> T fromMap(Map<String, String> map, Class<T> clazz) {
         Map<String, String> wrapperMap = new HashMap<>();
+        Map<String, String> logsCfgMap = new HashMap<>();
         Map<String, String> connectorMap = new HashMap<>();
+
         map.forEach((k, v) -> {
-            if (k.startsWith(PREFIX)) {
-                wrapperMap.put(k.replaceFirst(PREFIX, ""), v);
+            if (k.startsWith(WRAPPER_LOGS_PREFIX)) {
+                logsCfgMap.put(k.replaceFirst(WRAPPER_LOGS_PREFIX, ""), v);
+            } else if (k.startsWith(WRAPPER_PREFIX)) {
+                wrapperMap.put(k.replaceFirst(WRAPPER_PREFIX, ""), v);
             } else {
                 connectorMap.put(k, v);
             }
         });
+
         T cfg = mapper.convertValue(wrapperMap, clazz);
         cfg.setKafkaConnectorCfg(connectorMap);
+        cfg.setLogsConfig(parseLogsConfig(logsCfgMap));
         return cfg;
+    }
+
+    private static Map<String, String> parseLogsConfig(Map<String, String> input) {
+        Map<String, String> parsed = new HashMap<>();
+        for (Map.Entry<String, String> e : input.entrySet()) {
+            if (!e.getKey().endsWith(".level")) {
+                throw new IllegalArgumentException(
+                    "invalid logging configuration: key needs to end with '.level', input: " + e.getKey()
+                );
+            }
+
+            // remove last 6 chars, i.e. the .level suffix
+            String loggerName = e.getKey().substring(0, e.getKey().length() - 6);
+            parsed.put(loggerName, e.getValue());
+        }
+
+        return parsed;
     }
 }
