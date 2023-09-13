@@ -33,7 +33,6 @@ import org.slf4j.LoggerFactory;
  */
 public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     public static final org.slf4j.Logger logger = LoggerFactory.getLogger(SourceService.class);
-
     private final TaskFactory taskFactory;
     private SourceTask task;
     private Map<String, String> config;
@@ -119,6 +118,7 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
 
     @Override
     public void stop(Source.Stop.Request request, StreamObserver<Source.Stop.Response> responseObserver) {
+        logger.info("Stopping the source");
         // todo check if a record is being flushed
         runStream.onCompleted();
         responseObserver.onNext(
@@ -132,6 +132,7 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     @Override
     public void teardown(Source.Teardown.Request request, StreamObserver<Source.Teardown.Response> responseObserver) {
         logger.info("Tearing down...");
+
         try {
             if (task != null && started) {
                 task.stop();
