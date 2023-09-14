@@ -1,6 +1,5 @@
 package io.conduit;
 
-import java.util.Collections;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
@@ -12,25 +11,17 @@ public class ConfigTest {
     public void testFromMap() {
         Map<String, String> map = Map.of(
                 "wrapper.connector.class", "test-connector-class",
-                "wrapper.logs.root.level", "INFO",
-                "wrapper.logs.io.foo.bar.level", "DEBUG",
                 "kafka.connector.param1", "test-value-1",
                 "kafka.connector.param2", "test-value-2"
         );
-        Config actual = Config.fromMap(map);
+        Config cfg = Config.fromMap(map);
+        assertEquals(map.get("wrapper.connector.class"), cfg.getConnectorClass());
         assertEquals(
-            new Config(
-                map.get("wrapper.connector.class"),
                 Map.of(
-                    "root", "INFO",
-                    "io.foo.bar", "DEBUG"
+                        "kafka.connector.param1", "test-value-1",
+                        "kafka.connector.param2", "test-value-2"
                 ),
-                Map.of(
-                    "kafka.connector.param1", "test-value-1",
-                    "kafka.connector.param2", "test-value-2"
-                )
-            ),
-            actual
+                cfg.getKafkaConnectorCfg()
         );
     }
 }

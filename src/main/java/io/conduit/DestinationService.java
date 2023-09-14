@@ -72,7 +72,6 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
         this.task = taskFactory.newSinkTask(config.getConnectorClass());
         this.schemaProvider = buildSchemaProvider(config);
         this.config = config.getKafkaConnectorCfg();
-        LoggingUtils.configureLogging(config.getLogsConfig());
     }
 
     private SchemaProvider buildSchemaProvider(DestinationConfig config) {
