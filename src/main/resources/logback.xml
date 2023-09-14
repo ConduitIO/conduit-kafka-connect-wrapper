@@ -1,5 +1,6 @@
 <configuration>
     <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- Conduit reads logs from stderr only (and through HashiCorp's go-plugin) -->
         <target>System.err</target>
         <encoder>
             <pattern>[%thread] %-5level %logger{36} - %msg%n</pattern>
