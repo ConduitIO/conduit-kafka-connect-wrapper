@@ -10,22 +10,20 @@ public class ConfigTest {
     @Test
     public void testFromMap() {
         Map<String, String> map = Map.of(
-                "wrapper.connector.class", "test-connector-class",
-                "wrapper.log.level", "INFO",
-                "kafka.connector.param1", "test-value-1",
-                "kafka.connector.param2", "test-value-2"
+            "wrapper.connector.class", "test-connector-class",
+            "wrapper.log.level", "INFO",
+            "kafka.connector.param1", "test-value-1",
+            "kafka.connector.param2", "test-value-2"
         );
         Config actual = Config.fromMap(map);
+        assertEquals("test-connector-class", actual.getConnectorClass());
+        assertEquals("INFO", actual.getLogLevel());
         assertEquals(
-            new Config(
-                map.get("wrapper.connector.class"),
-                map.get("wrapper.log.level"),
-                Map.of(
-                    "kafka.connector.param1", "test-value-1",
-                    "kafka.connector.param2", "test-value-2"
-                )
+            Map.of(
+                "kafka.connector.param1", "test-value-1",
+                "kafka.connector.param2", "test-value-2"
             ),
-            actual
+            actual.getKafkaConnectorCfg()
         );
     }
 }
