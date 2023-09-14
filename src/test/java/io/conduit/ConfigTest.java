@@ -11,17 +11,21 @@ public class ConfigTest {
     public void testFromMap() {
         Map<String, String> map = Map.of(
                 "wrapper.connector.class", "test-connector-class",
+                "wrapper.log.level", "INFO",
                 "kafka.connector.param1", "test-value-1",
                 "kafka.connector.param2", "test-value-2"
         );
-        Config cfg = Config.fromMap(map);
-        assertEquals(map.get("wrapper.connector.class"), cfg.getConnectorClass());
+        Config actual = Config.fromMap(map);
         assertEquals(
+            new Config(
+                map.get("wrapper.connector.class"),
+                map.get("wrapper.log.level"),
                 Map.of(
-                        "kafka.connector.param1", "test-value-1",
-                        "kafka.connector.param2", "test-value-2"
-                ),
-                cfg.getKafkaConnectorCfg()
+                    "kafka.connector.param1", "test-value-1",
+                    "kafka.connector.param2", "test-value-2"
+                )
+            ),
+            actual
         );
     }
 }
