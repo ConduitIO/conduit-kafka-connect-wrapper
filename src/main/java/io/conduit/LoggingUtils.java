@@ -16,14 +16,7 @@
 
 package io.conduit;
 
-import java.util.Map;
-
 import ch.qos.logback.classic.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.core.LoggerContext;
-import org.apache.logging.log4j.core.appender.ConsoleAppender;
-import org.apache.logging.log4j.core.config.Configuration;
-import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,8 +24,6 @@ import org.slf4j.LoggerFactory;
  * A collection of utility methods for logging.
  */
 public final class LoggingUtils {
-    public static final Logger logger = LoggerFactory.getLogger(LoggingUtils.class);
-
     private LoggingUtils() {
     }
 
