@@ -24,8 +24,6 @@ import io.conduit.grpc.Change;
 import io.conduit.grpc.Data;
 import io.conduit.grpc.Destination;
 import io.conduit.grpc.Record;
-import io.grpc.Status;
-import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -43,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-public class DefaultDestinationStreamTest {
+class DefaultDestinationStreamTest {
     @Mock
     private SinkTask task;
     @Mock

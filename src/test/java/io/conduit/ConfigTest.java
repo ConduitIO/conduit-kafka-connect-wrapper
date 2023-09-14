@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class ConfigTest {
+class ConfigTest {
     @Test
     public void testFromMap() {
         Map<String, String> map = Map.of(

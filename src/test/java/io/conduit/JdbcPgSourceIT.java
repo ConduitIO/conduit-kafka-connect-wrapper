@@ -24,7 +24,7 @@ import static io.conduit.grpc.Operation.OPERATION_CREATE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class JdbcPgSourceIT extends BasePostgresIT {
+class JdbcPgSourceIT extends BasePostgresIT {
     @Override
     public void testDeletedData() {
         // todo implement this

@@ -20,7 +20,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class DestinationServiceTest {
+class DestinationServiceTest {
     private DestinationService underTest;
     @Mock
     private TaskFactory taskFactory;

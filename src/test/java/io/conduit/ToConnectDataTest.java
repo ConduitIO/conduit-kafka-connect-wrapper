@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class ToConnectDataTest {
+ class ToConnectDataTest {
     private ToConnectData underTest;
     private Schema valueSchema;
     private JsonNode testRecord;
