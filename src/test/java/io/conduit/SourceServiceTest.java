@@ -1,7 +1,9 @@
 package io.conduit;
 
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 import io.conduit.grpc.Source;
 import io.grpc.StatusException;
@@ -22,13 +24,7 @@ import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.anyMap;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class SourceServiceTest {
@@ -46,16 +42,7 @@ public class SourceServiceTest {
     @Test
     @DisplayName("When the configuration is OK, then a successful response is sent back.")
     public void testConfigureOk() {
-        Source.Configure.Request request = Source.Configure.Request.newBuilder()
-            .putAllConfig(Map.of(
-                "wrapper.connector.class", "test-connector-class",
-                "wrapper.logs.root.level", "INFO",
-                "wrapper.logs.io.foo.bar.level", "DEBUG",
-                "wrapper.logs.org.example.level", "TRACE",
-                "kafka.connector.param1", "test-value-1",
-                "kafka.connector.param2", "test-value-2"
-            ))
-            .build();
+        Source.Configure.Request request = Source.Configure.Request.newBuilder().build();
         StreamObserver<Source.Configure.Response> streamObserver = mock(StreamObserver.class);
 
         underTest.configure(request, streamObserver);
@@ -67,16 +54,7 @@ public class SourceServiceTest {
     @Test
     @DisplayName("When the configuration is NOT OK, then an error response is sent back.")
     public void testConfigureWithError() {
-        Source.Configure.Request request = Source.Configure.Request.newBuilder()
-            .putAllConfig(Map.of(
-                "wrapper.connector.class", "test-connector-class",
-                "wrapper.logs.root.level", "INFO",
-                "wrapper.logs.io.foo.bar.level", "DEBUG",
-                "wrapper.logs.org.example.level", "TRACE",
-                "kafka.connector.param1", "test-value-1",
-                "kafka.connector.param2", "test-value-2"
-            ))
-            .build();
+        Source.Configure.Request request = Source.Configure.Request.newBuilder().build();
         StreamObserver<Source.Configure.Response> streamObserver = mock(StreamObserver.class);
         RuntimeException exception = new RuntimeException("surprised ya, huh?");
         when(taskFactory.newSourceTask(any())).thenThrow(exception);
