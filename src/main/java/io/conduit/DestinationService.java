@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  * A gRPC service exposing source plugin methods.
  */
 public class DestinationService extends DestinationPluginGrpc.DestinationPluginImplBase {
-    public static final Logger logger = LoggerFactory.getLogger(DefaultSourceStream.class);
+    public static final Logger logger = LoggerFactory.getLogger(DestinationService.class);
     
     private final TaskFactory taskFactory;
     private SinkTask task;
