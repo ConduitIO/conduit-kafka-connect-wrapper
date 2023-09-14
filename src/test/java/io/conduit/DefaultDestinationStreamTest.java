@@ -24,6 +24,8 @@ import io.conduit.grpc.Change;
 import io.conduit.grpc.Data;
 import io.conduit.grpc.Destination;
 import io.conduit.grpc.Record;
+import io.grpc.Status;
+import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -104,5 +106,33 @@ public class DefaultDestinationStreamTest {
             .setAckPosition(position)
             .build()
         );
+    }
+
+    @Test
+    public void testOnError() {
+        var underTest = new DefaultDestinationStream(
+            task,
+            schemaProvider,
+            responseObserver
+        );
+
+        var t = new RuntimeException("boom!");
+        underTest.onError(t);
+
+        var captor = ArgumentCaptor.forClass(Throwable.class);
+        verify(responseObserver).onError(captor.capture());
+        assertEquals(t, captor.getValue().getCause());
+    }
+
+    @Test
+    public void testOnCompleted() {
+        var underTest = new DefaultDestinationStream(
+            task,
+            schemaProvider,
+            responseObserver
+        );
+
+        underTest.onCompleted();
+        verify(responseObserver).onCompleted();
     }
 }
