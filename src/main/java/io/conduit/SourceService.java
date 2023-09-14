@@ -26,7 +26,6 @@ import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
-import org.example.DummyConnector;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -75,7 +74,6 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     @Override
     public void start(Source.Start.Request request, StreamObserver<Source.Start.Response> responseObserver) {
         logger.info("Starting the source.");
-        new DummyConnector().start();
 
         try {
             this.position = SourcePosition.fromString(request.getPosition().toStringUtf8());

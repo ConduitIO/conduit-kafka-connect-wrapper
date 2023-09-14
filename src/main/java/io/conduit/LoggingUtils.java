@@ -21,6 +21,7 @@ import java.util.Map;
 import ch.qos.logback.classic.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.appender.ConsoleAppender;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.slf4j.Logger;
@@ -47,18 +48,9 @@ public final class LoggingUtils {
             return;
         }
 
-        // Logback
+        // Logback only at the moment, log4j TBD
         ch.qos.logback.classic.Logger logbackLogger = (ch.qos.logback.classic.Logger)
             LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
         logbackLogger.setLevel(Level.toLevel(level));
-
-        // log4j
-        LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
-        Configuration config = ctx.getConfiguration();
-        org.apache.logging.log4j.core.config.LoggerConfig loggerConfig =
-            config.getLoggerConfig(LoggerConfig.ROOT);
-        loggerConfig.setLevel(org.apache.logging.log4j.Level.toLevel(level));
-        ctx.updateLoggers();
-
     }
 }
