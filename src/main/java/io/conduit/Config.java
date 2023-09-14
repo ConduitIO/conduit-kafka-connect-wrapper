@@ -20,12 +20,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 
 import static io.conduit.Utils.mapper;
 
@@ -36,10 +32,6 @@ import static io.conduit.Utils.mapper;
  */
 @Getter
 @Setter
-@EqualsAndHashCode
-@ToString
-@AllArgsConstructor
-@NoArgsConstructor
 public class Config {
     public static final String WRAPPER_PREFIX = "wrapper.";
 
