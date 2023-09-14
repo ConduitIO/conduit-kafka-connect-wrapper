@@ -26,8 +26,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static io.conduit.Utils.mapper;
 
@@ -43,8 +41,6 @@ import static io.conduit.Utils.mapper;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Config {
-    public static final Logger logger = LoggerFactory.getLogger(Config.class);
-
     public static final String WRAPPER_PREFIX = "wrapper.";
 
     @JsonProperty("connector.class")

@@ -28,7 +28,7 @@ public final class LoggingUtils {
     }
 
     /**
-     * Sets the root logging level.
+     * Sets the root logging level for slf4j logging (through Logback).
      * Possible values are: <code>OFF, ERROR, WARN, INFO, DEBUG, TRACE, ALL</code>.
      * Logging levels are case-insensitive.
      *
@@ -40,6 +40,12 @@ public final class LoggingUtils {
         }
 
         // Logback only at the moment, log4j TBD
+        // Programmatically changing the logging level for log4j is possible in theory.
+        // However, doing that in our case somehow wasn't possible.
+        // For some reason the log4j configuration from the provided XML file
+        // was reloaded, so the programmatic changes were overwritten.
+        // Another option to do this is to build the whole logging configuration
+        // completely through the log4j Java API.
         ch.qos.logback.classic.Logger logbackLogger = (ch.qos.logback.classic.Logger)
             LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
         logbackLogger.setLevel(Level.toLevel(level));
