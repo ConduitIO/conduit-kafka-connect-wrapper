@@ -3,7 +3,7 @@
     <Appenders>
         <!-- Conduit reads logs from stderr only (and through HashiCorp's go-plugin) -->
         <Console name="SystemErrAppender" target="SYSTEM_ERR">
-            <PatternLayout pattern="[%t] %-5level %logger{36} - %msg%n%throwable"/>
+            <JsonTemplateLayout eventTemplateUri="classpath:Log4jJsonTemplateLayout.json"/>
         </Console>
     </Appenders>
 
