@@ -89,6 +89,8 @@ For example:
 ./scripts/download-connector.sh io.example jdbc-connector 2.1.3
 ```
 
+For usage, run `./scripts/download-connector.sh --help`.
+
 ### Loading connectors
 The plugin will load connectors and all the other dependencies from a `libs` directory, which is expected to be in the 
 same directory as the plugin executable itself. For example, if the plugin executable is at `/abc/def/conduit-kafka-connect-wrapper`,

@@ -51,7 +51,7 @@ echo "OUTPUT_DIR: $OUTPUT_DIR"
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-mvn -f "$SCRIPT_DIR/pom-template.xml" \
+mvn -f "$SCRIPT_DIR/download-connector-pom.xml" \
   -Dconnector.groupId=$GROUP_ID \
   -Dconnector.artifactId=$ARTIFACT_ID \
   -Dconnector.version=$VERSION \
