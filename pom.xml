@@ -18,6 +18,7 @@
         <kafka.version>3.5.1</kafka.version>
         <mockito.version>5.5.0</mockito.version>
         <junit.version>5.10.0</junit.version>
+        <logback.version>1.4.11</logback.version>
     </properties>
 
     <dependencyManagement>
@@ -34,9 +35,14 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-layout-template-json</artifactId>
+            <version>2.20.0</version>
+        </dependency>
+        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-core</artifactId>
-            <version>1.4.11</version>
+            <version>${logback.version}</version>
         </dependency>
         <dependency>
             <groupId>net.logstash.logback</groupId>
@@ -46,7 +52,7 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.4.11</version>
+            <version>${logback.version}</version>
         </dependency>
 
         <dependency>
