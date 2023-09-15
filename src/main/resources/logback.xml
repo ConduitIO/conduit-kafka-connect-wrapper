@@ -1,9 +1,23 @@
 <configuration>
     <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
-        <!-- Conduit reads logs from stderr only (and through HashiCorp's go-plugin) -->
         <target>System.err</target>
-        <encoder>
-            <pattern>[%thread] %-5level %logger{36} - %msg%n</pattern>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <pattern>
+                    <omitEmptyFields>true</omitEmptyFields>
+                    <!-- All available conversion words: https://logback.qos.ch/manual/layouts.html#conversionWord -->
+                    <pattern>
+                        {
+                        "@level": "%level",
+                        "@message": "%message",
+                        "loggerName": "%logger",
+                        "thread": "%thread",
+                        "kvp": "%kvp",
+                        "exception": "%rootException"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
         </encoder>
     </appender>
 
