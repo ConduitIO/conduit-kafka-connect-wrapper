@@ -44,14 +44,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class KafkaToOpenCDCTest {
+class KafkaToOpenCDCTest {
     private KafkaToOpenCDC underTest;
     private Schema valueSchema;
     private Schema keySchema;
     private Struct testValue;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         underTest = new KafkaToOpenCDC();
 
         valueSchema = new SchemaBuilder(Schema.Type.STRUCT)
@@ -76,13 +76,13 @@ public class KafkaToOpenCDCTest {
     }
 
     @Test
-    public void testFromKafkaSource_Null() {
+    void testFromKafkaSource_Null() {
         assertNull(underTest.apply(null));
     }
 
     @SneakyThrows
     @Test
-    public void testFromKafkaSource_WithValueSchema_NoKey() {
+    void testFromKafkaSource_WithValueSchema_NoKey() {
         var sourceRecord = new SourceRecord(
             Map.of("test-partition", "test_table"),
             Map.of("test-offset", 123456L),
@@ -109,7 +109,7 @@ public class KafkaToOpenCDCTest {
 
     @SneakyThrows
     @Test
-    public void testFromKafkaSource_WithValueSchema_NoKeySchema() {
+    void testFromKafkaSource_WithValueSchema_NoKeySchema() {
         var sourceRecord = new SourceRecord(
             Map.of("test-partition", "test_table"),
             Map.of("test-offset", 123456L),
@@ -129,7 +129,7 @@ public class KafkaToOpenCDCTest {
 
     @SneakyThrows
     @Test
-    public void testFromKafkaSource_WithValueSchema_WithKeySchema() {
+    void testFromKafkaSource_WithValueSchema_WithKeySchema() {
         var sourceRecord = new SourceRecord(
             Map.of("test-partition", "test_table"),
             Map.of("test-offset", 123456L),
