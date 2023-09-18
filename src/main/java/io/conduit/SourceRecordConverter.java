@@ -21,6 +21,11 @@ import com.google.protobuf.Struct;
 import com.google.protobuf.util.JsonFormat;
 import io.conduit.grpc.Data;
 import lombok.SneakyThrows;
+import org.apache.kafka.common.serialization.BooleanSerializer;
+import org.apache.kafka.common.serialization.DoubleSerializer;
+import org.apache.kafka.common.serialization.FloatSerializer;
+import org.apache.kafka.common.serialization.IntegerSerializer;
+import org.apache.kafka.common.serialization.LongSerializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
 
@@ -39,25 +44,52 @@ abstract class SourceRecordConverter {
 
     @SneakyThrows
     protected Data schemaValueToData(Schema schema, Object value) {
-        byte[] bytes = jsonConvSchemaless.fromConnectData("", schema, value);
-        if (schema.type() != Schema.Type.STRUCT) {
-            return Data.newBuilder()
-                    .setRawData(ByteString.copyFrom(bytes))
-                    .build();
-        }
-        // todo try improving performance
-        // Internally, Kafka's JsonConverter transforms the input value into a JsonNode, then into a bytes array.
-        // Then, we create a string from the bytes array, and let the Protobuf Java library parse the struct.
-        // This lets us quickly get the correct struct, without having to handle all the possible types,
-        // but is probably not as efficient as it can be.
-        // See: https://github.com/ConduitIO/conduit-kafka-connect-wrapper/issues/60
-        var outStruct = Struct.newBuilder();
-        JsonFormat.parser().ignoringUnknownFields().merge(
-                new String(bytes),
-                outStruct
-        );
-        return Data.newBuilder()
-                .setStructuredData(outStruct)
+        Data data;
+        switch (schema.type()) {
+            case BYTES -> data = Data.newBuilder()
+                .setRawData(ByteString.copyFrom((byte[]) value))
                 .build();
+            case STRING -> data = Data.newBuilder()
+                .setRawData(ByteString.copyFromUtf8((String) value))
+                .build();
+            case INT8, INT16, INT32 ->
+                data = Data.newBuilder()
+                .setRawData(
+                    ByteString.copyFrom(new IntegerSerializer().serialize("", (Integer) value))
+                ).build();
+            case INT64 -> data = Data.newBuilder()
+                .setRawData(
+                    ByteString.copyFrom(new LongSerializer().serialize("", (Long) value))
+                ).build();
+            case FLOAT32 -> data = Data.newBuilder()
+                .setRawData(ByteString.copyFrom(new FloatSerializer().serialize("", (Float) value)))
+                .build();
+            case FLOAT64 -> data = Data.newBuilder()
+                .setRawData(ByteString.copyFrom(new DoubleSerializer().serialize("", (Double) value)))
+                .build();
+            case BOOLEAN -> data = Data.newBuilder()
+                .setRawData(ByteString.copyFrom(new BooleanSerializer().serialize("", (Boolean) value)))
+                .build();
+            case STRUCT -> {
+                var bytes = jsonConvSchemaless.fromConnectData("", schema, value);
+                // todo try improving performance
+                // Internally, Kafka's JsonConverter transforms the input value into a JsonNode, then into a bytes array.
+                // Then, we create a string from the bytes array, and let the Protobuf Java library parse the struct.
+                // This lets us quickly get the correct struct, without having to handle all the possible types,
+                // but is probably not as efficient as it can be.
+                // See: https://github.com/ConduitIO/conduit-kafka-connect-wrapper/issues/60
+                var outStruct = Struct.newBuilder();
+                JsonFormat.parser().ignoringUnknownFields().merge(
+                    new String(bytes),
+                    outStruct
+                );
+                data = Data.newBuilder()
+                    .setStructuredData(outStruct)
+                    .build();
+            }
+            default -> throw new IllegalArgumentException("unrecognized schema: " + schema);
+        }
+
+        return data;
     }
 }
