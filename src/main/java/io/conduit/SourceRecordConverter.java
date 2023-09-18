@@ -73,7 +73,8 @@ abstract class SourceRecordConverter {
             case STRUCT -> {
                 var bytes = jsonConvSchemaless.fromConnectData("", schema, value);
                 // todo try improving performance
-                // Internally, Kafka's JsonConverter transforms the input value into a JsonNode, then into a bytes array.
+                // Internally, Kafka's JsonConverter transforms the input value into a JsonNode,
+                // then into a bytes array.
                 // Then, we create a string from the bytes array, and let the Protobuf Java library parse the struct.
                 // This lets us quickly get the correct struct, without having to handle all the possible types,
                 // but is probably not as efficient as it can be.
