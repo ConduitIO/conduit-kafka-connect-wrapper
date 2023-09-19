@@ -16,6 +16,8 @@
 
 package io.conduit;
 
+import java.util.Map;
+
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Struct;
@@ -24,14 +26,12 @@ import io.conduit.grpc.Data;
 import io.conduit.grpc.Source;
 import io.grpc.stub.StreamObserver;
 
-import java.util.Map;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-public class TestUtils {
+ class TestUtils {
     static Source.Configure.Request newConfigRequest(Map<String, String> config) {
         return Source.Configure.Request.newBuilder()
                 .putAllConfig(config)

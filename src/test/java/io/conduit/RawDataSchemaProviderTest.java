@@ -1,20 +1,22 @@
 package io.conduit;
 
+import java.nio.charset.StandardCharsets;
+
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Struct;
-import io.conduit.grpc.Change;
 import io.conduit.grpc.Data;
 import io.conduit.grpc.Record;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.jupiter.api.Test;
 
-import java.nio.charset.StandardCharsets;
-
 import static io.conduit.TestUtils.newCreatedRecord;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class RawDataSchemaProviderTest {
+class RawDataSchemaProviderTest {
     @Test
     public void testFull() {
         RawDataSchemaProvider underTest = new RawDataSchemaProvider("myschema", null);

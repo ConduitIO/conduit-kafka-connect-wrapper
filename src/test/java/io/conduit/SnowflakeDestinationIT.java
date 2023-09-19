@@ -16,23 +16,6 @@
 
 package io.conduit;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Sets;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Struct;
-import com.google.protobuf.Timestamp;
-import com.google.protobuf.Value;
-import com.google.protobuf.util.JsonFormat;
-import io.conduit.grpc.Record;
-import io.conduit.grpc.*;
-import io.grpc.stub.StreamObserver;
-import lombok.SneakyThrows;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -41,17 +24,48 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
-import java.util.*;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Sets;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.Struct;
+import com.google.protobuf.Timestamp;
+import com.google.protobuf.Value;
+import com.google.protobuf.util.JsonFormat;
+import io.conduit.grpc.Change;
+import io.conduit.grpc.Data;
+import io.conduit.grpc.Destination;
+import io.conduit.grpc.Opencdc;
+import io.conduit.grpc.Record;
+import io.grpc.stub.StreamObserver;
+import lombok.SneakyThrows;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+
 import static java.lang.System.currentTimeMillis;
 import static java.util.UUID.randomUUID;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
-public class SnowflakeDestinationIT {
+class SnowflakeDestinationIT {
     private static final ObjectMapper mapper = new ObjectMapper();
     private DestinationService underTest;
 
@@ -92,7 +106,7 @@ public class SnowflakeDestinationIT {
         StreamObserver reqStream = underTest.run(respStream);
         List<Record> records = buildTestRecords();
         records.forEach(rec ->
-                reqStream.onNext(Destination.Run.Request.newBuilder().setRecord(rec).build())
+            reqStream.onNext(Destination.Run.Request.newBuilder().setRecord(rec).build())
         );
 
 
@@ -115,8 +129,8 @@ public class SnowflakeDestinationIT {
                 String content = rs.getString("RECORD_CONTENT");
                 String metadata = rs.getString("RECORD_METADATA");
                 assertTrue(
-                        remove(missingRecords, content, metadata),
-                        "got unexpected row: " + content
+                    remove(missingRecords, content, metadata),
+                    "got unexpected row: " + content
                 );
             } while (rs.next());
 
@@ -249,46 +263,46 @@ public class SnowflakeDestinationIT {
     private List<Record> buildTestRecords() {
         // Combinations of different types of keys, payloads etc.
         Set<List<Supplier>> combinations = Sets.cartesianProduct(
-                keyGenerators(),
-                payloadGenerators(),
-                positionGenerators(),
-                timestampGenerators()
+            keyGenerators(),
+            payloadGenerators(),
+            positionGenerators(),
+            timestampGenerators()
         );
 
         return combinations.stream()
-                .map(input -> Record.newBuilder()
-                        .setKey((Data) input.get(0).get())
-                        .setPayload((Change) input.get(1).get())
-                        .setPosition((ByteString) input.get(2).get())
-                        .putMetadata(Opencdc.metadataCreatedAt.getDefaultValue(), (String) input.get(3).get())
-                        .build()
-                ).collect(Collectors.toList());
+            .map(input -> Record.newBuilder()
+                .setKey((Data) input.get(0).get())
+                .setPayload((Change) input.get(1).get())
+                .setPosition((ByteString) input.get(2).get())
+                .putMetadata(Opencdc.metadataCreatedAt.getDefaultValue(), (String) input.get(3).get())
+                .build()
+            ).collect(Collectors.toList());
     }
 
     private static Set<Supplier<Timestamp>> timestampGenerators() {
         return Set.of(
-                () -> Timestamp.newBuilder().build(),
-                () -> Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond()).build()
+            () -> Timestamp.newBuilder().build(),
+            () -> Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond()).build()
         );
     }
 
     private static Set<Supplier<ByteString>> positionGenerators() {
         return Set.of(
-                () -> ByteString.EMPTY,
-                () -> ByteString.copyFromUtf8(randomUUID().toString())
+            () -> ByteString.EMPTY,
+            () -> ByteString.copyFromUtf8(randomUUID().toString())
         );
     }
 
     private static Set<Supplier<Change>> payloadGenerators() {
         return Stream.of(
-                Data.newBuilder().setRawData(ByteString.copyFromUtf8("{\"id\":123,\"name\":\"foobar\"}")).build(),
-                Data.newBuilder().setRawData(ByteString.copyFromUtf8("{}")).build(),
-                Data.newBuilder()
-                        .setStructuredData(Struct.newBuilder()
-                                .putFields("id", Value.newBuilder().setNumberValue(123).build())
-                                .putFields("name", Value.newBuilder().setStringValue("foobar").build())
-                                .build()
-                        ).build()
+            Data.newBuilder().setRawData(ByteString.copyFromUtf8("{\"id\":123,\"name\":\"foobar\"}")).build(),
+            Data.newBuilder().setRawData(ByteString.copyFromUtf8("{}")).build(),
+            Data.newBuilder()
+                .setStructuredData(Struct.newBuilder()
+                    .putFields("id", Value.newBuilder().setNumberValue(123).build())
+                    .putFields("name", Value.newBuilder().setStringValue("foobar").build())
+                    .build()
+                ).build()
         ).map(d -> {
             Supplier<Change> s = () -> Change.newBuilder().setAfter(d).build();
             return s;
@@ -297,14 +311,14 @@ public class SnowflakeDestinationIT {
 
     private static Set<Supplier<Data>> keyGenerators() {
         return Set.of(
-                () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("key-" + currentTimeMillis())).build(),
-                () -> Data.newBuilder().build()
+            () -> Data.newBuilder().setRawData(ByteString.copyFromUtf8("key-" + currentTimeMillis())).build(),
+            () -> Data.newBuilder().build()
         );
     }
 
     private Destination.Configure.Request makeCfgReq() {
         return Destination.Configure.Request.newBuilder()
-                .putAllConfig(cfgMap())
-                .build();
+            .putAllConfig(cfgMap())
+            .build();
     }
 }

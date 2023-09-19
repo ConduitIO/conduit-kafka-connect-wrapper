@@ -1,9 +1,7 @@
 package io.conduit;
 
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.IntStream;
 
 import io.conduit.grpc.Source;
 import io.grpc.StatusException;
@@ -24,10 +22,16 @@ import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyMap;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class SourceServiceTest {
+ class SourceServiceTest {
     private SourceService underTest;
     @Mock
     private TaskFactory taskFactory;
