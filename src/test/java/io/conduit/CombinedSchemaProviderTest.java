@@ -26,15 +26,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class CombinedSchemaProviderTest {
+class CombinedSchemaProviderTest {
     private CombinedSchemaProvider underTest;
     @Mock
     private RawDataSchemaProvider rawSP;
@@ -59,19 +60,19 @@ public class CombinedSchemaProviderTest {
     @Test
     public void testNoAfter() {
         Record rec = Record.newBuilder()
-                .setPayload(Change.newBuilder().build())
-                .build();
+            .setPayload(Change.newBuilder().build())
+            .build();
         assertNull(underTest.provide(rec));
     }
 
     @Test
     public void testRaw() {
         Change payload = Change.newBuilder()
-                .setAfter(Data.newBuilder().setRawData(ByteString.copyFromUtf8("raw data")).build())
-                .build();
+            .setAfter(Data.newBuilder().setRawData(ByteString.copyFromUtf8("raw data")).build())
+            .build();
         Record rec = Record.newBuilder()
-                .setPayload(payload)
-                .build();
+            .setPayload(payload)
+            .build();
 
         Schema expected = mock(Schema.class);
         when(rawSP.provide(rec)).thenReturn(expected);
@@ -85,11 +86,11 @@ public class CombinedSchemaProviderTest {
     public void testStruct() {
         Struct struct = Struct.newBuilder().build();
         Change payload = Change.newBuilder()
-                .setAfter(Data.newBuilder().setStructuredData(struct).build())
-                .build();
+            .setAfter(Data.newBuilder().setStructuredData(struct).build())
+            .build();
         Record rec = Record.newBuilder()
-                .setPayload(payload)
-                .build();
+            .setPayload(payload)
+            .build();
 
         Schema expected = mock(Schema.class);
         when(structSP.provide(rec)).thenReturn(expected);

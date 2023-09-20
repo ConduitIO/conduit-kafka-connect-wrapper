@@ -33,10 +33,12 @@ import static io.conduit.Utils.mapper;
 @Getter
 @Setter
 public class Config {
-    public static final String PREFIX = "wrapper.";
+    public static final String WRAPPER_PREFIX = "wrapper.";
 
     @JsonProperty("connector.class")
     private String connectorClass;
+    @JsonProperty("log.level")
+    private String logLevel;
     private Map<String, String> kafkaConnectorCfg = new HashMap<>();
 
     /**
@@ -52,9 +54,10 @@ public class Config {
     protected static <T extends Config> T fromMap(Map<String, String> map, Class<T> clazz) {
         Map<String, String> wrapperMap = new HashMap<>();
         Map<String, String> connectorMap = new HashMap<>();
+
         map.forEach((k, v) -> {
-            if (k.startsWith(PREFIX)) {
-                wrapperMap.put(k.replaceFirst(PREFIX, ""), v);
+            if (k.startsWith(WRAPPER_PREFIX)) {
+                wrapperMap.put(k.replaceFirst(WRAPPER_PREFIX, ""), v);
             } else {
                 connectorMap.put(k, v);
             }

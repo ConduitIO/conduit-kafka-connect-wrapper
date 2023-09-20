@@ -29,12 +29,16 @@ import io.grpc.stub.StreamObserver;
 import lombok.SneakyThrows;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A {@link io.grpc.stub.StreamObserver} implementation which exposes a Kafka connector source task
  * through a gRPC stream.
  */
 public class DefaultSourceStream implements SourceStream {
+    public static final Logger logger = LoggerFactory.getLogger(DefaultSourceStream.class);
+    
     private final SourceTask task;
     private final StreamObserver<Source.Run.Response> responseObserver;
     private boolean shouldRun = true;
@@ -69,7 +73,7 @@ public class DefaultSourceStream implements SourceStream {
                     responseObserver.onNext(responseWith(rec));
                 }
             } catch (Exception e) {
-                Logger.get().error("Couldn't write record.", e);
+                logger.error("Couldn't write record.", e);
                 responseObserver.onError(
                         Status.INTERNAL
                                 .withDescription("couldn't read record: " + e.getMessage())
@@ -78,7 +82,7 @@ public class DefaultSourceStream implements SourceStream {
                 );
             }
         }
-        Logger.get().info("SourceStream loop stopped.");
+        logger.info("SourceStream loop stopped.");
     }
 
     @Override
@@ -110,7 +114,7 @@ public class DefaultSourceStream implements SourceStream {
 
     @Override
     public void onError(Throwable t) {
-        Logger.get().error("Experienced an error.", t);
+        logger.error("Experienced an error.", t);
         stop();
         responseObserver.onError(
                 Status.INTERNAL.withDescription("Error: " + t.getMessage()).withCause(t).asException()
@@ -119,13 +123,13 @@ public class DefaultSourceStream implements SourceStream {
 
     @Override
     public void onCompleted() {
-        Logger.get().info("Completed.");
+        logger.info("Completed.");
         stop();
         responseObserver.onCompleted();
     }
 
     private void stop() {
-        Logger.get().info("Stopping...");
+        logger.info("Stopping...");
         shouldRun = false;
     }
 
@@ -135,7 +139,7 @@ public class DefaultSourceStream implements SourceStream {
     public void startAsync() {
         Thread thread = new Thread(this);
         thread.setUncaughtExceptionHandler((t, e) -> {
-            Logger.get().error("Uncaught exception for thread {}.", t.getName(), e);
+            logger.error("Uncaught exception for thread {}.", t.getName(), e);
             onError(e);
         });
         thread.start();

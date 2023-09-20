@@ -25,11 +25,15 @@ import io.conduit.grpc.DestinationPluginGrpc;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.apache.kafka.connect.sink.SinkTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A gRPC service exposing source plugin methods.
  */
 public class DestinationService extends DestinationPluginGrpc.DestinationPluginImplBase {
+    public static final Logger logger = LoggerFactory.getLogger(DestinationService.class);
+    
     private final TaskFactory taskFactory;
     private SinkTask task;
     private Map<String, String> config;
@@ -43,18 +47,18 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
     @Override
     public void configure(Destination.Configure.Request request, StreamObserver<Response> responseObserver) {
-        Logger.get().info("Configuring the destination.");
+        logger.info("Configuring the destination.");
 
         try {
             // the returned config map is unmodifiable, so we make a copy
             // since we need to remove some keys
             doConfigure(DestinationConfig.fromMap(request.getConfigMap()));
-            Logger.get().info("Done configuring the destination.");
+            logger.info("Done configuring the destination.");
 
             responseObserver.onNext(Destination.Configure.Response.newBuilder().build());
             responseObserver.onCompleted();
         } catch (Exception e) {
-            Logger.get().error("Error while configuring destination.", e);
+            logger.error("Error while configuring destination.", e);
             responseObserver.onError(
                     Status.INTERNAL
                             .withDescription("couldn't configure task: " + e.getMessage())
@@ -98,17 +102,17 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
     @Override
     public void start(Destination.Start.Request request, StreamObserver<Destination.Start.Response> responseObserver) {
-        Logger.get().info("Starting the destination.");
+        logger.info("Starting the destination.");
 
         try {
             task.start(config);
             started = true;
-            Logger.get().info("Destination started.");
+            logger.info("Destination started.");
 
             responseObserver.onNext(Destination.Start.Response.newBuilder().build());
             responseObserver.onCompleted();
         } catch (Exception e) {
-            Logger.get().error("Error while starting.", e);
+            logger.error("Error while starting.", e);
             responseObserver.onError(
                     Status.INTERNAL.withDescription("couldn't start task: " + e.getMessage()).withCause(e).asException()
             );
@@ -131,16 +135,16 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
     @Override
     public void teardown(Teardown.Request request, StreamObserver<Teardown.Response> responseObserver) {
-        Logger.get().info("Tearing down...");
+        logger.info("Tearing down...");
         try {
             if (task != null && started) {
                 task.stop();
             }
             responseObserver.onNext(Teardown.Response.newBuilder().build());
             responseObserver.onCompleted();
-            Logger.get().info("Torn down.");
+            logger.info("Torn down.");
         } catch (Exception e) {
-            Logger.get().error("Couldn't tear down.", e);
+            logger.error("Couldn't tear down.", e);
             responseObserver.onError(
                     Status.INTERNAL.withDescription("Couldn't tear down: " + e.getMessage()).withCause(e).asException()
             );
