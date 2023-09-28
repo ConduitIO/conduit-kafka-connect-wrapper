@@ -8,22 +8,21 @@ option java_package = "io.conduit.grpc";
 import "google/protobuf/descriptor.proto";
 import "google/protobuf/struct.proto";
 
-// OpenCDC version is a constant that should be used as the value in the
-// metadata field opencdc.version. It ensures the OpenCDC format version can be
-// easily identified in case the record gets marshaled into a different untyped
-// format (e.g. JSON).
-option (opencdc_version) = "v1";
-
-// Version contains the version of the OpenCDC format (e.g. "v1"). This field
-// exists to ensure the OpenCDC format version can be easily identified in case
-// the record gets marshaled into a different untyped format (e.g. JSON).
-option (metadata_version) = "opencdc.version";
 // CreatedAt can contain the time when the record was created in the 3rd party
 // system. The expected format is a unix timestamp in nanoseconds.
 option (metadata_created_at) = "opencdc.createdAt";
 // ReadAt can contain the time when the record was read from the 3rd party
 // system. The expected format is a unix timestamp in nanoseconds.
 option (metadata_read_at) = "opencdc.readAt";
+// Version contains the version of the OpenCDC format (e.g. "v1"). This field
+// exists to ensure the OpenCDC format version can be easily identified in case
+// the record gets marshaled into a different untyped format (e.g. JSON).
+option (metadata_version) = "opencdc.version";
+// OpenCDC version is a constant that should be used as the value in the
+// metadata field opencdc.version. It ensures the OpenCDC format version can be
+// easily identified in case the record gets marshaled into a different untyped
+// format (e.g. JSON).
+option (opencdc_version) = "v1";
 
 // We are (ab)using custom file options to define constants.
 // See https://github.com/protocolbuffers/protobuf/issues/3520#issuecomment-323613839

@@ -33,8 +33,9 @@ import static org.mockito.Mockito.verify;
 
 class SpecifierServiceTest {
     @Test
-    public void testSpecify() {
+    void testSpecify() {
         var observer = mock(StreamObserver.class);
+
         new SpecifierService().specify(
             Request.newBuilder().build(),
             observer
