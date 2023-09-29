@@ -30,6 +30,8 @@ import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ClassInfoList;
 import io.github.classgraph.ScanResult;
 import io.grpc.stub.StreamObserver;
+import org.apache.kafka.connect.connector.Connector;
+import org.apache.kafka.connect.sink.SinkConnector;
 import org.apache.kafka.connect.source.SourceConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +73,7 @@ public class SpecifierService extends SpecifierPluginGrpc.SpecifierPluginImplBas
                         + "It needs to be found on the classpath, i.e. in a JAR in the `libs` directory. ")
                 .setDefault("none")
                 .addValidations(requiredValidation)
+                .addValidations(availableConnectorsValidation(SinkConnector.class))
                 .build(),
 
             "wrapper.schema",
@@ -103,11 +106,6 @@ public class SpecifierService extends SpecifierPluginGrpc.SpecifierPluginImplBas
     }
 
     private Map<String, Specifier.Parameter> buildSourceParams() {
-        var availableConnectors = Validation.newBuilder()
-            .setType(Validation.Type.TYPE_INCLUSION)
-            .setValue(loadAvailableConnectors())
-            .build();
-
         return Map.of(
             "wrapper.connector.class",
             Specifier.Parameter.newBuilder()
@@ -116,12 +114,19 @@ public class SpecifierService extends SpecifierPluginGrpc.SpecifierPluginImplBas
                         + "It needs to be found on the classpath, i.e. in a JAR in the `libs` directory. ")
                 .setDefault("none")
                 .addValidations(requiredValidation)
-                .addValidations(availableConnectors)
+                .addValidations(availableConnectorsValidation(SourceConnector.class))
                 .build()
         );
     }
 
-    private String loadAvailableConnectors() {
+    private Validation availableConnectorsValidation(Class<? extends Connector> connectorClass) {
+        return Validation.newBuilder()
+            .setType(Validation.Type.TYPE_INCLUSION)
+            .setValue(loadAvailableConnectors(connectorClass))
+            .build();
+    }
+
+    private String loadAvailableConnectors(Class<? extends Connector> connectorClass) {
         List<String> connectors = new LinkedList<>();
 
         ClassGraph cg = new ClassGraph()
@@ -130,7 +135,7 @@ public class SpecifierService extends SpecifierPluginGrpc.SpecifierPluginImplBas
             .acceptLibOrExtJars();
 
         try (ScanResult scanResult = cg.scan()) {
-            ClassInfoList controlClasses = scanResult.getSubclasses(SourceConnector.class.getName());
+            ClassInfoList controlClasses = scanResult.getSubclasses(connectorClass.getName());
             for (ClassInfo cc : controlClasses) {
                 if (!cc.isAbstract()) {
                     connectors.add(cc.getName());
