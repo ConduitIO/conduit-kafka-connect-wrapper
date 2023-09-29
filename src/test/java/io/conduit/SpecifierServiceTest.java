@@ -16,12 +16,18 @@
 
 package io.conduit;
 
+import java.util.Arrays;
+import java.util.Map;
+
+import io.conduit.grpc.Specifier;
+import io.conduit.grpc.Specifier.Parameter.Validation;
 import io.conduit.grpc.Specifier.Specify.Request;
 import io.conduit.grpc.Specifier.Specify.Response;
 import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -33,8 +39,9 @@ import static org.mockito.Mockito.verify;
 
 class SpecifierServiceTest {
     @Test
-    public void testSpecify() {
+    void testSpecify() {
         var observer = mock(StreamObserver.class);
+
         new SpecifierService().specify(
             Request.newBuilder().build(),
             observer
@@ -61,8 +68,42 @@ class SpecifierServiceTest {
 
         assertNotNull(response.getSourceParamsMap());
         assertFalse(response.getSourceParamsMap().isEmpty());
+        verifyWrapperClassValidations(
+            new String[]{
+                "io.aiven.connect.jdbc.JdbcSourceConnector",
+                "io.debezium.connector.postgresql.PostgresConnector"
+            },
+            response.getSourceParamsMap()
+        );
 
         assertNotNull(response.getDestinationParamsMap());
         assertFalse(response.getDestinationParamsMap().isEmpty());
+        verifyWrapperClassValidations(
+            new String[]{
+                "com.snowflake.kafka.connector.SnowflakeSinkConnector",
+                "io.aiven.connect.jdbc.JdbcSinkConnector"
+            },
+            response.getDestinationParamsMap()
+        );
+    }
+
+    private void verifyWrapperClassValidations(String[] expected, Map<String, Specifier.Parameter> params) {
+        var validations = params.get("wrapper.connector.class").getValidationsList();
+        assertNotNull(validations);
+        assertEquals(2, validations.size());
+        var required = validations.stream()
+            .filter(v -> v.getType() == Validation.Type.TYPE_REQUIRED)
+            .findFirst();
+        assertTrue(required.isPresent());
+
+
+        var values = validations.stream()
+            .filter(v -> v.getType() == Validation.Type.TYPE_INCLUSION)
+            .findFirst();
+        assertTrue(values.isPresent());
+        Arrays.sort(expected);
+        var actual = values.get().getValue().split(",");
+        Arrays.sort(actual);
+        assertArrayEquals(expected, actual);
     }
 }
