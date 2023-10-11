@@ -42,7 +42,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-class SpecifierServiceTest {
+class SpecifierServiceIT {
     @Test
     void testSpecify() {
         var observer = mock(StreamObserver.class);
@@ -130,7 +130,25 @@ class SpecifierServiceTest {
             "expected params to contain: " + key.name
         );
         Specifier.Parameter param = paramsMap.get(clazz + "." + key.name);
+        // Description
         assertEquals(key.documentation, param.getDescription());
+        // Required and default value
+        boolean required = ConfigDef.NO_DEFAULT_VALUE.equals(key.defaultValue);
+        if (required) {
+            assertTrue(
+                param.getValidationsList()
+                    .stream()
+                    .anyMatch(v -> Validation.Type.TYPE_REQUIRED.equals(v.getType()))
+            );
+            assertEquals("", param.getDefault());
+        } else {
+            assertTrue(
+                param.getValidationsList()
+                    .stream()
+                    .noneMatch(v -> Validation.Type.TYPE_REQUIRED.equals(v.getType()))
+            );
+            assertEquals(String.valueOf(key.defaultValue), param.getDefault());
+        }
     }
 
     @SneakyThrows

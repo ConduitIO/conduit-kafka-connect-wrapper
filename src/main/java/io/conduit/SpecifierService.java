@@ -172,12 +172,29 @@ public class SpecifierService extends SpecifierPluginGrpc.SpecifierPluginImplBas
 
     private Specifier.Parameter toConduitParam(ConfigDef.ConfigKey key) {
         return Specifier.Parameter.newBuilder()
-            .setDefault(String.valueOf(key.defaultValue))
+            .setDefault(paramDefaultValue(key))
             .setDescription(key.documentation)
             .setType(toConduitType(key.type))
-            // todo
-            .addAllValidations(List.of())
+            .addAllValidations(toConduitValidations(key))
             .build();
+    }
+
+    private String paramDefaultValue(ConfigDef.ConfigKey key) {
+        if (ConfigDef.NO_DEFAULT_VALUE.equals(key.defaultValue)) {
+            return "";
+        } else {
+            return String.valueOf(key.defaultValue);
+        }
+    }
+
+    private List<Validation> toConduitValidations(ConfigDef.ConfigKey key) {
+        List<Validation> validations = new LinkedList<>();
+        if (ConfigDef.NO_DEFAULT_VALUE.equals(key.defaultValue)) {
+            validations.add(Validation.newBuilder()
+                .setType(Validation.Type.TYPE_REQUIRED)
+                .build());
+        }
+        return validations;
     }
 
     private Specifier.Parameter.Type toConduitType(ConfigDef.Type type) {
