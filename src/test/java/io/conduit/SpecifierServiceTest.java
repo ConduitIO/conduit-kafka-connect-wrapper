@@ -42,7 +42,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-class SpecifierServiceIT {
+class SpecifierServiceTest {
     @Test
     void testSpecify() {
         var observer = mock(StreamObserver.class);
