@@ -175,7 +175,7 @@ public class SpecifierService extends SpecifierPluginGrpc.SpecifierPluginImplBas
             .setDefault(paramDefaultValue(key))
             .setDescription(key.documentation)
             .setType(toConduitType(key.type))
-            .addAllValidations(toConduitValidations(key))
+            .addAllValidations(makeConduitValidations(key))
             .build();
     }
 
@@ -187,7 +187,7 @@ public class SpecifierService extends SpecifierPluginGrpc.SpecifierPluginImplBas
         }
     }
 
-    private List<Validation> toConduitValidations(ConfigDef.ConfigKey key) {
+    private List<Validation> makeConduitValidations(ConfigDef.ConfigKey key) {
         List<Validation> validations = new LinkedList<>();
         if (ConfigDef.NO_DEFAULT_VALUE.equals(key.defaultValue)) {
             validations.add(Validation.newBuilder()
