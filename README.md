@@ -18,7 +18,7 @@ In a few integration tests we use [Aiven's JDBC connector](https://github.com/ai
 Since it's not available in public Maven repositories, it needs to be compiled and installed to a local Maven repository,
 so it can be used. To do so:
 
-1. Clone the repository: `git clone git@github.com:Aiven-Open/jdbc-connector-for-apache-kafka.git`
+1. Clone the Aiven JDBC connector repository: `git clone git@github.com:Aiven-Open/jdbc-connector-for-apache-kafka.git`
 2. Change working directory to the repository: `cd jdbc-connector-for-apache-kafka`
 3. Check out `v6.8.0`: `git checkout v6.8.0`
 4. Build the connector and publish it to the local Maven repository: `./gradlew clean build publishToMavenLocal`
