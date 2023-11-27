@@ -119,6 +119,9 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     public void stop(Source.Stop.Request request, StreamObserver<Source.Stop.Response> responseObserver) {
         logger.info("Stopping the source");
         // todo check if a record is being flushed
+        if (runStream == null) {
+            return;
+        }
         runStream.onCompleted();
         responseObserver.onNext(
             Source.Stop.Response.newBuilder()
