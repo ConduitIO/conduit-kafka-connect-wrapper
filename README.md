@@ -16,12 +16,13 @@ when the project is compiled.
 
 In a few integration tests we use [Aiven's JDBC connector](https://github.com/aiven/jdbc-connector-for-apache-kafka).
 Since it's not available in public Maven repositories, it needs to be compiled and installed to a local Maven repository,
-so it can be used. For convenience, we provide a prebuilt JAR (in the `libs` directory).
+so it can be used. A script is included in this repository which lets you clone and build the correct version of the 
+connector. It can be run like this `./scripts/get-jdbc-connector.sh /path/to/repositories/`.
 
-1. Run `mvn install:install-file -Dfile=libs/jdbc-connector-for-apache-kafka-6.7.0.jar -DgroupId=io.aiven -DartifactId=jdbc-connector-for-apache-kafka -Dversion=6.7.0 -Dpackaging=jar`
-2. Run `mvn clean compile` (so that the needed code is generated)
-3. Some IDEs may not automatically use the generated sources. If that's the case, you need to change the project settings in your IDE to include the generated source. In IntelliJ, for example, you do that by going
-to File > Project structure > Project Settings > Modules. Then, right-click on `target/generated-source` and select "Sources".
+After that, run `mvn clean compile` (this also generates needed code from proto files). Some IDEs may not automatically 
+use the generated sources. If that's the case, you need to change the project settings in your IDE to include the 
+generated source. In IntelliJ, for example, you do that by going to File > Project structure > Project Settings > Modules. 
+Then, right-click on `target/generated-source` and select "Sources".
 
 ### Code quality
 Code analysis is done through SonarCloud, where we have a [conduitio](https://sonarcloud.io/project/overview?id=conduit-kafka-connect-wrapper) organization.
