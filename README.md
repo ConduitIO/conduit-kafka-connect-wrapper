@@ -16,12 +16,8 @@ when the project is compiled.
 
 In a few integration tests we use [Aiven's JDBC connector](https://github.com/aiven/jdbc-connector-for-apache-kafka).
 Since it's not available in public Maven repositories, it needs to be compiled and installed to a local Maven repository,
-so it can be used. To do so:
-
-1. Clone the Aiven JDBC connector repository: `git clone git@github.com:Aiven-Open/jdbc-connector-for-apache-kafka.git`
-2. Change working directory to the repository: `cd jdbc-connector-for-apache-kafka`
-3. Check out `v6.8.0`: `git checkout v6.8.0`
-4. Build the connector and publish it to the local Maven repository: `./gradlew clean build publishToMavenLocal`
+so it can be used. A script is included in this repository which lets you clone and build the correct version of the 
+connector. It can be run like this `./scripts/get-jdbc-connector.sh /path/to/repositories/`.
 
 After that, run `mvn clean compile` (this also generates needed code from proto files). Some IDEs may not automatically 
 use the generated sources. If that's the case, you need to change the project settings in your IDE to include the 
