@@ -24,4 +24,6 @@
     <root level="INFO">
         <appender-ref ref="STDERR"/>
     </root>
+
+    <logger name="io.aiven.connect.jdbc.source.JdbcSourceTask" level="WARN"/>
 </configuration>
