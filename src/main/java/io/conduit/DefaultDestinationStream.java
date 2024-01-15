@@ -111,15 +111,19 @@ public class DefaultDestinationStream implements StreamObserver<Destination.Run.
         // todo cache the JSON object
         // Also related to: https://github.com/ConduitIO/conduit-kafka-connect-wrapper/issues/58
         var schema = schemaProvider.provide(rec);
-
         Object value = toConnectData.apply(rec, schema);
+
         var schemaUsed = getSchema(value, schema);
+
+        // Set first offset encountered in the runtime to the current time in millis.
+        offsetCounter.compareAndSet(1, System.currentTimeMillis());
+
         // While there's no real topic involved, we still assign values
         // to topic, partition and offset since the underlying connector might use them.
         // The offset is set to System.currentTimeMillis() to mimic the increasing
         // offset values if a Kafka topic partition.
         return new SinkRecord(
-                schemaUsed != null ? schemaUsed.name() : null,
+                schemaUsed != null ? schemaUsed.name() : schemaProvider.name(),
                 0,
                 Schema.STRING_SCHEMA,
                 rec.getKey().getRawData().toStringUtf8(),
