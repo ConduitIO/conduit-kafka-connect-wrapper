@@ -52,7 +52,7 @@ import static org.mockito.Mockito.verify;
  * A base test for PostgreSQL sources. It assumes a certain structure of the test table and test records.
  * See {@link BasePostgresIT#prepareTable()} for more details.
  */
-public abstract class BasePostgresIT {
+abstract class BasePostgresIT {
 
     public static final String USER = "meroxauser";
     public static final String PASSWORD = "meroxapass";

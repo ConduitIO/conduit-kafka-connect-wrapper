@@ -18,7 +18,6 @@ package io.conduit;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
 
 import io.conduit.grpc.Operation;
 import io.conduit.grpc.Record;
@@ -35,6 +34,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -42,10 +42,9 @@ class DebeziumToOpenCDCTest {
     private DebeziumToOpenCDC underTest;
     private Schema keySchema;
     private Schema valueSchema;
-    private Struct testValue;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         underTest = new DebeziumToOpenCDC();
 
         keySchema = new SchemaBuilder(Schema.Type.STRUCT)
@@ -62,17 +61,10 @@ class DebeziumToOpenCDCTest {
             .field("balance", Schema.FLOAT64_SCHEMA)
             .build();
 
-        testValue = new Struct(valueSchema)
-            .put("id", 123)
-            .put("name", "foobar")
-            .put("trial", true)
-            .put("balance", 33.44)
-            .put("interests", List.of("aaa", "bbb"));
-
     }
 
     @Test
-    public void noValue() {
+    void noValue() {
         var e = assertThrows(
             IllegalArgumentException.class,
             () -> underTest.apply(new SourceRecord(
@@ -88,7 +80,7 @@ class DebeziumToOpenCDCTest {
     }
 
     @Test
-    public void valueNotStruct() {
+    void valueNotStruct() {
         var e = assertThrows(
             IllegalArgumentException.class,
             () -> underTest.apply(new SourceRecord(
@@ -105,7 +97,7 @@ class DebeziumToOpenCDCTest {
 
     @SneakyThrows
     @Test
-    public void keyPreserved() {
+    void keyPreserved() {
         SchemaAndValue schemaAndValue = getCreatedRecord();
 
         Record rec = underTest.apply(new SourceRecord(
@@ -125,19 +117,19 @@ class DebeziumToOpenCDCTest {
 
     private SchemaAndValue getCreatedRecord() throws IOException {
         InputStream stream = getClass().getClassLoader().getResourceAsStream("./debezium-record-created.json");
-        SchemaAndValue schemaAndValue = Utils.jsonConv.toConnectData("test-topic", IOUtils.toByteArray(stream));
-        return schemaAndValue;
+        assertNotNull(stream);
+        return Utils.jsonConv.toConnectData("test-topic", IOUtils.toByteArray(stream));
     }
 
     private SchemaAndValue getUpdatedRecord() throws IOException {
         InputStream stream = getClass().getClassLoader().getResourceAsStream("./debezium-record-updated.json");
-        SchemaAndValue schemaAndValue = Utils.jsonConv.toConnectData("test-topic", IOUtils.toByteArray(stream));
-        return schemaAndValue;
+        assertNotNull(stream);
+        return Utils.jsonConv.toConnectData("test-topic", IOUtils.toByteArray(stream));
     }
 
     @SneakyThrows
     @Test
-    public void createdRecord() {
+    void createdRecord() {
         SchemaAndValue schemaAndValue = getCreatedRecord();
 
         Struct original = (Struct) schemaAndValue.value();
@@ -169,7 +161,7 @@ class DebeziumToOpenCDCTest {
 
     @SneakyThrows
     @Test
-    public void updatedRecord() {
+    void updatedRecord() {
         SchemaAndValue schemaAndValue = getUpdatedRecord();
 
         Struct original = (Struct) schemaAndValue.value();

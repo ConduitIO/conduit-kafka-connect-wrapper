@@ -4,7 +4,7 @@
 The goal of Conduit's Kafka connector wrapper is to make it possible to use existing Kafka connectors with Conduit.
 
 ### Pre-requisites
-* JDK 11
+* JDK 20
 * Currently, only Unix-like OSes are supported.
 
 ### Logging
@@ -16,12 +16,13 @@ when the project is compiled.
 
 In a few integration tests we use [Aiven's JDBC connector](https://github.com/aiven/jdbc-connector-for-apache-kafka).
 Since it's not available in public Maven repositories, it needs to be compiled and installed to a local Maven repository,
-so it can be used. For convenience, we provide a prebuilt JAR (in the `libs` directory).
+so it can be used. A script is included in this repository which lets you clone and build the correct version of the 
+connector. It can be run like this `./scripts/get-jdbc-connector.sh /path/to/repositories/`.
 
-1. Run `mvn install:install-file -Dfile=libs/jdbc-connector-for-apache-kafka-6.7.0.jar -DgroupId=io.aiven -DartifactId=jdbc-connector-for-apache-kafka -Dversion=6.7.0 -Dpackaging=jar`
-2. Run `mvn clean compile` (so that the needed code is generated)
-3. Some IDEs may not automatically use the generated sources. If that's the case, you need to change the project settings in your IDE to include the generated source. In IntelliJ, for example, you do that by going
-to File > Project structure > Project Settings > Modules. Then, right-click on `target/generated-source` and select "Sources".
+After that, run `mvn clean compile` (this also generates needed code from proto files). Some IDEs may not automatically 
+use the generated sources. If that's the case, you need to change the project settings in your IDE to include the 
+generated source. In IntelliJ, for example, you do that by going to File > Project structure > Project Settings > Modules. 
+Then, right-click on `target/generated-source` and select "Sources".
 
 ### Code quality
 Code analysis is done through SonarCloud, where we have a [conduitio](https://sonarcloud.io/project/overview?id=conduit-kafka-connect-wrapper) organization.
@@ -81,6 +82,16 @@ a full working example of a Conduit connector configuration:
 Note that the `wrapper.connector.class` should be a class which is present on the classpath, i.e. in one of the JARs in
 the `libs` directory. For more information, theck the [Configuration](#configuration) section.
 
+#### Download a connector and its dependencies
+
+To download a connector from a Maven repository and all of its dependencies, you can use `scripts/download-connector.sh`.
+For example:
+```shell
+./scripts/download-connector.sh io.example jdbc-connector 2.1.3
+```
+
+For usage, run `./scripts/download-connector.sh --help`.
+
 ### Loading connectors
 The plugin will load connectors and all the other dependencies from a `libs` directory, which is expected to be in the 
 same directory as the plugin executable itself. For example, if the plugin executable is at `/abc/def/conduit-kafka-connect-wrapper`,
@@ -93,18 +104,20 @@ The plugin will be able to find the dependencies as soon as they are put into `l
 #### Configuration
 This plugin's configuration consists of the configuration of the requested Kafka connector, plus:
 
-| Name                                    | Description                                                                                                         | Required                                                              | Default | Example                                                                                                                                                                                             | 
-|-----------------------------------------|---------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `wrapper.connector.class`               | The class of the requested connector. It needs to be found on the classpath, i.e. in a JAR in the `libs` directory. | yes                                                                   | none    | `io.aiven.connect.jdbc.JdbcSourceConnector`                                                                                                                                                         |
-| `wrapper.schema`                        | The schema of the records which will be written to a destination connector.                                         | the plugin doesn't require it, but the underlying Kafka connector may | none    | `{"type":"struct","fields":[{"type":"int32","optional":true,"field":"id"},{"type":"string","optional":true,"field":"name"},{"type":"boolean","optional":true,"field":"trial"}],"name":"customers"}` |
-| `wrapper.schema.autogenerate.enabled`   | Automatically generate schemas (destination connector). Cannot be `true` if a schema is set.                        | no                                                                    | `false` | `true`                                                                                                                                                                                              |
-| `wrapper.schema.autogenerate.name`      | Name of automatically generated schema.                                                                             | yes, if schema auto-generation is turned on                           | none    | `customers`                                                                                                                                                                                         |
-| `wrapper.schema.autogenerate.overrides` | A (partial) schema which overrides types in the auto-generated schema.                                              | no                                                                    | none    | `{"type":"struct","fields":[{"type":"boolean","optional":true,"field":"joined"}],"name":"customers"}`                                                                                               |
+| Name                                    | Description                                                                                                                                     | Required                                                              | Default | Example                                                                                                                                                                                             | 
+|-----------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `wrapper.connector.class`               | The class of the requested connector. It needs to be found on the classpath, i.e. in a JAR in the `libs` directory.                             | yes                                                                   | none    | `io.aiven.connect.jdbc.JdbcSourceConnector`                                                                                                                                                         |
+| `wrapper.log.level`                     | Root logging level for the wrapper and the requested connector. <br />**Note**: For log4j, the logging level is currently hard-coded to `INFO`. | no                                                                    | "INFO"  | `DEBUG`                                                                                                                                                                                             |
+| `wrapper.schema`                        | The schema of the records which will be written to a destination connector.                                                                     | the plugin doesn't require it, but the underlying Kafka connector may | none    | `{"type":"struct","fields":[{"type":"int32","optional":true,"field":"id"},{"type":"string","optional":true,"field":"name"},{"type":"boolean","optional":true,"field":"trial"}],"name":"customers"}` |
+| `wrapper.schema.autogenerate.enabled`   | Automatically generate schemas (destination connector). Cannot be `true` if a schema is set.                                                    | no                                                                    | `false` | `true`                                                                                                                                                                                              |
+| `wrapper.schema.autogenerate.name`      | Name of automatically generated schema.                                                                                                         | yes, if schema auto-generation is turned on                           | none    | `customers`                                                                                                                                                                                         |
+| `wrapper.schema.autogenerate.overrides` | A (partial) schema which overrides types in the auto-generated schema.                                                                          | no                                                                    | none    | `{"type":"struct","fields":[{"type":"boolean","optional":true,"field":"joined"}],"name":"customers"}`                                                                                               |
 
 Here's a full example, for a new Conduit destination connector, backed up by a JDBC Kafka sink connector.
 ```json
 {
   "wrapper.connector.class": "io.aiven.connect.jdbc.JdbcSourceConnector",
+  "wrapper.log.level": "DEBUG",
   "connection.url": "jdbc:postgresql://localhost/test-db",
   "connection.user": "test-user",
   "connection.password": "Passw0rd",

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Appenders>
+        <Console name="SystemErrAppender" target="SYSTEM_ERR">
+            <JsonTemplateLayout eventTemplateUri="classpath:Log4jJsonTemplateLayout.json"/>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <Root level="INFO">
+            <AppenderRef ref="SystemErrAppender"/>
+        </Root>
+    </Loggers>
+</Configuration>

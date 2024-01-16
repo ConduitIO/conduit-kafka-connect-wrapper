@@ -1,8 +1,14 @@
 package io.conduit;
 
+import java.util.Collection;
+import java.util.UUID;
+import java.util.function.Consumer;
+
 import com.google.protobuf.ByteString;
+import io.conduit.grpc.Data;
+import io.conduit.grpc.Destination;
+import io.conduit.grpc.Opencdc;
 import io.conduit.grpc.Record;
-import io.conduit.grpc.*;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
@@ -18,17 +24,18 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collection;
-import java.util.UUID;
-import java.util.function.Consumer;
-
 import static io.conduit.TestUtils.newRecordPayload;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-public class DestinationStreamTest {
+class DestinationStreamTest {
     private DefaultDestinationStream underTest;
     @Mock
     private SinkTask task;

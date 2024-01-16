@@ -8,14 +8,18 @@ option java_package = "io.conduit.grpc";
 import "google/protobuf/descriptor.proto";
 import "opencdc.proto";
 
-option (metadata_conduit_plugin_name) = "conduit.plugin.name";
-option (metadata_conduit_plugin_version) = "conduit.plugin.version";
+option (metadata_conduit_destination_plugin_name) = "conduit.destination.plugin.name";
+option (metadata_conduit_destination_plugin_version) = "conduit.destination.plugin.version";
+option (metadata_conduit_source_plugin_name) = "conduit.source.plugin.name";
+option (metadata_conduit_source_plugin_version) = "conduit.source.plugin.version";
 
 // We are (ab)using custom file options to define constants.
 // See https://github.com/protocolbuffers/protobuf/issues/3520#issuecomment-323613839
 extend google.protobuf.FileOptions {
-  string metadata_conduit_plugin_name = 20000;
-  string metadata_conduit_plugin_version = 20001;
+  string metadata_conduit_source_plugin_name = 20000;
+  string metadata_conduit_source_plugin_version = 20001;
+  string metadata_conduit_destination_plugin_name = 20002;
+  string metadata_conduit_destination_plugin_version = 20003;
 }
 
 // SourcePlugin is responsible for fetching records from 3rd party resources and
@@ -53,6 +57,27 @@ service SourcePlugin {
   // other function. After Teardown returns, the plugin should be ready for a
   // graceful shutdown.
   rpc Teardown(Source.Teardown.Request) returns (Source.Teardown.Response);
+
+  // -- Lifecycle events -------------------------------------------------------
+
+  // LifecycleOnCreated is called after Configure and before Start when the
+  // connector is run for the first time. This call will be skipped if a
+  // connector was already started before. This method can be used to do some
+  // initialization that needs to happen only once in the lifetime of a
+  // connector (e.g. create a replication slot). Anything that the connector
+  // creates in this method is considered to be owned by this connector and
+  // should be cleaned up in LifecycleOnDeleted.
+  rpc LifecycleOnCreated(Source.Lifecycle.OnCreated.Request) returns (Source.Lifecycle.OnCreated.Response);
+  // LifecycleOnUpdated is called after Configure and before Start when the
+  // connector configuration has changed since the last run. This call will be
+  // skipped if the connector configuration did not change. It can be used to
+  // update anything that was initialized in LifecycleOnCreated, in case the
+  // configuration change affects it.
+  rpc LifecycleOnUpdated(Source.Lifecycle.OnUpdated.Request) returns (Source.Lifecycle.OnUpdated.Response);
+  // LifecycleOnDeleted is called when the connector was deleted. It will be the
+  // only method that is called in that case. This method can be used to clean
+  // up anything that was initialized in LifecycleOnCreated.
+  rpc LifecycleOnDeleted(Source.Lifecycle.OnDeleted.Request) returns (Source.Lifecycle.OnDeleted.Response);
 }
 
 // DestinationPlugin is responsible for writing records to 3rd party resources.
@@ -82,6 +107,27 @@ service DestinationPlugin {
   // other function. After Teardown returns, the plugin should be ready for a
   // graceful shutdown.
   rpc Teardown(Destination.Teardown.Request) returns (Destination.Teardown.Response);
+
+  // -- Lifecycle events -------------------------------------------------------
+
+  // LifecycleOnCreated is called after Configure and before Start when the
+  // connector is run for the first time. This call will be skipped if a
+  // connector was already started before. This method can be used to do some
+  // initialization that needs to happen only once in the lifetime of a
+  // connector (e.g. create a bucket). Anything that the connector creates in
+  // this method is considered to be owned by this connector and should be
+  // cleaned up in LifecycleOnDeleted.
+  rpc LifecycleOnCreated(Destination.Lifecycle.OnCreated.Request) returns (Destination.Lifecycle.OnCreated.Response);
+  // LifecycleOnUpdated is called after Configure and before Start when the
+  // connector configuration has changed since the last run. This call will be
+  // skipped if the connector configuration did not change. It can be used to
+  // update anything that was initialized in LifecycleOnCreated, in case the
+  // configuration change affects it.
+  rpc LifecycleOnUpdated(Destination.Lifecycle.OnUpdated.Request) returns (Destination.Lifecycle.OnUpdated.Response);
+  // LifecycleOnDeleted is called when the connector was deleted. It will be the
+  // only method that is called in that case. This method can be used to clean
+  // up anything that was initialized in LifecycleOnCreated.
+  rpc LifecycleOnDeleted(Destination.Lifecycle.OnDeleted.Request) returns (Destination.Lifecycle.OnDeleted.Response);
 }
 
 // SpecifierPlugin is responsible for returning the plugin specification.
@@ -138,6 +184,38 @@ message Source {
     message Request {}
     message Response {}
   }
+
+  message Lifecycle {
+    message OnCreated {
+      message Request {
+        // This is the connector configuration that was also passed to
+        // Configure, therefore it's already validated.
+        map<string, string> config = 1;
+      }
+      message Response {}
+    }
+    message OnUpdated {
+      message Request {
+        // This is the old connector configuration that was used the last time
+        // the connector was running. It was valid at that time, since it passed
+        // through the Configure function.
+        map<string, string> config_before = 1;
+        // This is the new connector configuration that was also passed to
+        // Configure, therefore it's already validated.
+        map<string, string> config_after = 2;
+      }
+      message Response {}
+    }
+    message OnDeleted {
+      message Request {
+        // This is the old connector configuration that was used the last time
+        // the connector was running. It was valid at that time, since it passed
+        // through the Configure function.
+        map<string, string> config = 1;
+      }
+      message Response {}
+    }
+  }
 }
 
 message Destination {
@@ -184,6 +262,38 @@ message Destination {
     message Request {}
     message Response {}
   }
+
+  message Lifecycle {
+    message OnCreated {
+      message Request {
+        // This is the connector configuration that was also passed to
+        // Configure, therefore it's already validated.
+        map<string, string> config = 1;
+      }
+      message Response {}
+    }
+    message OnUpdated {
+      message Request {
+        // This is the old connector configuration that was used the last time
+        // the connector was running. It was valid at that time, since it passed
+        // through the Configure function.
+        map<string, string> config_before = 1;
+        // This is the new connector configuration that was also passed to
+        // Configure, therefore it's already validated.
+        map<string, string> config_after = 2;
+      }
+      message Response {}
+    }
+    message OnDeleted {
+      message Request {
+        // This is the old connector configuration that was used the last time
+        // the connector was running. It was valid at that time, since it passed
+        // through the Configure function.
+        map<string, string> config = 1;
+      }
+      message Response {}
+    }
+  }
 }
 
 message Specifier {
@@ -215,13 +325,59 @@ message Specifier {
 
   // Parameter describes a single config parameter.
   message Parameter {
+    // Validation to be made on the parameter.
+    message Validation {
+      enum Type {
+        TYPE_UNSPECIFIED = 0;
+        // Parameter must be present.
+        TYPE_REQUIRED = 1;
+        // Parameter must be greater than {value}.
+        TYPE_GREATER_THAN = 2;
+        // Parameter must be less than {value}.
+        TYPE_LESS_THAN = 3;
+        // Parameter must be included in the comma separated list {value}.
+        TYPE_INCLUSION = 4;
+        // Parameter must not be included in the comma separated list {value}.
+        TYPE_EXCLUSION = 5;
+        // Parameter must match the regex {value}.
+        TYPE_REGEX = 6;
+      }
+
+      Type type = 1;
+      // The value to be compared with the parameter,
+      // or a comma separated list in case of Validation.TYPE_INCLUSION or Validation.TYPE_EXCLUSION.
+      string value = 2;
+    }
+
+    // Type shows the parameter type.
+    enum Type {
+      TYPE_UNSPECIFIED = 0;
+      // Parameter is a string.
+      TYPE_STRING = 1;
+      // Parameter is an integer.
+      TYPE_INT = 2;
+      // Parameter is a float.
+      TYPE_FLOAT = 3;
+      // Parameter is a boolean.
+      TYPE_BOOL = 4;
+      // Parameter is a file.
+      TYPE_FILE = 5;
+      // Parameter is a duration.
+      TYPE_DURATION = 6;
+    }
+
     // Default is the default value of the parameter. If there is no default
     // value use an empty string.
     string default = 1;
     // Required defines whether the parameter has to be provided when
     // configuring the plugin.
-    bool required = 2;
+    // Deprecated: add a validation of type TYPE_REQUIRED to the validations list.
+    bool required = 2 [deprecated = true];
     // Description explains what the parameter does and how to configure it.
     string description = 3;
+    // Type defines the parameter data type.
+    Type type = 4;
+    // Validations are validations to be made on the parameter.
+    repeated Validation validations = 5;
   }
 }

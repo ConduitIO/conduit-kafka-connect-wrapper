@@ -26,11 +26,13 @@ import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
+import org.slf4j.LoggerFactory;
 
 /**
  * A gRPC service exposing source plugin methods.
  */
 public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
+    public static final org.slf4j.Logger logger = LoggerFactory.getLogger(SourceService.class);
     private final TaskFactory taskFactory;
     private SourceTask task;
     private Map<String, String> config;
@@ -44,18 +46,16 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
 
     @Override
     public void configure(Source.Configure.Request req, StreamObserver<Source.Configure.Response> respObserver) {
-        Logger.get().info("Configuring the source.");
+        logger.info("Configuring the source.");
 
         try {
-            // the returned config map is unmodifiable, so we make a copy
-            // since we need to remove some keys
             doConfigure(Config.fromMap(req.getConfigMap()));
-            Logger.get().info("Done configuring the source.");
+            logger.info("Done configuring the source.");
 
             respObserver.onNext(Source.Configure.Response.newBuilder().build());
             respObserver.onCompleted();
         } catch (Exception e) {
-            Logger.get().error("Error while configuring source.", e);
+            logger.error("Error while configuring source.", e);
             respObserver.onError(
                 Status.INTERNAL
                     .withDescription("couldn't configure task: " + e)
@@ -68,11 +68,12 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     private void doConfigure(Config config) {
         this.task = taskFactory.newSourceTask(config.getConnectorClass());
         this.config = config.getKafkaConnectorCfg();
+        LoggingUtils.setLevel(config.getLogLevel());
     }
 
     @Override
     public void start(Source.Start.Request request, StreamObserver<Source.Start.Response> responseObserver) {
-        Logger.get().info("Starting the source.");
+        logger.info("Starting the source.");
 
         try {
             this.position = SourcePosition.fromString(request.getPosition().toStringUtf8());
@@ -81,12 +82,12 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
             );
             task.start(config);
             started = true;
-            Logger.get().info("Source started.");
+            logger.info("Source started.");
 
             responseObserver.onNext(Source.Start.Response.newBuilder().build());
             responseObserver.onCompleted();
         } catch (Exception e) {
-            Logger.get().error("Error while starting.", e);
+            logger.error("Error while starting.", e);
             responseObserver.onError(
                 Status.INTERNAL.withDescription("couldn't start task: " + e.getMessage())
                     .withCause(e)
@@ -116,7 +117,11 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
 
     @Override
     public void stop(Source.Stop.Request request, StreamObserver<Source.Stop.Response> responseObserver) {
+        logger.info("Stopping the source");
         // todo check if a record is being flushed
+        if (runStream == null) {
+            return;
+        }
         runStream.onCompleted();
         responseObserver.onNext(
             Source.Stop.Response.newBuilder()
@@ -128,16 +133,17 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
 
     @Override
     public void teardown(Source.Teardown.Request request, StreamObserver<Source.Teardown.Response> responseObserver) {
-        Logger.get().info("Tearing down...");
+        logger.info("Tearing down...");
+
         try {
             if (task != null && started) {
                 task.stop();
             }
             responseObserver.onNext(Source.Teardown.Response.newBuilder().build());
             responseObserver.onCompleted();
-            Logger.get().info("Torn down.");
+            logger.info("Torn down.");
         } catch (Exception e) {
-            Logger.get().error("Couldn't tear down.", e);
+            logger.error("Couldn't tear down.", e);
             responseObserver.onError(
                 Status.INTERNAL.withDescription("Couldn't tear down: " + e.getMessage())
                     .withCause(e)

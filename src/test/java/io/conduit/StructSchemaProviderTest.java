@@ -1,6 +1,10 @@
 package io.conduit;
 
-import com.google.protobuf.*;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ListValue;
+import com.google.protobuf.NullValue;
+import com.google.protobuf.Struct;
+import com.google.protobuf.Value;
 import io.conduit.grpc.Change;
 import io.conduit.grpc.Data;
 import io.conduit.grpc.Record;
@@ -8,9 +12,11 @@ import org.apache.kafka.connect.data.Schema;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class StructSchemaProviderTest {
+ class StructSchemaProviderTest {
     private StructSchemaProvider underTest;
 
     @BeforeEach

@@ -33,11 +33,15 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A {@link io.grpc.stub.StreamObserver} implementation which exposes a Kafka connector sink task through a gRPC stream.
  */
 public class DefaultDestinationStream implements StreamObserver<Destination.Run.Request> {
+    public static final Logger logger = LoggerFactory.getLogger(DefaultDestinationStream.class);
+
     private final SinkTask task;
     private final SchemaProvider schemaProvider;
     private final StreamObserver<Destination.Run.Response> responseObserver;
@@ -68,21 +72,21 @@ public class DefaultDestinationStream implements StreamObserver<Destination.Run.
             doWriteWithOffsetRetry(rec);
             responseObserver.onNext(responseWith(rec.getPosition()));
         } catch (Exception e) {
-            Logger.get().error("Couldn't write record.", e);
+            logger.error("Couldn't write record.", e);
             responseObserver.onError(
-                    Status.INTERNAL
-                            .withDescription("couldn't write record: " + e.getMessage())
-                            .withCause(e)
-                            .asException()
+                Status.INTERNAL
+                    .withDescription("couldn't write record: " + e.getMessage())
+                    .withCause(e)
+                    .asException()
             );
         }
     }
 
     private Destination.Run.Response responseWith(ByteString position) {
         return Destination.Run.Response
-                .newBuilder()
-                .setAckPosition(position)
-                .build();
+            .newBuilder()
+            .setAckPosition(position)
+            .build();
     }
 
     private void doWriteWithOffsetRetry(Record rec) {
@@ -101,8 +105,8 @@ public class DefaultDestinationStream implements StreamObserver<Destination.Run.
     private void doWrite(SinkRecord sinkRecord) {
         task.put(List.of(sinkRecord));
         task.preCommit(Map.of(
-                new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition()),
-                new OffsetAndMetadata(sinkRecord.kafkaOffset())
+            new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition()),
+            new OffsetAndMetadata(sinkRecord.kafkaOffset())
         ));
     }
 
@@ -146,15 +150,15 @@ public class DefaultDestinationStream implements StreamObserver<Destination.Run.
 
     @Override
     public void onError(Throwable t) {
-        Logger.get().error("Experienced an error.", t);
+        logger.error("Experienced an error.", t);
         responseObserver.onError(
-                Status.INTERNAL.withDescription("Error: " + t.getMessage()).withCause(t).asException()
+            Status.INTERNAL.withDescription("Error: " + t.getMessage()).withCause(t).asException()
         );
     }
 
     @Override
     public void onCompleted() {
-        Logger.get().info("Completed.");
+        logger.info("Completed.");
         responseObserver.onCompleted();
     }
 }
