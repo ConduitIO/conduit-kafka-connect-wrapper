@@ -50,12 +50,12 @@ class DestinationStreamTest {
                 .field("id", Schema.INT32_SCHEMA)
                 .field("name", Schema.STRING_SCHEMA)
                 .build();
-        this.underTest = new DefaultDestinationStream(task, new FixedSchemaProvider(schema), streamObserver);
+        this.underTest = new DefaultDestinationStream(task, new FixedSchemaProvider(schema), new SimpleDestinationTaskCtx(null), streamObserver);
     }
 
     @Test
     public void testWriteRecordNoSchema() {
-        DefaultDestinationStream underTest = new DefaultDestinationStream(task, new FixedSchemaProvider(null), streamObserver);
+        DefaultDestinationStream underTest = new DefaultDestinationStream(task, new FixedSchemaProvider(null), new SimpleDestinationTaskCtx(null), streamObserver);
         Destination.Run.Request request = newRequest();
         Record record = request.getRecord();
 
