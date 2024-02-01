@@ -65,9 +65,4 @@ fi
 gh release create $tag
 gh release upload $tag dist/*
 
-# Maven: Set the development version
-mvn versions:set -DnewVersion=next-version-SNAPSHOT
-git add pom.xml
-git commit -m "Set development version"
-
 echo "Release process completed successfully."
