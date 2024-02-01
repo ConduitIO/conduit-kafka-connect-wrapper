@@ -49,7 +49,7 @@ git commit -m "Bump version to $version"
 # Git: Tag the code
 tag="v$version"
 git tag $tag
-git push tag $tag
+git push origin $tag
 
 # Call dist.sh script and check if it returns successfully
 ./scripts/dist.sh
@@ -62,7 +62,9 @@ if [ $dist_script_exit_code -ne 0 ]; then
 fi
 
 # GitHub CLI: Create a new release
-gh release create $tag
-gh release upload $tag dist/*
+gh release create $tag --generate-notes --verify-tag
+zip_file="conduit-kafka-connect-wrapper-$tag"
+zip -r dist/ $zip_file
+gh release upload $tag $zip_file
 
 echo "Release process completed successfully."
