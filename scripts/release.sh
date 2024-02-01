@@ -49,6 +49,7 @@ git commit -m "Bump version to $version"
 # Git: Tag the code
 tag="v$version"
 git tag $tag
+git push tag $tag
 
 # Call dist.sh script and check if it returns successfully
 ./scripts/dist.sh
