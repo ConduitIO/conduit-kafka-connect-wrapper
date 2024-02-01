@@ -63,8 +63,8 @@ fi
 
 # GitHub CLI: Create a new release
 gh release create $tag --generate-notes --verify-tag
-zip_file="conduit-kafka-connect-wrapper-$tag"
-zip -r dist/ $zip_file
+zip_file="conduit-kafka-connect-wrapper-$tag.zip"
+zip -r $zip_file dist/
 gh release upload $tag $zip_file
 
 echo "Release process completed successfully."
