@@ -4,3 +4,5 @@ dist/
 *.iml
 dependency-reduced-pom.xml
 .DS_Store
+/conduit-kafka-connect-wrapper-*.zip
+pom.xml.versionsBackup

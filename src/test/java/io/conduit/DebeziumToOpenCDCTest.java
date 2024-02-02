@@ -115,18 +115,6 @@ class DebeziumToOpenCDCTest {
         );
     }
 
-    private SchemaAndValue getCreatedRecord() throws IOException {
-        InputStream stream = getClass().getClassLoader().getResourceAsStream("./debezium-record-created.json");
-        assertNotNull(stream);
-        return Utils.jsonConv.toConnectData("test-topic", IOUtils.toByteArray(stream));
-    }
-
-    private SchemaAndValue getUpdatedRecord() throws IOException {
-        InputStream stream = getClass().getClassLoader().getResourceAsStream("./debezium-record-updated.json");
-        assertNotNull(stream);
-        return Utils.jsonConv.toConnectData("test-topic", IOUtils.toByteArray(stream));
-    }
-
     @SneakyThrows
     @Test
     void createdRecord() {
@@ -157,6 +145,7 @@ class DebeziumToOpenCDCTest {
 
         // Metadata
         assertMetadataOk(original, transformed);
+        assertSchemaMetadataOk(schemaAndValue, transformed);
     }
 
     @SneakyThrows
@@ -192,6 +181,18 @@ class DebeziumToOpenCDCTest {
         assertMetadataOk(original, transformed);
     }
 
+    private SchemaAndValue getCreatedRecord() throws IOException {
+        InputStream stream = getClass().getClassLoader().getResourceAsStream("./debezium-record-created.json");
+        assertNotNull(stream);
+        return Utils.jsonConv.toConnectData("test-topic", IOUtils.toByteArray(stream));
+    }
+
+    private SchemaAndValue getUpdatedRecord() throws IOException {
+        InputStream stream = getClass().getClassLoader().getResourceAsStream("./debezium-record-updated.json");
+        assertNotNull(stream);
+        return Utils.jsonConv.toConnectData("test-topic", IOUtils.toByteArray(stream));
+    }
+
     private void assertContentsMatch(Struct afterOrig, com.google.protobuf.Struct after) {
         assertEquals((int) afterOrig.getInt32("id"), after.getFieldsOrThrow("id").getNumberValue());
         assertEquals(afterOrig.getString("name"), after.getFieldsOrThrow("name").getStringValue());
@@ -206,6 +207,16 @@ class DebeziumToOpenCDCTest {
             assertEquals(
                 String.valueOf(fieldVal),
                 transformed.getMetadataMap().get("kafkaconnect.debezium.source." + field.name())
+            );
+        }
+    }
+
+    private void assertSchemaMetadataOk(SchemaAndValue schemaValue, Record record) {
+        Schema schema = ((Struct) schemaValue.value()).getStruct("after").schema();
+        for (Field f : schema.fields()) {
+            assertEquals(
+                f.schema().type().toString(),
+                record.getMetadataMap().get("kafkaconnect.value.schema." + f.name())
             );
         }
     }
