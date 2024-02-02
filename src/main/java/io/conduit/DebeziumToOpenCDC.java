@@ -77,6 +77,9 @@ public class DebeziumToOpenCDC extends SourceRecordConverter implements Function
     }
 
     private void addValueSchemaMetadata(Map<String, String> meta, SourceRecord rec) {
+        // NB: The schema included here has exactly those fields
+        // which are present in the record,
+        // i.e. this is not the schema of the whole source table.
         Struct after = ((Struct) rec.value()).getStruct("after");
         for (Field f : after.schema().fields()) {
             meta.put(
