@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.conduit.grpc.Change;
 import io.conduit.grpc.Operation;
 import io.conduit.grpc.Record;
@@ -76,17 +77,17 @@ public class DebeziumToOpenCDC extends SourceRecordConverter implements Function
         return meta;
     }
 
+    @SneakyThrows
     private void addValueSchemaMetadata(Map<String, String> meta, SourceRecord rec) {
         // NB: The schema included here has exactly those fields
         // which are present in the record,
         // i.e. this is not the schema of the whole source table.
+        ObjectNode schema = Utils.mapper.createObjectNode();
         Struct after = ((Struct) rec.value()).getStruct("after");
         for (Field f : after.schema().fields()) {
-            meta.put(
-                "kafkaconnect.value.schema." + f.name(),
-                f.schema().type().toString()
-            );
+            schema.put(f.name(), f.schema().type().toString());
         }
+        meta.put("kafkaconnect.value.schema", Utils.mapper.writeValueAsString(schema));
     }
 
     private void addSourceMetadata(SourceRecord rec, Map<String, String> meta) {

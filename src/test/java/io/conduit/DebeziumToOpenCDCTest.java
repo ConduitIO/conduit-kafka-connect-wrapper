@@ -19,6 +19,7 @@ package io.conduit;
 import java.io.IOException;
 import java.io.InputStream;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.conduit.grpc.Operation;
 import io.conduit.grpc.Record;
 import lombok.SneakyThrows;
@@ -211,12 +212,15 @@ class DebeziumToOpenCDCTest {
         }
     }
 
+    @SneakyThrows
     private void assertSchemaMetadataOk(SchemaAndValue schemaValue, Record record) {
+        JsonNode actual = Utils.mapper.readTree(record.getMetadataMap().get("kafkaconnect.value.schema"));
+
         Schema schema = ((Struct) schemaValue.value()).getStruct("after").schema();
         for (Field f : schema.fields()) {
             assertEquals(
                 f.schema().type().toString(),
-                record.getMetadataMap().get("kafkaconnect.value.schema." + f.name())
+                actual.get(f.name()).asText()
             );
         }
     }
