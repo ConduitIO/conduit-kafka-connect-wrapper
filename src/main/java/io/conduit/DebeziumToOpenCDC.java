@@ -20,9 +20,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.conduit.grpc.Change;
 import io.conduit.grpc.Operation;
 import io.conduit.grpc.Record;
+import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -37,13 +39,16 @@ import static io.conduit.grpc.Operation.OPERATION_UPDATE;
 /**
  * Transforms a Debezium record into an OpenCDC record.
  */
+@AllArgsConstructor
 public class DebeziumToOpenCDC extends SourceRecordConverter implements Function<SourceRecord, Record.Builder> {
     private static final Map<String, Operation> DEBEZIUM_OPERATIONS = Map.of(
-            "c", OPERATION_CREATE,
-            "r", OPERATION_SNAPSHOT,
-            "u", OPERATION_UPDATE,
-            "d", OPERATION_DELETE
+        "c", OPERATION_CREATE,
+        "r", OPERATION_SNAPSHOT,
+        "u", OPERATION_UPDATE,
+        "d", OPERATION_DELETE
     );
+
+    private final boolean saveSchema;
 
     @Override
     public Record.Builder apply(SourceRecord rec) {
@@ -61,16 +66,44 @@ public class DebeziumToOpenCDC extends SourceRecordConverter implements Function
         // We can return a record, but the caller would then need to transform it into a builder,
         // which might create needless copies of fields.
         return Record.newBuilder()
-                .setKey(getKey(rec))
-                .setOperation(getOperation(rec))
-                .setPayload(getChangePayload(rec))
-                // we need nanoseconds here
-                .putMetadata(OpenCdcMetadata.READ_AT, String.valueOf(System.currentTimeMillis() * 1_000_000))
-                .putAllMetadata(getMetadata(rec));
+            .setKey(getKey(rec))
+            .setOperation(getOperation(rec))
+            .setPayload(getChangePayload(rec))
+            // we need nanoseconds here
+            .putMetadata(OpenCdcMetadata.READ_AT, String.valueOf(System.currentTimeMillis() * 1_000_000))
+            .putAllMetadata(getMetadata(rec));
     }
 
     private Map<String, String> getMetadata(SourceRecord rec) {
         Map<String, String> meta = new HashMap<>();
+        addSourceMetadata(rec, meta);
+        if (saveSchema) {
+            addSchemaMetadata(meta, rec);
+        }
+        return meta;
+    }
+
+    @SneakyThrows
+    private void addSchemaMetadata(Map<String, String> meta, SourceRecord rec) {
+        // NB: The schema included here has exactly those fields
+        // which are present in the record,
+        // i.e. this is not the schema of the whole source table.
+        ObjectNode valSchema = Utils.mapper.createObjectNode();
+        Struct after = ((Struct) rec.value()).getStruct("after");
+        for (Field f : after.schema().fields()) {
+            valSchema.put(f.name(), f.schema().type().toString());
+        }
+        meta.put("kafkaconnect.value.schema", Utils.mapper.writeValueAsString(valSchema));
+
+        ObjectNode keySchema = Utils.mapper.createObjectNode();
+        Struct key = ((Struct) rec.key());
+        for (Field f : key.schema().fields()) {
+            keySchema.put(f.name(), f.schema().type().toString());
+        }
+        meta.put("kafkaconnect.key.schema", Utils.mapper.writeValueAsString(keySchema));
+    }
+
+    private void addSourceMetadata(SourceRecord rec, Map<String, String> meta) {
         Struct source = ((Struct) rec.value()).getStruct("source");
         for (Field f : source.schema().fields()) {
             meta.put(
@@ -78,13 +111,12 @@ public class DebeziumToOpenCDC extends SourceRecordConverter implements Function
                 String.valueOf(source.get(f))
             );
         }
-        return meta;
     }
 
     private Operation getOperation(SourceRecord rec) {
         if (rec.valueSchema() == null || rec.valueSchema().type() != Schema.Type.STRUCT) {
             throw new IllegalArgumentException(
-                    "expected a record with a struct payload, but got " + rec.valueSchema()
+                "expected a record with a struct payload, but got " + rec.valueSchema()
             );
         }
 

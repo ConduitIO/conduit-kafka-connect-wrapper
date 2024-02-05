@@ -39,6 +39,8 @@ public class Config {
     private String connectorClass;
     @JsonProperty("log.level")
     private String logLevel;
+    @JsonProperty("debezium.schema.save")
+    private boolean saveSchema;
     private Map<String, String> kafkaConnectorCfg = new HashMap<>();
 
     /**
