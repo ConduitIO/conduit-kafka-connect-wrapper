@@ -50,6 +50,7 @@ class DebeziumToOpenCDCTest {
         keySchema = new SchemaBuilder(Schema.Type.STRUCT)
             .name("customer_id_schema")
             .field("id", Schema.INT32_SCHEMA)
+            .field("name", Schema.OPTIONAL_STRING_SCHEMA)
             .build();
 
         valueSchema = new SchemaBuilder(Schema.Type.STRUCT)
@@ -161,19 +162,21 @@ class DebeziumToOpenCDCTest {
         var underTest = new DebeziumToOpenCDC(saved);
 
         Struct original = (Struct) schemaAndValue.value();
+        Struct key = new Struct(keySchema).put("id", 123);
         Record transformed = underTest.apply(new SourceRecord(
             null,
             null,
             "test-topic",
             keySchema,
-            new Struct(keySchema).put("id", 123),
+            key,
             schemaAndValue.schema(),
             original)
         ).build();
 
         // Metadata
         assertMetadataOk(original, transformed);
-        assertSchemaMetadataOk(schemaAndValue, transformed, saved);
+        assertValueSchemaOk(schemaAndValue, transformed, saved);
+        assertKeySchemaOk(key, transformed, saved);
     }
 
     @SneakyThrows
@@ -241,7 +244,7 @@ class DebeziumToOpenCDCTest {
     }
 
     @SneakyThrows
-    private void assertSchemaMetadataOk(SchemaAndValue schemaValue, Record record, boolean saved) {
+    private void assertValueSchemaOk(SchemaAndValue schemaValue, Record record, boolean saved) {
         assertEquals(
             saved,
             record.getMetadataMap().containsKey("kafkaconnect.value.schema")
@@ -254,6 +257,26 @@ class DebeziumToOpenCDCTest {
 
         Schema schema = ((Struct) schemaValue.value()).getStruct("after").schema();
         for (Field f : schema.fields()) {
+            assertEquals(
+                f.schema().type().toString(),
+                actual.get(f.name()).asText()
+            );
+        }
+    }
+
+    @SneakyThrows
+    private void assertKeySchemaOk(Struct key, Record record, boolean saved) {
+        assertEquals(
+            saved,
+            record.getMetadataMap().containsKey("kafkaconnect.key.schema")
+        );
+        if (!saved) {
+            return;
+        }
+
+        JsonNode actual = Utils.mapper.readTree(record.getMetadataMap().get("kafkaconnect.key.schema"));
+
+        for (Field f : key.schema().fields()) {
             assertEquals(
                 f.schema().type().toString(),
                 actual.get(f.name()).asText()

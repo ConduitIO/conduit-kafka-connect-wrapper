@@ -78,22 +78,29 @@ public class DebeziumToOpenCDC extends SourceRecordConverter implements Function
         Map<String, String> meta = new HashMap<>();
         addSourceMetadata(rec, meta);
         if (saveSchema) {
-            addValueSchemaMetadata(meta, rec);
+            addSchemaMetadata(meta, rec);
         }
         return meta;
     }
 
     @SneakyThrows
-    private void addValueSchemaMetadata(Map<String, String> meta, SourceRecord rec) {
+    private void addSchemaMetadata(Map<String, String> meta, SourceRecord rec) {
         // NB: The schema included here has exactly those fields
         // which are present in the record,
         // i.e. this is not the schema of the whole source table.
-        ObjectNode schema = Utils.mapper.createObjectNode();
+        ObjectNode valSchema = Utils.mapper.createObjectNode();
         Struct after = ((Struct) rec.value()).getStruct("after");
         for (Field f : after.schema().fields()) {
-            schema.put(f.name(), f.schema().type().toString());
+            valSchema.put(f.name(), f.schema().type().toString());
         }
-        meta.put("kafkaconnect.value.schema", Utils.mapper.writeValueAsString(schema));
+        meta.put("kafkaconnect.value.schema", Utils.mapper.writeValueAsString(valSchema));
+
+        ObjectNode keySchema = Utils.mapper.createObjectNode();
+        Struct key = ((Struct) rec.key());
+        for (Field f : key.schema().fields()) {
+            keySchema.put(f.name(), f.schema().type().toString());
+        }
+        meta.put("kafkaconnect.key.schema", Utils.mapper.writeValueAsString(keySchema));
     }
 
     private void addSourceMetadata(SourceRecord rec, Map<String, String> meta) {
