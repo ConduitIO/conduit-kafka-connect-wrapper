@@ -31,7 +31,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
- class SourceServiceTest {
+class SourceServiceTest {
     private SourceService underTest;
     @Mock
     private TaskFactory taskFactory;
@@ -39,13 +39,13 @@ import static org.mockito.Mockito.when;
     private SourceTask task;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         underTest = new SourceService(taskFactory);
     }
 
     @Test
     @DisplayName("When the configuration is OK, then a successful response is sent back.")
-    public void testConfigureOk() {
+    void testConfigureOk() {
         Source.Configure.Request request = Source.Configure.Request.newBuilder().build();
         StreamObserver<Source.Configure.Response> streamObserver = mock(StreamObserver.class);
 
@@ -57,7 +57,7 @@ import static org.mockito.Mockito.when;
 
     @Test
     @DisplayName("When the configuration is NOT OK, then an error response is sent back.")
-    public void testConfigureWithError() {
+    void testConfigureWithError() {
         Source.Configure.Request request = Source.Configure.Request.newBuilder().build();
         StreamObserver<Source.Configure.Response> streamObserver = mock(StreamObserver.class);
         RuntimeException exception = new RuntimeException("surprised ya, huh?");
@@ -77,7 +77,7 @@ import static org.mockito.Mockito.when;
 
     @Test
     @DisplayName("Start task with correct config.")
-    public void testStartTask() {
+    void testStartTask() {
         when(taskFactory.newSourceTask("io.foo.bar")).thenReturn(task);
         underTest.configure(
             TestUtils.newConfigRequest(Map.of(
@@ -92,7 +92,10 @@ import static org.mockito.Mockito.when;
 
         ArgumentCaptor<Map<String, String>> propsCaptor = ArgumentCaptor.forClass(Map.class);
         verify(task).start(propsCaptor.capture());
-        propsCaptor.getValue().equals(Map.of("another.param", "another.value"));
+        assertEquals(
+            propsCaptor.getValue(),
+            Map.of("another.param", "another.value")
+        );
 
         verify(startStream).onNext(any(Source.Start.Response.class));
         verify(startStream).onCompleted();
@@ -100,7 +103,7 @@ import static org.mockito.Mockito.when;
 
     @Test
     @DisplayName("Start task throws an exception.")
-    public void testCannotStartTask() {
+    void testCannotStartTask() {
         when(taskFactory.newSourceTask("io.foo.bar")).thenReturn(task);
         RuntimeException exception = new RuntimeException("surprised ya, huh?");
         doThrow(exception).when(task).start(anyMap());
@@ -118,7 +121,10 @@ import static org.mockito.Mockito.when;
 
         ArgumentCaptor<Map<String, String>> propsCaptor = ArgumentCaptor.forClass(Map.class);
         verify(task).start(propsCaptor.capture());
-        propsCaptor.getValue().equals(Map.of("another.param", "another.value"));
+        assertEquals(
+            propsCaptor.getValue(),
+            Map.of("another.param", "another.value")
+        );
 
         verify(startStream, never()).onNext(any());
         ArgumentCaptor<Throwable> tCaptor = ArgumentCaptor.forClass(Throwable.class);
@@ -129,7 +135,7 @@ import static org.mockito.Mockito.when;
 
     @SneakyThrows
     @Test
-    public void testStopSendsLastPosition() {
+    void testStopSendsLastPosition() {
         when(taskFactory.newSourceTask("io.foo.bar")).thenReturn(task);
 
         var records = testKafkaRecords();
@@ -177,7 +183,7 @@ import static org.mockito.Mockito.when;
     }
 
     @Test
-    public void testTeardownNoStart() {
+    void testTeardownNoStart() {
         underTest.configure(
             TestUtils.newConfigRequest(Map.of(
                 "wrapper.connector.class", "io.foo.bar",
@@ -194,7 +200,7 @@ import static org.mockito.Mockito.when;
     }
 
     @Test
-    public void testTeardownWhenStartFailed() {
+    void testTeardownWhenStartFailed() {
         var task = mock(SourceTask.class);
         doThrow(new RuntimeException("gotcha!")).when(task).start(anyMap());
         when(taskFactory.newSourceTask("io.foo.bar"))

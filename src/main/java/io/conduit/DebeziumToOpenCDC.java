@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.conduit.grpc.Change;
 import io.conduit.grpc.Operation;
 import io.conduit.grpc.Record;
+import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -38,6 +39,7 @@ import static io.conduit.grpc.Operation.OPERATION_UPDATE;
 /**
  * Transforms a Debezium record into an OpenCDC record.
  */
+@AllArgsConstructor
 public class DebeziumToOpenCDC extends SourceRecordConverter implements Function<SourceRecord, Record.Builder> {
     private static final Map<String, Operation> DEBEZIUM_OPERATIONS = Map.of(
         "c", OPERATION_CREATE,
@@ -45,6 +47,8 @@ public class DebeziumToOpenCDC extends SourceRecordConverter implements Function
         "u", OPERATION_UPDATE,
         "d", OPERATION_DELETE
     );
+
+    private final boolean saveSchema;
 
     @Override
     public Record.Builder apply(SourceRecord rec) {
@@ -73,7 +77,9 @@ public class DebeziumToOpenCDC extends SourceRecordConverter implements Function
     private Map<String, String> getMetadata(SourceRecord rec) {
         Map<String, String> meta = new HashMap<>();
         addSourceMetadata(rec, meta);
-        addValueSchemaMetadata(meta, rec);
+        if (saveSchema) {
+            addValueSchemaMetadata(meta, rec);
+        }
         return meta;
     }
 

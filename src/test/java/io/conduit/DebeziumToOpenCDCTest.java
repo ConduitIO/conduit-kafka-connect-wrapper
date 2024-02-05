@@ -32,6 +32,8 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -40,14 +42,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DebeziumToOpenCDCTest {
-    private DebeziumToOpenCDC underTest;
     private Schema keySchema;
     private Schema valueSchema;
 
     @BeforeEach
     void setUp() {
-        underTest = new DebeziumToOpenCDC();
-
         keySchema = new SchemaBuilder(Schema.Type.STRUCT)
             .name("customer_id_schema")
             .field("id", Schema.INT32_SCHEMA)
@@ -66,6 +65,8 @@ class DebeziumToOpenCDCTest {
 
     @Test
     void noValue() {
+        var underTest = new DebeziumToOpenCDC(false);
+
         var e = assertThrows(
             IllegalArgumentException.class,
             () -> underTest.apply(new SourceRecord(
@@ -82,6 +83,8 @@ class DebeziumToOpenCDCTest {
 
     @Test
     void valueNotStruct() {
+        var underTest = new DebeziumToOpenCDC(false);
+
         var e = assertThrows(
             IllegalArgumentException.class,
             () -> underTest.apply(new SourceRecord(
@@ -100,6 +103,7 @@ class DebeziumToOpenCDCTest {
     @Test
     void keyPreserved() {
         SchemaAndValue schemaAndValue = getCreatedRecord();
+        var underTest = new DebeziumToOpenCDC(false);
 
         Record rec = underTest.apply(new SourceRecord(
             null,
@@ -120,6 +124,7 @@ class DebeziumToOpenCDCTest {
     @Test
     void createdRecord() {
         SchemaAndValue schemaAndValue = getCreatedRecord();
+        var underTest = new DebeziumToOpenCDC(false);
 
         Struct original = (Struct) schemaAndValue.value();
         Record transformed = underTest.apply(new SourceRecord(
@@ -146,13 +151,36 @@ class DebeziumToOpenCDCTest {
 
         // Metadata
         assertMetadataOk(original, transformed);
-        assertSchemaMetadataOk(schemaAndValue, transformed);
+    }
+
+    @SneakyThrows
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void schemaSaved(boolean saved) {
+        SchemaAndValue schemaAndValue = getCreatedRecord();
+        var underTest = new DebeziumToOpenCDC(saved);
+
+        Struct original = (Struct) schemaAndValue.value();
+        Record transformed = underTest.apply(new SourceRecord(
+            null,
+            null,
+            "test-topic",
+            keySchema,
+            new Struct(keySchema).put("id", 123),
+            schemaAndValue.schema(),
+            original)
+        ).build();
+
+        // Metadata
+        assertMetadataOk(original, transformed);
+        assertSchemaMetadataOk(schemaAndValue, transformed, saved);
     }
 
     @SneakyThrows
     @Test
     void updatedRecord() {
         SchemaAndValue schemaAndValue = getUpdatedRecord();
+        var underTest = new DebeziumToOpenCDC(false);
 
         Struct original = (Struct) schemaAndValue.value();
         Record transformed = underTest.apply(new SourceRecord(
@@ -213,7 +241,15 @@ class DebeziumToOpenCDCTest {
     }
 
     @SneakyThrows
-    private void assertSchemaMetadataOk(SchemaAndValue schemaValue, Record record) {
+    private void assertSchemaMetadataOk(SchemaAndValue schemaValue, Record record, boolean saved) {
+        assertEquals(
+            saved,
+            record.getMetadataMap().containsKey("kafkaconnect.value.schema")
+        );
+        if (!saved) {
+            return;
+        }
+
         JsonNode actual = Utils.mapper.readTree(record.getMetadataMap().get("kafkaconnect.value.schema"));
 
         Schema schema = ((Struct) schemaValue.value()).getStruct("after").schema();

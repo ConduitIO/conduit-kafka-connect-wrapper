@@ -33,9 +33,13 @@ import org.slf4j.LoggerFactory;
  */
 public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     public static final org.slf4j.Logger logger = LoggerFactory.getLogger(SourceService.class);
+
     private final TaskFactory taskFactory;
     private SourceTask task;
+
     private Map<String, String> config;
+    private boolean debeziumSaveSchema;
+
     private boolean started;
     private SourceStream runStream;
     private SourcePosition position;
@@ -68,6 +72,7 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
     private void doConfigure(Config config) {
         this.task = taskFactory.newSourceTask(config.getConnectorClass());
         this.config = config.getKafkaConnectorCfg();
+        this.debeziumSaveSchema = config.isSaveSchema();
         LoggingUtils.setLevel(config.getLogLevel());
     }
 
@@ -110,7 +115,7 @@ public class SourceService extends SourcePluginGrpc.SourcePluginImplBase {
 
     private Function<SourceRecord, Record.Builder> getRecordConverter() {
         if (task.getClass().getCanonicalName().startsWith("io.debezium.connector")) {
-            return new DebeziumToOpenCDC();
+            return new DebeziumToOpenCDC(debeziumSaveSchema);
         }
         return new KafkaToOpenCDC();
     }
