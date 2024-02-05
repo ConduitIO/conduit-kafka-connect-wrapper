@@ -104,14 +104,50 @@ The plugin will be able to find the dependencies as soon as they are put into `l
 #### Configuration
 This plugin's configuration consists of the configuration of the requested Kafka connector, plus:
 
-| Name                                    | Description                                                                                                                                     | Required                                                              | Default | Example                                                                                                                                                                                             | 
-|-----------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `wrapper.connector.class`               | The class of the requested connector. It needs to be found on the classpath, i.e. in a JAR in the `libs` directory.                             | yes                                                                   | none    | `io.aiven.connect.jdbc.JdbcSourceConnector`                                                                                                                                                         |
-| `wrapper.log.level`                     | Root logging level for the wrapper and the requested connector. <br />**Note**: For log4j, the logging level is currently hard-coded to `INFO`. | no                                                                    | "INFO"  | `DEBUG`                                                                                                                                                                                             |
-| `wrapper.schema`                        | The schema of the records which will be written to a destination connector.                                                                     | the plugin doesn't require it, but the underlying Kafka connector may | none    | `{"type":"struct","fields":[{"type":"int32","optional":true,"field":"id"},{"type":"string","optional":true,"field":"name"},{"type":"boolean","optional":true,"field":"trial"}],"name":"customers"}` |
-| `wrapper.schema.autogenerate.enabled`   | Automatically generate schemas (destination connector). Cannot be `true` if a schema is set.                                                    | no                                                                    | `false` | `true`                                                                                                                                                                                              |
-| `wrapper.schema.autogenerate.name`      | Name of automatically generated schema.                                                                                                         | yes, if schema auto-generation is turned on                           | none    | `customers`                                                                                                                                                                                         |
-| `wrapper.schema.autogenerate.overrides` | A (partial) schema which overrides types in the auto-generated schema.                                                                          | no                                                                    | none    | `{"type":"struct","fields":[{"type":"boolean","optional":true,"field":"joined"}],"name":"customers"}`                                                                                               |
+- **`wrapper.connector.class`**
+    - *Description:* The class of the requested connector. It needs to be found on the classpath, i.e. in a JAR in the `libs` directory.
+    - *Required:* yes
+    - *Default:* none
+    - *Example:* `io.aiven.connect.jdbc.JdbcSourceConnector`
+
+- **`wrapper.log.level`**
+    - *Description:* Root logging level for the wrapper and the requested connector.
+
+      *Note:* For log4j, the logging level is currently hard-coded to `INFO`.
+    - *Required:* no
+    - *Default:* "INFO"
+    - *Example:* `DEBUG`
+
+- **`wrapper.debezium.schema.save`**
+    - *Description:* Saves the schema from Debezium's `source` field to the Conduit record's metadata. The metadata
+      key is `kafkaconnect.value.schema`.
+    - *Required:* no
+    - *Default:* "false"
+    - *Example:* `true`
+
+- **`wrapper.schema`**
+    - *Description:* The schema of the records which will be written to a destination connector.
+    - *Required:* the plugin doesn't require it, but the underlying Kafka connector may
+    - *Default:* none
+    - *Example:* `{"type":"struct","fields":[{"type":"int32","optional":true,"field":"id"},{"type":"string","optional":true,"field":"name"},{"type":"boolean","optional":true,"field":"trial"}],"name":"customers"}`
+
+- **`wrapper.schema.autogenerate.enabled`**
+    - *Description:* Automatically generate schemas (destination connector). Cannot be `true` if a schema is set.
+    - *Required:* no
+    - *Default:* `false`
+    - *Example:* `true`
+
+- **`wrapper.schema.autogenerate.name`**
+    - *Description:* Name of automatically generated schema.
+    - *Required:* yes, if schema auto-generation is turned on
+    - *Default:* none
+    - *Example:* `customers`
+
+- **`wrapper.schema.autogenerate.overrides`**
+    - *Description:* A (partial) schema which overrides types in the auto-generated schema.
+    - *Required:* no
+    - *Default:* none
+    - *Example:* `{"type":"struct","fields":[{"type":"boolean","optional":true,"field":"joined"}],"name":"customers"}`
 
 Here's a full example, for a new Conduit destination connector, backed up by a JDBC Kafka sink connector.
 ```json
