@@ -16,7 +16,6 @@
 
 package io.conduit;
 
-import java.io.InvalidObjectException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -97,7 +96,7 @@ public class DebeziumToOpenCDC extends SourceRecordConverter implements Function
         }
         // if before and after are empty, throw an exception
         if (struct == null) {
-            throw new InvalidObjectException("after and before fields are empty for record key: " + rec.key());
+            throw new IllegalArgumentException("after and before fields are empty for record key: " + rec.key());
         }
 
         for (Field f : struct.schema().fields()) {

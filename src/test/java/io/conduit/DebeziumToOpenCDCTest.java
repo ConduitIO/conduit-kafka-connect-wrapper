@@ -44,19 +44,19 @@ class DebeziumToOpenCDCTest {
     @BeforeEach
     void setUp() {
         keySchema = new SchemaBuilder(Schema.Type.STRUCT)
-            .name("customer_id_schema")
-            .field("id", Schema.INT32_SCHEMA)
-            .field("name", Schema.OPTIONAL_STRING_SCHEMA)
-            .build();
+                .name("customer_id_schema")
+                .field("id", Schema.INT32_SCHEMA)
+                .field("name", Schema.OPTIONAL_STRING_SCHEMA)
+                .build();
 
         valueSchema = new SchemaBuilder(Schema.Type.STRUCT)
-            .name("customers")
-            .field("id", Schema.INT32_SCHEMA)
-            .field("name", Schema.STRING_SCHEMA)
-            .field("interests", SchemaBuilder.array(Schema.STRING_SCHEMA))
-            .field("trial", SchemaBuilder.BOOLEAN_SCHEMA)
-            .field("balance", Schema.FLOAT64_SCHEMA)
-            .build();
+                .name("customers")
+                .field("id", Schema.INT32_SCHEMA)
+                .field("name", Schema.STRING_SCHEMA)
+                .field("interests", SchemaBuilder.array(Schema.STRING_SCHEMA))
+                .field("trial", SchemaBuilder.BOOLEAN_SCHEMA)
+                .field("balance", Schema.FLOAT64_SCHEMA)
+                .build();
 
     }
 
@@ -65,15 +65,15 @@ class DebeziumToOpenCDCTest {
         var underTest = new DebeziumToOpenCDC(false);
 
         var e = assertThrows(
-            IllegalArgumentException.class,
-            () -> underTest.apply(new SourceRecord(
-                null,
-                null,
-                "test-topic",
-                keySchema,
-                new Struct(keySchema).put("id", 123),
-                valueSchema,
-                null))
+                IllegalArgumentException.class,
+                () -> underTest.apply(new SourceRecord(
+                        null,
+                        null,
+                        "test-topic",
+                        keySchema,
+                        new Struct(keySchema).put("id", 123),
+                        valueSchema,
+                        null))
         );
         assertEquals("record has no value", e.getMessage());
     }
@@ -83,15 +83,15 @@ class DebeziumToOpenCDCTest {
         var underTest = new DebeziumToOpenCDC(false);
 
         var e = assertThrows(
-            IllegalArgumentException.class,
-            () -> underTest.apply(new SourceRecord(
-                null,
-                null,
-                "test-topic",
-                keySchema,
-                new Struct(keySchema).put("id", 123),
-                Schema.STRING_SCHEMA,
-                "string value"))
+                IllegalArgumentException.class,
+                () -> underTest.apply(new SourceRecord(
+                        null,
+                        null,
+                        "test-topic",
+                        keySchema,
+                        new Struct(keySchema).put("id", 123),
+                        Schema.STRING_SCHEMA,
+                        "string value"))
         );
         assertEquals("expected value schema to be STRUCT", e.getMessage());
     }
@@ -103,17 +103,17 @@ class DebeziumToOpenCDCTest {
         var underTest = new DebeziumToOpenCDC(false);
 
         Record rec = underTest.apply(new SourceRecord(
-            null,
-            null,
-            "test-topic",
-            keySchema,
-            new Struct(keySchema).put("id", 123),
-            schemaAndValue.schema(),
-            schemaAndValue.value())).build();
+                null,
+                null,
+                "test-topic",
+                keySchema,
+                new Struct(keySchema).put("id", 123),
+                schemaAndValue.schema(),
+                schemaAndValue.value())).build();
 
         assertEquals(
-            123,
-            (int) rec.getKey().getStructuredData().getFieldsOrThrow("id").getNumberValue()
+                123,
+                (int) rec.getKey().getStructuredData().getFieldsOrThrow("id").getNumberValue()
         );
     }
 
@@ -125,13 +125,13 @@ class DebeziumToOpenCDCTest {
 
         Struct original = (Struct) schemaAndValue.value();
         Record transformed = underTest.apply(new SourceRecord(
-            null,
-            null,
-            "test-topic",
-            keySchema,
-            new Struct(keySchema).put("id", 123),
-            schemaAndValue.schema(),
-            original)
+                null,
+                null,
+                "test-topic",
+                keySchema,
+                new Struct(keySchema).put("id", 123),
+                schemaAndValue.schema(),
+                original)
         ).build();
 
         // Operation
@@ -160,13 +160,13 @@ class DebeziumToOpenCDCTest {
         Struct original = (Struct) schemaAndValue.value();
         Struct key = new Struct(keySchema).put("id", 123);
         Record transformed = underTest.apply(new SourceRecord(
-            null,
-            null,
-            "test-topic",
-            keySchema,
-            key,
-            schemaAndValue.schema(),
-            original)
+                null,
+                null,
+                "test-topic",
+                keySchema,
+                key,
+                schemaAndValue.schema(),
+                original)
         ).build();
 
         // Metadata
@@ -183,13 +183,13 @@ class DebeziumToOpenCDCTest {
 
         Struct original = (Struct) schemaAndValue.value();
         Record transformed = underTest.apply(new SourceRecord(
-            null,
-            null,
-            "test-topic",
-            keySchema,
-            new Struct(keySchema).put("id", 123),
-            schemaAndValue.schema(),
-            original)
+                null,
+                null,
+                "test-topic",
+                keySchema,
+                new Struct(keySchema).put("id", 123),
+                schemaAndValue.schema(),
+                original)
         ).build();
 
         // Operation
@@ -213,7 +213,7 @@ class DebeziumToOpenCDCTest {
     @Test
     void deletedRecord() {
         SchemaAndValue schemaAndValue = getDeletedRecord();
-        var underTest = new DebeziumToOpenCDC(false);
+        var underTest = new DebeziumToOpenCDC(true);
 
         Struct original = (Struct) schemaAndValue.value();
         Record transformed = underTest.apply(new SourceRecord(
@@ -244,6 +244,30 @@ class DebeziumToOpenCDCTest {
         assertMetadataOk(original, transformed, true);
     }
 
+    @SneakyThrows
+    @Test
+    /**
+     * Tests the absence of both before and after, which is unexpected
+     */
+    void invalidRecord() {
+        SchemaAndValue schemaAndValue = getInvalidRecord();
+        var underTest = new DebeziumToOpenCDC(true);
+
+        Struct original = (Struct) schemaAndValue.value();
+        SourceRecord sr = new SourceRecord(
+                null,
+                null,
+                "test-topic",
+                keySchema,
+                new Struct(keySchema).put("id", 123),
+                schemaAndValue.schema(),
+                original);
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> underTest.apply(sr)
+        );
+    }
+
     private SchemaAndValue getCreatedRecord() throws IOException {
         InputStream stream = getClass().getClassLoader().getResourceAsStream("./debezium-record-created.json");
         assertNotNull(stream);
@@ -258,6 +282,12 @@ class DebeziumToOpenCDCTest {
 
     private SchemaAndValue getDeletedRecord() throws IOException {
         InputStream stream = getClass().getClassLoader().getResourceAsStream("./debezium-record-deleted.json");
+        assertNotNull(stream);
+        return Utils.jsonConv.toConnectData("test-topic", IOUtils.toByteArray(stream));
+    }
+
+    private SchemaAndValue getInvalidRecord() throws IOException {
+        InputStream stream = getClass().getClassLoader().getResourceAsStream("./debezium-record-invalid.json");
         assertNotNull(stream);
         return Utils.jsonConv.toConnectData("test-topic", IOUtils.toByteArray(stream));
     }
@@ -277,8 +307,8 @@ class DebeziumToOpenCDCTest {
             }
             Object fieldVal = source.get(field);
             assertEquals(
-                String.valueOf(fieldVal),
-                transformed.getMetadataMap().get("kafkaconnect.debezium.source." + field.name())
+                    String.valueOf(fieldVal),
+                    transformed.getMetadataMap().get("kafkaconnect.debezium.source." + field.name())
             );
         }
     }
@@ -286,8 +316,8 @@ class DebeziumToOpenCDCTest {
     @SneakyThrows
     private void assertValueSchemaOk(SchemaAndValue schemaValue, Record record, boolean saved) {
         assertEquals(
-            saved,
-            record.getMetadataMap().containsKey("kafkaconnect.value.schema")
+                saved,
+                record.getMetadataMap().containsKey("kafkaconnect.value.schema")
         );
         if (!saved) {
             return;
@@ -298,8 +328,8 @@ class DebeziumToOpenCDCTest {
         Schema schema = ((Struct) schemaValue.value()).getStruct("after").schema();
         for (Field f : schema.fields()) {
             assertEquals(
-                f.schema().type().toString(),
-                actual.get(f.name()).asText()
+                    f.schema().type().toString(),
+                    actual.get(f.name()).asText()
             );
         }
     }
@@ -307,8 +337,8 @@ class DebeziumToOpenCDCTest {
     @SneakyThrows
     private void assertKeySchemaOk(Struct key, Record record, boolean saved) {
         assertEquals(
-            saved,
-            record.getMetadataMap().containsKey("kafkaconnect.key.schema")
+                saved,
+                record.getMetadataMap().containsKey("kafkaconnect.key.schema")
         );
         if (!saved) {
             return;
@@ -318,8 +348,8 @@ class DebeziumToOpenCDCTest {
 
         for (Field f : key.schema().fields()) {
             assertEquals(
-                f.schema().type().toString(),
-                actual.get(f.name()).asText()
+                    f.schema().type().toString(),
+                    actual.get(f.name()).asText()
             );
         }
     }
