@@ -35,11 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class DebeziumToOpenCDCTest {
     private Schema keySchema;
@@ -151,7 +147,7 @@ class DebeziumToOpenCDCTest {
         assertContentsMatch(original.getStruct("after"), after);
 
         // Metadata
-        assertMetadataOk(original, transformed);
+        assertMetadataOk(original, transformed, false);
     }
 
     @SneakyThrows
@@ -174,7 +170,7 @@ class DebeziumToOpenCDCTest {
         ).build();
 
         // Metadata
-        assertMetadataOk(original, transformed);
+        assertMetadataOk(original, transformed, false);
         assertValueSchemaOk(schemaAndValue, transformed, saved);
         assertKeySchemaOk(key, transformed, saved);
     }
@@ -210,7 +206,42 @@ class DebeziumToOpenCDCTest {
         assertContentsMatch(original.getStruct("after"), after);
 
         // Metadata
-        assertMetadataOk(original, transformed);
+        assertMetadataOk(original, transformed, false);
+    }
+
+    @SneakyThrows
+    @Test
+    void deletedRecord() {
+        SchemaAndValue schemaAndValue = getDeletedRecord();
+        var underTest = new DebeziumToOpenCDC(false);
+
+        Struct original = (Struct) schemaAndValue.value();
+        Record transformed = underTest.apply(new SourceRecord(
+                null,
+                null,
+                "test-topic",
+                keySchema,
+                new Struct(keySchema).put("id", 123),
+                schemaAndValue.schema(),
+                original)
+        ).build();
+
+        // Operation
+        assertEquals(Operation.OPERATION_DELETE, transformed.getOperation());
+
+        // Before
+        assertTrue(transformed.getPayload().getBefore().hasStructuredData());
+        com.google.protobuf.Struct before = transformed.getPayload().getBefore().getStructuredData();
+        assertContentsMatch(original.getStruct("before"), before);
+
+        // After
+        assertFalse(transformed.getPayload().getAfter().hasStructuredData());
+        assertNull(original.getStruct("after"));
+        com.google.protobuf.Struct after = transformed.getPayload().getAfter().getStructuredData();
+        assertEquals(after, com.google.protobuf.Struct.getDefaultInstance());
+
+        // Metadata
+        assertMetadataOk(original, transformed, true);
     }
 
     private SchemaAndValue getCreatedRecord() throws IOException {
@@ -225,6 +256,12 @@ class DebeziumToOpenCDCTest {
         return Utils.jsonConv.toConnectData("test-topic", IOUtils.toByteArray(stream));
     }
 
+    private SchemaAndValue getDeletedRecord() throws IOException {
+        InputStream stream = getClass().getClassLoader().getResourceAsStream("./debezium-record-deleted.json");
+        assertNotNull(stream);
+        return Utils.jsonConv.toConnectData("test-topic", IOUtils.toByteArray(stream));
+    }
+
     private void assertContentsMatch(Struct afterOrig, com.google.protobuf.Struct after) {
         assertEquals((int) afterOrig.getInt32("id"), after.getFieldsOrThrow("id").getNumberValue());
         assertEquals(afterOrig.getString("name"), after.getFieldsOrThrow("name").getStringValue());
@@ -232,9 +269,12 @@ class DebeziumToOpenCDCTest {
         assertEquals(afterOrig.getString("updated_at"), after.getFieldsOrThrow("updated_at").getStringValue());
     }
 
-    private void assertMetadataOk(Struct original, Record transformed) {
+    private void assertMetadataOk(Struct original, Record transformed, Boolean skipAfter) {
         Struct source = original.getStruct("source");
         for (Field field : source.schema().fields()) {
+            if (skipAfter && field.name() == "after") {
+                continue;
+            }
             Object fieldVal = source.get(field);
             assertEquals(
                 String.valueOf(fieldVal),
