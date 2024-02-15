@@ -89,10 +89,20 @@ public class DebeziumToOpenCDC extends SourceRecordConverter implements Function
         // which are present in the record,
         // i.e. this is not the schema of the whole source table.
         ObjectNode valSchema = Utils.mapper.createObjectNode();
-        Struct after = ((Struct) rec.value()).getStruct("after");
-        for (Field f : after.schema().fields()) {
+        Struct struct = ((Struct) rec.value()).getStruct("after");
+        // fall back to the before field, if after is empty
+        if (struct == null) {
+            struct = ((Struct) rec.value()).getStruct("before");
+        }
+        // if before and after are empty, throw an exception
+        if (struct == null) {
+            throw new IllegalArgumentException("after and before fields are empty for record key: " + rec.key());
+        }
+
+        for (Field f : struct.schema().fields()) {
             valSchema.put(f.name(), f.schema().type().toString());
         }
+
         meta.put("kafkaconnect.value.schema", Utils.mapper.writeValueAsString(valSchema));
 
         ObjectNode keySchema = Utils.mapper.createObjectNode();
