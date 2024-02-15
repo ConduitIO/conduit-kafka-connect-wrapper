@@ -12,12 +12,12 @@
         <maven.compiler.source>20</maven.compiler.source>
         <maven.compiler.target>20</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <grpc.version>1.61.0</grpc.version>
+        <grpc.version>1.61.1</grpc.version>
         <protobuf.version>3.25.2</protobuf.version>
         <protoc.version>3.19.2</protoc.version>
         <kafka.version>3.6.1</kafka.version>
         <mockito.version>5.10.0</mockito.version>
-        <junit.version>5.10.1</junit.version>
+        <junit.version>5.10.2</junit.version>
         <logback.version>1.4.14</logback.version>
     </properties>
 
@@ -112,7 +112,7 @@
         <dependency>
             <groupId>io.debezium</groupId>
             <artifactId>debezium-connector-postgres</artifactId>
-            <version>2.5.0.Final</version>
+            <version>2.5.1.Final</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -124,7 +124,7 @@
         <dependency>
             <groupId>com.snowflake</groupId>
             <artifactId>snowflake-kafka-connector</artifactId>
-            <version>2.1.2</version>
+            <version>2.2.0</version>
             <scope>test</scope>
         </dependency>
 
