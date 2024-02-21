@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
  */
 public class DefaultSourceStream implements SourceStream {
     public static final Logger logger = LoggerFactory.getLogger(DefaultSourceStream.class);
-    
+
     private final SourceTask task;
     private final StreamObserver<Source.Run.Response> responseObserver;
     private boolean shouldRun = true;
@@ -61,18 +61,8 @@ public class DefaultSourceStream implements SourceStream {
     public void run() {
         while (shouldRun) {
             try {
-                if (buffer.isEmpty()) {
-                    fillBuffer();
-                }
-                SourceRecord rec = buffer.poll();
-                // We may get so-called tombstone records, i.e. records with a null payload.
-                // This can happen when records are deleted, for example.
-                // This is used in Kafka Connect internally, more precisely for log compaction in Kafka.
-                // For more info: https://kafka.apache.org/documentation/#compaction
-                if (rec.value() != null) {
-                    responseObserver.onNext(responseWith(rec));
-                }
-            } catch (Exception e) {
+                doPoll();
+            } catch (Exception e) { //NOSONAR no need to re-throw InterruptedException, service will stop.
                 logger.error("Couldn't write record.", e);
                 responseObserver.onError(
                         Status.INTERNAL
@@ -85,10 +75,36 @@ public class DefaultSourceStream implements SourceStream {
         logger.info("SourceStream loop stopped.");
     }
 
+    /**
+     * Polls buffer for new messages and processes them.
+    **/
+    public void doPoll() throws InterruptedException {
+        if (buffer.isEmpty()) {
+            fillBuffer();
+        }
+        SourceRecord rec = buffer.poll();
+        // We may get so-called tombstone records, i.e. records with a null payload.
+        // This can happen when records are deleted, for example.
+        // This is used in Kafka Connect internally, more precisely for log compaction in Kafka.
+        // For more info: https://kafka.apache.org/documentation/#compaction
+        if (rec.value() != null) {
+            Source.Run.Response resp = responseWith(rec);
+            task.commitRecord(rec, null);
+            logger.debug("committed processed record {}", rec);
+
+            responseObserver.onNext(resp);
+        }
+    }
+
     @Override
+    @SneakyThrows
     public void onNext(Source.Run.Request value) {
-        // todo Acknowledging record not implemented yet...
-        // See: https://github.com/ConduitIO/conduit-kafka-connect-wrapper/issues/59
+        logger.debug("poll buffer size {}", buffer.size());
+
+        if (buffer.isEmpty()) {
+            logger.debug("committing all records");
+            task.commit();
+        }
     }
 
     @SneakyThrows
