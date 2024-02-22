@@ -66,7 +66,7 @@ public class DefaultSourceStream implements SourceStream {
         while (shouldRun) {
             try {
                 getRecords();
-            } catch (Exception e) { //NOSONAR no need to re-throw InterruptedException, service will stop.
+            } catch (Exception e) {
                 logger.error("Couldn't write record.", e);
                 responseObserver.onError(
                     Status.INTERNAL
