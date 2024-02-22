@@ -32,7 +32,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
- class SourceStreamTest {
+class SourceStreamTest {
     @Mock
     private SourceTask task;
     @Mock
@@ -44,14 +44,14 @@ import static org.mockito.Mockito.when;
 
     @Test
     @DisplayName("When SourceStream is created, the underlying SourceTask starts being polled.")
-    public void testRunAfterInit() throws InterruptedException {
+    void testRunAfterInit() throws InterruptedException {
         new DefaultSourceStream(task, position, streamObserver, transformer).startAsync();
         verify(task, timeout(50).atLeastOnce()).poll();
     }
 
     @Test
     @DisplayName("When onCompleted is called, the underlying streams's onCompleted is called.")
-    public void testOnCompleted() {
+    void testOnCompleted() {
         var underTest = new DefaultSourceStream(task, position, streamObserver, transformer);
         underTest.onCompleted();
 
@@ -60,17 +60,17 @@ import static org.mockito.Mockito.when;
 
     @Test
     @DisplayName("Wait until records are available.")
-    public void testWaitForRecords() throws InterruptedException {
+    void testWaitForRecords() throws InterruptedException {
         var sourceRec = mockSourceRec(Map.of(), Map.of());
         var conduitRec = testConduitRec();
 
         when(task.poll()).thenReturn(
-                null,
-                emptyList(),
-                null,
-                emptyList(),
-                List.of(sourceRec),
-                null
+            null,
+            emptyList(),
+            null,
+            emptyList(),
+            List.of(sourceRec),
+            null
         );
         when(position.asByteString()).thenReturn(ByteString.copyFromUtf8("irrelevant"));
         when(transformer.apply(sourceRec)).thenReturn(conduitRec);
@@ -87,14 +87,14 @@ import static org.mockito.Mockito.when;
     @SneakyThrows
     @Test
     @DisplayName("When reading a record throws an exception, then exception is handled.")
-    public void testCannotReadRecord() {
+    void testCannotReadRecord() {
         testConnectorTaskThrows(new RuntimeException("surprised ya, huh?"));
     }
 
     @SneakyThrows
     @Test
     @DisplayName("When reading a record throws an error, then exception is error.")
-    public void testSourceTaskThrowsAnError() {
+    void testSourceTaskThrowsAnError() {
         testConnectorTaskThrows(new Error("surprised ya, huh?"));
     }
 
@@ -115,7 +115,7 @@ import static org.mockito.Mockito.when;
     @SneakyThrows
     @Test
     @DisplayName("Positions from records from different partitions (tables) are correctly merged.")
-    public void testPositionsMerged() {
+    void testPositionsMerged() {
         var sr1 = mockSourceRec(Map.of("p1", "p1-value"), Map.of("o1", "o1-value"));
         var sr2 = mockSourceRec(Map.of("p2", "p2-value"), Map.of("o2", "o2-value"));
         var cr1 = testConduitRec();
@@ -145,6 +145,6 @@ import static org.mockito.Mockito.when;
 
     private Record.Builder testConduitRec() {
         return Record.newBuilder()
-                .setPayload(TestUtils.newRecordPayload(UUID.randomUUID().toString()));
+            .setPayload(TestUtils.newRecordPayload(UUID.randomUUID().toString()));
     }
 }

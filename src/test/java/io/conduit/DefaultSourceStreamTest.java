@@ -16,7 +16,6 @@
 
 package io.conduit;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -53,38 +52,67 @@ class DefaultSourceStreamTest {
     private Function<SourceRecord, Record.Builder> transformer;
 
     @Test
-    void testRecordReadSuccesfully() throws InterruptedException {
-        // SourcePosition position = new SourcePosition();
-
+    void testCommitOnAck() throws InterruptedException {
         var sourceRec = mockSourceRec(Map.of("p1", "p1-value"), Map.of("o1", "o1-value"));
         var conduitRec = testConduitRec();
+        var ackRequest = Source.Run.Request.newBuilder()
+            .setAckPosition(conduitRec.getPosition())
+            .build();
 
         when(task.poll()).thenReturn(List.of(sourceRec), List.of());
         when(transformer.apply(sourceRec)).thenReturn(conduitRec);
-        when(transformer.apply(sourceRec)).thenReturn(conduitRec);
-
-        doNothing().when(position).add(Map.of("p1", "p1-value"), Map.of("o1", "o1-value"));
         when(position.asByteString()).thenReturn(ByteString.copyFromUtf8("irrelevant"));
 
-        DefaultSourceStream ds = new DefaultSourceStream(
+        DefaultSourceStream underTest = new DefaultSourceStream(
                 task,
                 position,
                 streamObserver,
                 transformer
         );
 
-        doAnswer(invocation -> {
-            ds.onNext(null);
-            return null;
-        }).when(streamObserver).onNext(any());
+        underTest.startAsync();
 
-        ds.doPoll();
-
-        verify(streamObserver, atLeastOnce()).onNext(any());
+        // DefaultSourceStream has a worker thread internally
+        // so we need to give it a bit of time to start polling
+        verify(streamObserver, timeout(200)).onNext(any());
         verify(streamObserver, never()).onError(any());
-        verify(position).add(any(), any());
+
+        underTest.onNext(ackRequest);
+
         verify(task).commitRecord(sourceRec, null);
         verify(task).commit();
+    }
+
+    @Test
+    void testCommitOnAck_UnknownPosition() throws InterruptedException {
+        var sourceRec = mockSourceRec(Map.of("p1", "p1-value"), Map.of("o1", "o1-value"));
+        var conduitRec = testConduitRec();
+        var ackRequest = Source.Run.Request.newBuilder()
+            .setAckPosition(ByteString.copyFromUtf8("unknown"))
+            .build();
+
+        when(task.poll()).thenReturn(List.of(sourceRec), List.of());
+        when(transformer.apply(sourceRec)).thenReturn(conduitRec);
+        when(position.asByteString()).thenReturn(ByteString.copyFromUtf8("irrelevant"));
+
+        DefaultSourceStream underTest = new DefaultSourceStream(
+                task,
+                position,
+                streamObserver,
+                transformer
+        );
+
+        underTest.startAsync();
+
+        // DefaultSourceStream has a worker thread internally
+        // so we need to give it a bit of time to start polling
+        verify(streamObserver, timeout(200)).onNext(any());
+
+        underTest.onNext(ackRequest);
+
+        verify(streamObserver).onError(any());
+        verify(task, never()).commitRecord(any(), any());
+        verify(task, never()).commit();
     }
 
     private SourceRecord mockSourceRec(Map<String, ?> partition, Map<String, ?> offset) {
