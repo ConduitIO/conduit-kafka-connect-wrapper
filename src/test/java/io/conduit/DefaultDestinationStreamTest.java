@@ -81,6 +81,7 @@ class DefaultDestinationStreamTest {
 
         var captor = ArgumentCaptor.forClass(List.class);
         verify(task).put(captor.capture());
+
         assertEquals(1, captor.getValue().size());
         assertInstanceOf(SinkRecord.class, captor.getValue().get(0));
         var actualSinkRecord = (SinkRecord) captor.getValue().get(0);

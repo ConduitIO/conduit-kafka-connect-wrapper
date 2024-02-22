@@ -16,9 +16,9 @@
 
 package io.conduit;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Function;
 
 import com.google.protobuf.ByteString;
@@ -38,14 +38,18 @@ import org.slf4j.LoggerFactory;
  */
 public class DefaultSourceStream implements SourceStream {
     public static final Logger logger = LoggerFactory.getLogger(DefaultSourceStream.class);
-    
+
     private final SourceTask task;
     private final StreamObserver<Source.Run.Response> responseObserver;
     private boolean shouldRun = true;
 
-    private final Queue<SourceRecord> buffer = new LinkedList<>();
     private final Function<SourceRecord, Record.Builder> transformer;
     private final SourcePosition position;
+    // readRecords is a queue where we save records which have been read
+    // from the underlying Kafka Connect source.
+    // We need the SourceRecord (so we can commit it),
+    // and the Conduit record (so we can find the position to be acked)
+    private final Queue<Pair<SourceRecord, Record>> readRecords = new ConcurrentLinkedQueue<>();
 
     public DefaultSourceStream(SourceTask task,
                                SourcePosition position,
@@ -61,43 +65,66 @@ public class DefaultSourceStream implements SourceStream {
     public void run() {
         while (shouldRun) {
             try {
-                if (buffer.isEmpty()) {
-                    fillBuffer();
-                }
-                SourceRecord rec = buffer.poll();
-                // We may get so-called tombstone records, i.e. records with a null payload.
-                // This can happen when records are deleted, for example.
-                // This is used in Kafka Connect internally, more precisely for log compaction in Kafka.
-                // For more info: https://kafka.apache.org/documentation/#compaction
-                if (rec.value() != null) {
-                    responseObserver.onNext(responseWith(rec));
-                }
+                getRecords();
             } catch (Exception e) {
                 logger.error("Couldn't write record.", e);
                 responseObserver.onError(
-                        Status.INTERNAL
-                                .withDescription("couldn't read record: " + e.getMessage())
-                                .withCause(e)
-                                .asException()
+                    Status.INTERNAL
+                        .withDescription("couldn't read record: " + e.getMessage())
+                        .withCause(e)
+                        .asException()
                 );
             }
         }
         logger.info("SourceStream loop stopped.");
     }
 
+    /**
+     * Gets records from the underlying source task (via task.poll())
+     * converts them to Conduit records, and sends them to the gRPC stream.
+     **/
+    public void getRecords() {
+        var polled = getKafkaSourceRecords();
+        polled.forEach(rec -> {
+            // We may get so-called tombstone records, i.e. records with a null payload.
+            // This can happen when records are deleted, for example.
+            // This is used in Kafka Connect internally, more precisely for log compaction in Kafka.
+            // For more info: https://kafka.apache.org/documentation/#compaction
+            if (rec.value() != null) {
+                Source.Run.Response resp = responseWith(rec);
+                readRecords.add(new Pair<>(rec, resp.getRecord()));
+
+                responseObserver.onNext(resp);
+            }
+        });
+    }
+
     @Override
-    public void onNext(Source.Run.Request value) {
-        // todo Acknowledging record not implemented yet...
-        // See: https://github.com/ConduitIO/conduit-kafka-connect-wrapper/issues/59
+    @SneakyThrows
+    public void onNext(Source.Run.Request request) {
+        var pair = readRecords.poll();
+
+        if (!request.getAckPosition().equals(pair.right.getPosition())) {
+            responseObserver.onError(new IllegalArgumentException(
+                String.format("position %s not found in read records", request.getAckPosition().toStringUtf8())
+            ));
+
+            return;
+        }
+
+        task.commitRecord(pair.left, null);
+        task.commit();
+
     }
 
     @SneakyThrows
-    private void fillBuffer() {
+    private List<SourceRecord> getKafkaSourceRecords() {
         List<SourceRecord> polled = task.poll();
         while (Utils.isEmpty(polled)) {
             polled = task.poll();
         }
-        buffer.addAll(polled);
+
+        return polled;
     }
 
     @SneakyThrows
@@ -105,11 +132,11 @@ public class DefaultSourceStream implements SourceStream {
         position.add(rec.sourcePartition(), rec.sourceOffset());
 
         Record.Builder conduitRec = transformer.apply(rec)
-                .setPosition(position.asByteString());
+            .setPosition(position.asByteString());
 
         return Source.Run.Response.newBuilder()
-                .setRecord(conduitRec)
-                .build();
+            .setRecord(conduitRec)
+            .build();
     }
 
     @Override
@@ -117,7 +144,7 @@ public class DefaultSourceStream implements SourceStream {
         logger.error("Experienced an error.", t);
         stop();
         responseObserver.onError(
-                Status.INTERNAL.withDescription("Error: " + t.getMessage()).withCause(t).asException()
+            Status.INTERNAL.withDescription("Error: " + t.getMessage()).withCause(t).asException()
         );
     }
 
