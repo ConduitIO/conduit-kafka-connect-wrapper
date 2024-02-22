@@ -28,8 +28,8 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -198,15 +198,19 @@ class DefaultSourceStreamTest {
         underTest.onNext(ackRequest);
 
         verify(task).commitRecord(sourceRec, null);
+        // make sure it's called only once (for the record above)
+        verify(task).commitRecord(any(), any());
         verify(task).commit();
     }
 
     @Test
-    @DisplayName("Ack with multiple read record")
+    @DisplayName("3 records read, first 2 are ack'd")
     void testCommitOnAck_MultipleRecords() throws InterruptedException {
-        var position = new SourcePosition();
         var sr1 = mockSourceRec(Map.of("p1", "p1-value"), Map.of("o1", "o1-value"));
         var cr1 = testConduitRec();
+        var cr1pos = ByteString.copyFromUtf8(
+            "{\"positions\":{\"{\\\"map\\\":{\\\"p1\\\":\\\"p1-value\\\"}}\":{\"map\":{\"o1\":\"o1-value\"}}}}"
+        );
 
         var sr2 = mockSourceRec(Map.of("p2", "p2-value"), Map.of("o2", "o2-value"));
         var cr2 = testConduitRec();
@@ -225,7 +229,7 @@ class DefaultSourceStreamTest {
 
         DefaultSourceStream underTest = new DefaultSourceStream(
             task,
-            position,
+            new SourcePosition(),
             streamObserver,
             transformer
         );
@@ -234,18 +238,26 @@ class DefaultSourceStreamTest {
 
         // DefaultSourceStream has a worker thread internally
         // so we need to give it a bit of time to start polling
-        verify(streamObserver, timeout(200).times(3)).onNext(any());
+        verify(streamObserver, timeout(300).times(3)).onNext(any());
         verify(streamObserver, never()).onError(any());
 
-        var ackRequest = Source.Run.Request.newBuilder()
-            .setAckPosition(cr2pos)
+        var ack1 = Source.Run.Request.newBuilder()
+            .setAckPosition(cr1pos)
             .build();
-        underTest.onNext(ackRequest);
+        underTest.onNext(ack1);
 
         verify(task).commitRecord(sr1, null);
+
+        var ack2 = Source.Run.Request.newBuilder()
+            .setAckPosition(cr2pos)
+            .build();
+        underTest.onNext(ack2);
+
         verify(task).commitRecord(sr2, null);
-        verify(task).commit();
-        verifyNoMoreInteractions(task);
+
+        verify(task, times(2)).commit();
+        // make sure it's called only two times, for the 2 records above
+        verify(task, times(2)).commitRecord(any(), any());
     }
 
     private SourceRecord mockSourceRec(Map<String, ?> partition, Map<String, ?> offset) {

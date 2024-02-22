@@ -16,7 +16,6 @@
 
 package io.conduit;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -81,7 +80,8 @@ public class DefaultSourceStream implements SourceStream {
     }
 
     /**
-     * Polls buffer for new messages and processes them.
+     * Gets records from the underlying source task (via task.poll())
+     * converts them to Conduit records, and sends them to the gRPC stream.
      **/
     public void getRecords() {
         var polled = getKafkaSourceRecords();
@@ -102,33 +102,19 @@ public class DefaultSourceStream implements SourceStream {
     @Override
     @SneakyThrows
     public void onNext(Source.Run.Request request) {
-        List<SourceRecord> toCommit = new LinkedList<>();
-        boolean positionFound = false;
-        while (!readRecords.isEmpty()) {
-            var pair = readRecords.poll();
-            toCommit.add(pair.left);
+        var pair = readRecords.poll();
 
-            if (request.getAckPosition().equals(pair.right.getPosition())) {
-                positionFound = true;
-                break;
-            }
-        }
-
-        if (positionFound) {
-            commit(toCommit);
-        } else {
+        if (!request.getAckPosition().equals(pair.right.getPosition())) {
             responseObserver.onError(new IllegalArgumentException(
                 String.format("position %s not found in read records", request.getAckPosition().toStringUtf8())
             ));
-        }
-    }
 
-    @SneakyThrows
-    private void commit(List<SourceRecord> recs) {
-        for (SourceRecord rec : recs) {
-            task.commitRecord(rec, null);
+            return;
         }
+
+        task.commitRecord(pair.left, null);
         task.commit();
+
     }
 
     @SneakyThrows
