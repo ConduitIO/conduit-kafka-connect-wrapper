@@ -18,6 +18,12 @@ package io.conduit;
 
 import lombok.AllArgsConstructor;
 
+/**
+ * Represents a pair of objects, not necessarily of the same type.
+ *
+ * @param <L> left type
+ * @param <R> right type
+ */
 @AllArgsConstructor
 public class Pair<L, R> {
     public L left;
