@@ -29,6 +29,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -168,7 +169,7 @@ class DefaultSourceStreamTest {
     }
 
     @Test
-    @DisplayName("When acking, commit records to the underlying source task")
+    @DisplayName("Ack with single read record")
     void testCommitOnAck() throws InterruptedException {
         var sourceRec = mockSourceRec(Map.of("p1", "p1-value"), Map.of("o1", "o1-value"));
         var conduitRec = testConduitRec();
@@ -188,7 +189,7 @@ class DefaultSourceStreamTest {
 
         // DefaultSourceStream has a worker thread internally
         // so we need to give it a bit of time to start polling
-        verify(streamObserver, timeout(200_000)).onNext(any());
+        verify(streamObserver, timeout(200)).onNext(any());
         verify(streamObserver, never()).onError(any());
 
         var ackRequest = Source.Run.Request.newBuilder()
@@ -198,6 +199,53 @@ class DefaultSourceStreamTest {
 
         verify(task).commitRecord(sourceRec, null);
         verify(task).commit();
+    }
+
+    @Test
+    @DisplayName("Ack with multiple read record")
+    void testCommitOnAck_MultipleRecords() throws InterruptedException {
+        var position = new SourcePosition();
+        var sr1 = mockSourceRec(Map.of("p1", "p1-value"), Map.of("o1", "o1-value"));
+        var cr1 = testConduitRec();
+
+        var sr2 = mockSourceRec(Map.of("p2", "p2-value"), Map.of("o2", "o2-value"));
+        var cr2 = testConduitRec();
+        var cr2pos = ByteString.copyFromUtf8(
+            "{\"positions\":{\"{\\\"map\\\":{\\\"p1\\\":\\\"p1-value\\\"}}\":{\"map\":{\"o1\":\"o1-value\"}},\"{\\\"map\\\":{\\\"p2\\\":\\\"p2-value\\\"}}\":{\"map\":{\"o2\":\"o2-value\"}}}}"
+        );
+
+        var sr3 = mockSourceRec(Map.of("p3", "p3-value"), Map.of("o3", "o3-value"));
+        var cr3 = testConduitRec();
+
+        when(task.poll()).thenReturn(List.of(sr1, sr2, sr3), List.of());
+
+        when(transformer.apply(sr1)).thenReturn(cr1);
+        when(transformer.apply(sr2)).thenReturn(cr2);
+        when(transformer.apply(sr3)).thenReturn(cr3);
+
+        DefaultSourceStream underTest = new DefaultSourceStream(
+            task,
+            position,
+            streamObserver,
+            transformer
+        );
+
+        underTest.startAsync();
+
+        // DefaultSourceStream has a worker thread internally
+        // so we need to give it a bit of time to start polling
+        verify(streamObserver, timeout(200).times(3)).onNext(any());
+        verify(streamObserver, never()).onError(any());
+
+        var ackRequest = Source.Run.Request.newBuilder()
+            .setAckPosition(cr2pos)
+            .build();
+        underTest.onNext(ackRequest);
+
+        verify(task).commitRecord(sr1, null);
+        verify(task).commitRecord(sr2, null);
+        verify(task).commit();
+        verifyNoMoreInteractions(task);
     }
 
     private SourceRecord mockSourceRec(Map<String, ?> partition, Map<String, ?> offset) {

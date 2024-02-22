@@ -46,6 +46,10 @@ public class DefaultSourceStream implements SourceStream {
 
     private final Function<SourceRecord, Record.Builder> transformer;
     private final SourcePosition position;
+    // readRecords is a queue where we save records which have been read
+    // from the underlying Kafka Connect source.
+    // We need the SourceRecord (so we can commit it),
+    // and the Conduit record (so we can find the position to be acked)
     private final Queue<Pair<SourceRecord, Record>> readRecords = new ConcurrentLinkedQueue<>();
 
     public DefaultSourceStream(SourceTask task,
