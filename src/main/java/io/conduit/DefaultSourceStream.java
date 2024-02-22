@@ -19,6 +19,7 @@ package io.conduit;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Function;
 
 import com.google.protobuf.ByteString;
@@ -43,9 +44,9 @@ public class DefaultSourceStream implements SourceStream {
     private final StreamObserver<Source.Run.Response> responseObserver;
     private boolean shouldRun = true;
 
-    private final Queue<SourceRecord> buffer = new LinkedList<>();
     private final Function<SourceRecord, Record.Builder> transformer;
     private final SourcePosition position;
+    private final Queue<Pair<SourceRecord, Record>> readRecords = new ConcurrentLinkedQueue<>();
 
     public DefaultSourceStream(SourceTask task,
                                SourcePosition position,
@@ -61,14 +62,14 @@ public class DefaultSourceStream implements SourceStream {
     public void run() {
         while (shouldRun) {
             try {
-                doPoll();
+                getRecords();
             } catch (Exception e) { //NOSONAR no need to re-throw InterruptedException, service will stop.
                 logger.error("Couldn't write record.", e);
                 responseObserver.onError(
-                        Status.INTERNAL
-                                .withDescription("couldn't read record: " + e.getMessage())
-                                .withCause(e)
-                                .asException()
+                    Status.INTERNAL
+                        .withDescription("couldn't read record: " + e.getMessage())
+                        .withCause(e)
+                        .asException()
                 );
             }
         }
@@ -77,43 +78,63 @@ public class DefaultSourceStream implements SourceStream {
 
     /**
      * Polls buffer for new messages and processes them.
-    **/
-    public void doPoll() throws InterruptedException {
-        if (buffer.isEmpty()) {
-            fillBuffer();
-        }
-        SourceRecord rec = buffer.poll();
-        // We may get so-called tombstone records, i.e. records with a null payload.
-        // This can happen when records are deleted, for example.
-        // This is used in Kafka Connect internally, more precisely for log compaction in Kafka.
-        // For more info: https://kafka.apache.org/documentation/#compaction
-        if (rec.value() != null) {
-            Source.Run.Response resp = responseWith(rec);
-            task.commitRecord(rec, null);
-            logger.debug("committed processed record {}", rec);
+     **/
+    public void getRecords() {
+        var polled = getKafkaSourceRecords();
+        polled.forEach(rec -> {
+            // We may get so-called tombstone records, i.e. records with a null payload.
+            // This can happen when records are deleted, for example.
+            // This is used in Kafka Connect internally, more precisely for log compaction in Kafka.
+            // For more info: https://kafka.apache.org/documentation/#compaction
+            if (rec.value() != null) {
+                Source.Run.Response resp = responseWith(rec);
+                readRecords.add(new Pair<>(rec, resp.getRecord()));
 
-            responseObserver.onNext(resp);
-        }
+                responseObserver.onNext(resp);
+            }
+        });
     }
 
     @Override
     @SneakyThrows
-    public void onNext(Source.Run.Request value) {
-        logger.debug("poll buffer size {}", buffer.size());
+    public void onNext(Source.Run.Request request) {
+        List<SourceRecord> toCommit = new LinkedList<>();
+        boolean positionFound = false;
+        while (!readRecords.isEmpty()) {
+            var pair = readRecords.poll();
+            toCommit.add(pair.left);
 
-        if (buffer.isEmpty()) {
-            logger.debug("committing all records");
-            task.commit();
+            if (request.getAckPosition().equals(pair.right.getPosition())) {
+                positionFound = true;
+                break;
+            }
+        }
+
+        if (positionFound) {
+            commit(toCommit);
+        } else {
+            responseObserver.onError(new IllegalArgumentException(
+                String.format("position %s not found in read records", request.getAckPosition().toStringUtf8())
+            ));
         }
     }
 
     @SneakyThrows
-    private void fillBuffer() {
+    private void commit(List<SourceRecord> recs) {
+        for (SourceRecord rec : recs) {
+            task.commitRecord(rec, null);
+        }
+        task.commit();
+    }
+
+    @SneakyThrows
+    private List<SourceRecord> getKafkaSourceRecords() {
         List<SourceRecord> polled = task.poll();
         while (Utils.isEmpty(polled)) {
             polled = task.poll();
         }
-        buffer.addAll(polled);
+
+        return polled;
     }
 
     @SneakyThrows
@@ -121,11 +142,11 @@ public class DefaultSourceStream implements SourceStream {
         position.add(rec.sourcePartition(), rec.sourceOffset());
 
         Record.Builder conduitRec = transformer.apply(rec)
-                .setPosition(position.asByteString());
+            .setPosition(position.asByteString());
 
         return Source.Run.Response.newBuilder()
-                .setRecord(conduitRec)
-                .build();
+            .setRecord(conduitRec)
+            .build();
     }
 
     @Override
@@ -133,7 +154,7 @@ public class DefaultSourceStream implements SourceStream {
         logger.error("Experienced an error.", t);
         stop();
         responseObserver.onError(
-                Status.INTERNAL.withDescription("Error: " + t.getMessage()).withCause(t).asException()
+            Status.INTERNAL.withDescription("Error: " + t.getMessage()).withCause(t).asException()
         );
     }
 
