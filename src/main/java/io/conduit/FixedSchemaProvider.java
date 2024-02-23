@@ -34,4 +34,12 @@ public class FixedSchemaProvider implements SchemaProvider {
     public Schema provide(Record rec) {
         return schema;
     }
+
+    @Override
+    public String name() {
+        if (schema == null) {
+            return null;
+        }
+        return schema.name();
+    }
 }
