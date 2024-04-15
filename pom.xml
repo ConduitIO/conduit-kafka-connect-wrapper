@@ -18,7 +18,7 @@
         <kafka.version>3.7.0</kafka.version>
         <mockito.version>5.11.0</mockito.version>
         <junit.version>5.10.2</junit.version>
-        <logback.version>1.5.3</logback.version>
+        <logback.version>1.5.5</logback.version>
     </properties>
 
     <dependencyManagement>
