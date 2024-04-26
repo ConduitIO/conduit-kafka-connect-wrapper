@@ -23,6 +23,7 @@ class ConfigTest {
         assertTrue(actual.isSaveSchema());
         assertEquals(
             Map.of(
+                "connector.class", "test-connector-class",
                 "kafka.connector.param1", "test-value-1",
                 "kafka.connector.param2", "test-value-2"
             ),

@@ -94,7 +94,10 @@ class SourceServiceTest {
         verify(task).start(propsCaptor.capture());
         assertEquals(
             propsCaptor.getValue(),
-            Map.of("another.param", "another.value")
+            Map.of(
+                "connector.class", "io.foo.bar",
+                "another.param", "another.value"
+            )
         );
 
         verify(startStream).onNext(any(Source.Start.Response.class));
@@ -123,7 +126,10 @@ class SourceServiceTest {
         verify(task).start(propsCaptor.capture());
         assertEquals(
             propsCaptor.getValue(),
-            Map.of("another.param", "another.value")
+            Map.of(
+                "connector.class", "io.foo.bar",
+                "another.param", "another.value"
+            )
         );
 
         verify(startStream, never()).onNext(any());

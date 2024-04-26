@@ -65,6 +65,7 @@ public class Config {
             }
         });
         T cfg = mapper.convertValue(wrapperMap, clazz);
+        connectorMap.put("connector.class", cfg.getConnectorClass());
         cfg.setKafkaConnectorCfg(connectorMap);
         return cfg;
     }
