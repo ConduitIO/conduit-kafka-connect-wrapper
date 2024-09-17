@@ -42,4 +42,17 @@ public class CombinedSchemaProvider implements SchemaProvider {
         }
         return null;
     }
+
+    @Override
+    public String name() {
+        if (rawDataSP != null) {
+            return rawDataSP.name();
+        }
+
+        if (structSP != null) {
+            return structSP.name();
+        }
+
+        return null;
+    }
 }
