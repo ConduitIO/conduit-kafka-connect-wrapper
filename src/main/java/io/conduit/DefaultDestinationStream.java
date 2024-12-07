@@ -18,6 +18,7 @@ package io.conduit;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.protobuf.ByteString;
 import io.conduit.grpc.Destination;
@@ -27,6 +28,7 @@ import io.grpc.stub.StreamObserver;
 import lombok.SneakyThrows;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.internals.Topic;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -45,13 +47,20 @@ public class DefaultDestinationStream implements StreamObserver<Destination.Run.
     private final StreamObserver<Destination.Run.Response> responseObserver;
     private final ToConnectData toConnectData;
 
+    private final SimpleDestinationTaskCtx taskCtx;
+
+    private final AtomicLong offsetCounter;
+
     public DefaultDestinationStream(SinkTask task,
                                     SchemaProvider schemaProvider,
+                                    SimpleDestinationTaskCtx taskCtx,
                                     StreamObserver<Destination.Run.Response> responseObserver) {
         this.task = task;
         this.schemaProvider = schemaProvider;
         this.responseObserver = responseObserver;
         this.toConnectData = new ToConnectData();
+        this.taskCtx = taskCtx;
+        this.offsetCounter = new AtomicLong(1);
     }
 
     @Override
@@ -60,7 +69,7 @@ public class DefaultDestinationStream implements StreamObserver<Destination.Run.
             // Currently, Conduit requires all writes to be asynchronous.
             // See: pkg/connector/destination.go, method Write().
             Record rec = request.getRecord();
-            doWrite(rec);
+            doWriteWithOffsetRetry(rec);
             responseObserver.onNext(responseWith(rec.getPosition()));
         } catch (Exception e) {
             logger.error("Couldn't write record.", e);
@@ -80,8 +89,20 @@ public class DefaultDestinationStream implements StreamObserver<Destination.Run.
             .build();
     }
 
-    private void doWrite(Record rec) {
-        SinkRecord sinkRecord = toSinkRecord(rec);
+    private void doWriteWithOffsetRetry(Record rec) {
+        synchronized (taskCtx) {
+            SinkRecord sinkRecord = toSinkRecord(rec);
+            doWrite(sinkRecord);
+
+            TopicPartition tp = new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition());
+            if (taskCtx.isReset(tp, sinkRecord.kafkaOffset())) {
+                taskCtx.ackResetOffset(tp, sinkRecord.kafkaOffset());
+                doWrite(sinkRecord);
+            }
+        }
+    }
+
+    private void doWrite(SinkRecord sinkRecord) {
         task.put(List.of(sinkRecord));
         task.preCommit(Map.of(
             new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition()),
@@ -94,21 +115,25 @@ public class DefaultDestinationStream implements StreamObserver<Destination.Run.
         // todo cache the JSON object
         // Also related to: https://github.com/ConduitIO/conduit-kafka-connect-wrapper/issues/58
         var schema = schemaProvider.provide(rec);
-
         Object value = toConnectData.apply(rec, schema);
+
         var schemaUsed = getSchema(value, schema);
+
+        // Set first offset encountered in the runtime to the current time in millis.
+        offsetCounter.compareAndSet(1, System.currentTimeMillis());
+
         // While there's no real topic involved, we still assign values
         // to topic, partition and offset since the underlying connector might use them.
         // The offset is set to System.currentTimeMillis() to mimic the increasing
         // offset values if a Kafka topic partition.
         return new SinkRecord(
-            schemaUsed != null ? schemaUsed.name() : null,
-            0,
-            Schema.STRING_SCHEMA,
-            rec.getKey().getRawData().toStringUtf8(),
-            schemaUsed,
-            value,
-            System.currentTimeMillis()
+                schemaUsed != null ? schemaUsed.name() : schemaProvider.name(),
+                0,
+                Schema.STRING_SCHEMA,
+                rec.getKey().getRawData().toStringUtf8(),
+                schemaUsed,
+                value,
+                offsetCounter.incrementAndGet()
         );
     }
 

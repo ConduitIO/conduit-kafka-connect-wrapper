@@ -43,6 +43,11 @@ public class StructSchemaProvider implements SchemaProvider {
         return schemaForStruct(rec.getPayload().getAfter().getStructuredData());
     }
 
+    @Override
+    public String name() {
+        return name;
+    }
+
     private Schema schemaForStruct(Struct struct) {
         SchemaBuilder builder = new SchemaBuilder(Schema.Type.STRUCT)
                 .name(name)

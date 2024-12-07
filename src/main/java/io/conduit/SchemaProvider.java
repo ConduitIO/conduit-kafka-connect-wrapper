@@ -24,4 +24,6 @@ import org.apache.kafka.connect.data.Schema;
  */
 public interface SchemaProvider {
     Schema provide(Record rec);
+
+    String name();
 }
