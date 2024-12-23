@@ -13,7 +13,7 @@
         <maven.compiler.target>20</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <grpc.version>1.69.0</grpc.version>
-        <protobuf.version>4.29.1</protobuf.version>
+        <protobuf.version>4.29.2</protobuf.version>
         <protoc.version>3.19.2</protoc.version>
         <kafka.version>3.9.0</kafka.version>
         <mockito.version>5.14.2</mockito.version>
