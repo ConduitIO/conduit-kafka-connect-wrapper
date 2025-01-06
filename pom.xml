@@ -16,7 +16,7 @@
         <protobuf.version>4.29.2</protobuf.version>
         <protoc.version>3.19.2</protoc.version>
         <kafka.version>3.9.0</kafka.version>
-        <mockito.version>5.14.2</mockito.version>
+        <mockito.version>5.15.2</mockito.version>
         <junit.version>5.11.4</junit.version>
         <logback.version>1.5.16</logback.version>
     </properties>
