@@ -48,6 +48,11 @@ public class RawDataSchemaProvider implements SchemaProvider {
         return schemaForJson(json);
     }
 
+    @Override
+    public String name() {
+        return name;
+    }
+
     private Schema schemaForJson(JsonNode json) {
         switch (json.getNodeType()) {
             case OBJECT:

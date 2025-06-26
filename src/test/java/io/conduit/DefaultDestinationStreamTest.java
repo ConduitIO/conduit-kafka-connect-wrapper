@@ -54,6 +54,7 @@ class DefaultDestinationStreamTest {
         var underTest = new DefaultDestinationStream(
             task,
             schemaProvider,
+            new SimpleDestinationTaskCtx(null),
             responseObserver
         );
 
@@ -112,6 +113,7 @@ class DefaultDestinationStreamTest {
         var underTest = new DefaultDestinationStream(
             task,
             schemaProvider,
+            new SimpleDestinationTaskCtx(null),
             responseObserver
         );
 
@@ -128,6 +130,7 @@ class DefaultDestinationStreamTest {
         var underTest = new DefaultDestinationStream(
             task,
             schemaProvider,
+            new SimpleDestinationTaskCtx(null),
             responseObserver
         );
 

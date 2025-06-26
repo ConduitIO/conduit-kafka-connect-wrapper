@@ -41,6 +41,8 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
     private boolean started;
     private SchemaProvider schemaProvider;
 
+    private SimpleDestinationTaskCtx taskCtx;
+
     public DestinationService(TaskFactory taskFactory) {
         this.taskFactory = taskFactory;
     }
@@ -72,6 +74,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
         this.task = taskFactory.newSinkTask(config.getConnectorClass());
         this.schemaProvider = buildSchemaProvider(config);
         this.config = config.getKafkaConnectorCfg();
+        this.taskCtx = new SimpleDestinationTaskCtx(this.config);
     }
 
     private SchemaProvider buildSchemaProvider(DestinationConfig config) {
@@ -105,6 +108,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
         logger.info("Starting the destination.");
 
         try {
+            task.initialize(taskCtx);
             task.start(config);
             started = true;
             logger.info("Destination started.");
@@ -121,7 +125,7 @@ public class DestinationService extends DestinationPluginGrpc.DestinationPluginI
 
     @Override
     public StreamObserver<Destination.Run.Request> run(StreamObserver<Destination.Run.Response> responseObserver) {
-        this.runStream = new DefaultDestinationStream(task, schemaProvider, responseObserver);
+        this.runStream = new DefaultDestinationStream(task, schemaProvider, taskCtx, responseObserver);
         return runStream;
     }
 
